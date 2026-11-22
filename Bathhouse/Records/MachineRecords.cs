@@ -80,14 +80,27 @@ static class MachineRecords
     /// </summary>
     static FcsRecord Building(GameDatabase game, Spec spec, string work)
     {
-        var model = RecordKit.Model(game, FcsRecordType.Building, spec.ModelId, spec.ModelName);
+        var standIn = RecordKit.Model(game, FcsRecordType.Building, spec.ModelId, spec.ModelName);
+        var model = FurnitureRecords.OwnLook(game, spec.Id) ?? standIn;
         var record = RecordKit.Copy(model, spec.Id, spec.Name, "functionality", "upgrades to");
+
+        if (model != standIn) KeepCost(standIn, record);
 
         RecordKit.Links(record, "functionality", (work, 0, 0));
         record.Strings["building category"] = spec.Category;
         record.Strings["Description"] = spec.Text;
         record.Bools["creates player town"] = true;
         return record;
+    }
+
+    /// <summary>
+    /// A machine on its own look keeps the stand-in's build cost and power draw, so only its look changes.
+    /// </summary>
+    static void KeepCost(GameRecord standIn, FcsRecord record)
+    {
+        RecordKit.CopyLinks(standIn, record, "construction");
+        if (standIn.Ints.TryGetValue("power output", out int power)) record.Ints["power output"] = power;
+        else record.Ints.Remove("power output");
     }
 
     #endregion
