@@ -9,6 +9,11 @@ namespace Bathhouse.Records;
 static class RecordKit
 {
     /// <summary>
+    /// The build menu category every bathhouse building is listed under (docs/bathhouse.md "Build menu").
+    /// </summary>
+    public const string BuildCategory = "BATH HOUSE";
+
+    /// <summary>
     /// A new record, as a mod file adds one.
     /// </summary>
     public static FcsRecord New(string id, FcsRecordType type, string name) => new() { StringId = id, Flags = 0x10, Name = name, RecordType = type };
