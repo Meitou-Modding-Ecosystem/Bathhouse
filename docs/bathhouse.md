@@ -34,7 +34,7 @@ small tub 1.2 m long (0.62 m tall), medium 2 m (0.96), large 3.5 m (0.5), oil 1.
 massage bed 2 m long (0.72 m tall), massage station 1 m tall (1.07 m long), check-in counter 2.5 m long (0.95 m tall), laundry hamper
 0.8 m tall. Later exports come in meters at the prompt's height and keep it: soap press 1.8 m, tea bench 1 m, tea table 0.4 m, towel loom
 1.8 m, washing machine 1.6 m, tea dryer 1.6 m, pottery kiln 2 m, towel rack 1.6 m, locker bank 1.7 m. A machine on its own look keeps its stand-in's build cost and power draw
-(`MachineRecords.KeepCost`). The massage bed and the counter keep their stand-in's functionality and inventory (`KeepWork`; the copy carries no use nodes, so a
+(`MachineRecords.KeepCost`). The massage bed and the counter keep their stand-in's functionality, inventory and `output rate` (`KeepWork`; the copy carries no use nodes, so a
 customer lies at the bed's origin facing its way, as on the stand-in); the station's operator stands within the
 functionality's use range of its origin (a building with fewer than two use nodes is reached at its position marker).
 Model textures are kept at 2048 (base colour and metal/roughness as JPEG quality 92, normal map as lossless PNG): the import bakes 2048 DDS
@@ -111,7 +111,8 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   the searcher's faction, so each massage bed is marked unreachable for every faction (`MarkUnreachable`, until the end of the next 24-hour
   period, renewed each period and after a load). A use-bed or put-in-bed order naming the bed, and the customers' `EnterBed`, do not ask.
   Not covered: the engine's `SquadAutonomy.HomeBed`, which gives a code-mod-autonomous player squad the beds of its assigned home in creation
-  order without asking. The bed's `output rate` is 32 (the game's Bed 8), so anyone lying in it heals 4 times as fast as in a Bed. No chair
+  order without asking. The bed heals as the game's Bed (its stand-in's `output rate`, 8); while someone works its station (`BedHealing`) the mod adds 3 times what
+  the game healed of each part since the last check, out of the part's treated damage, so it heals 4 times as fast. No chair
   of the mod has the Chair function (17) or a chair spot, so "Sit when idle" never picks one.
 - **Complaints** (`Complaints`): a quality under the kind's demand (or a long wait) pays nothing; the customer's faction loses relation per
   complaint towards the player's (`PlayerRelations.Add`), at most the daily cap per faction. With the fight chance (twice for rowdy kinds) it

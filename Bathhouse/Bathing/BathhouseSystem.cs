@@ -101,6 +101,11 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     readonly PrivateBeds _privateBeds;
 
     /// <summary>
+    /// The attended massage beds' fast healing.
+    /// </summary>
+    readonly BedHealing _bedHealing = new();
+
+    /// <summary>
     /// The customer kinds the debug row asked to send since the last check.
     /// </summary>
     readonly List<string> _sendKinds = [];
@@ -187,6 +192,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
         _clientele.Step(world, tubs, settings, hours);
         _staff.Step(world);
         _privateBeds.Step(world);
+        _bedHealing.Step(world);
         Publish(world, tubs);
     }
 

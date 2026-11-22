@@ -81,12 +81,6 @@ static class FurnitureRecords
     const int BloodBathMeat = 10;
 
     /// <summary>
-    /// The massage bed's <c>output rate</c>, the factor it heals a body lying in it by: four times the game's Bed (8), above any bed in the game
-    /// data (the Medical Bed of Universal Wasteland Expansion is 10).
-    /// </summary>
-    const float MassageBedHealing = 32;
-
-    /// <summary>
     /// Every piece, in id order.
     /// </summary>
     static readonly Spec[] Specs =
@@ -164,7 +158,6 @@ static class FurnitureRecords
         record.Bools["creates player town"] = true;
 
         if (spec.Id == Ids.BloodBath) AddMeat(record);
-        if (spec.Id == Ids.MassageBed) record.Floats["output rate"] = MassageBedHealing;
         return record;
     }
 
@@ -203,12 +196,14 @@ static class FurnitureRecords
 
     /// <summary>
     /// A piece that works as its stand-in (the massage bed lies a customer down as the game's bed, the counter sells as the game's shop counter)
-    /// keeps the stand-in's functionality and inventory on its own look. With no use node a sleeper lies at the piece's origin, facing its way.
+    /// keeps the stand-in's functionality, inventory and <c>output rate</c> (a bed's healing factor) on its own look. With no use node a sleeper lies
+    /// at the piece's origin, facing its way.
     /// </summary>
     static void KeepWork(GameRecord standIn, FcsRecord record)
     {
         RecordKit.CopyLinks(standIn, record, "functionality");
         RecordKit.CopyLinks(standIn, record, "limit inventory");
+        if (standIn.Floats.TryGetValue("output rate", out float rate)) record.Floats["output rate"] = rate;
         record.Bools["has inventory"] = standIn.Bools.GetValueOrDefault("has inventory");
         foreach (string size in (string[])["storage size width", "storage size height"])
         {
