@@ -29,7 +29,8 @@ public static class Massage
     public const float AttendantReach = 40;
 
     /// <summary>
-    /// A free massage bed with a station in the building; null for none. Beds other visits hold are taken.
+    /// A free massage bed with a station in the building; null for none. Beds other visits hold are taken, and so is one somebody lies in (it is a
+    /// player bed, so the squad sleeps and heals in it too).
     /// </summary>
     public static BuildSite? FreeBed(World world, string? building, IEnumerable<Visit> visits)
     {
@@ -37,7 +38,7 @@ public static class Massage
 
         var held = visits.Where(v => v.Phase == VisitPhase.Massage).Select(v => v.Bed).ToHashSet();
         return world.Buildings.All.FirstOrDefault(s => IsPiece(s, Ids.MassageBed) && s.Parent == building && !held.Contains(s.Id)
-            && Station(world, s) is not null && BedOf(world, s) is not null);
+            && Station(world, s) is not null && BedOf(world, s) is { } bed && FixtureRegistry.IsFree(world.Characters, bed));
     }
 
     /// <summary>
