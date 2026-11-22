@@ -189,6 +189,8 @@ static class FurnitureRecords
             Ids.TeaDryer => Ids.TeaDryerLook,
             Ids.Kiln => Ids.KilnLook,
             Ids.ReviewBoard => Ids.ReviewBoardLook,
+            Ids.Statue => Ids.StatueLook,
+            Ids.ZenGarden => Ids.ZenGardenLook,
             _ => null,
         };
 
