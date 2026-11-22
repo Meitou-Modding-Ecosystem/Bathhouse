@@ -10,6 +10,13 @@ heated tubs and paying bathers. GPL-3.0-or-later. What it does: [docs/bathhouse.
 - Publishing the mod to the Steam Workshop for the first time, then on every release: [docs/steam-workshop.md](docs/steam-workshop.md).
 - Turning `.glb` models (Meshy, Hi3D, Blender) into buildable structures, no FCS needed: [docs/structures.md](docs/structures.md).
 
+## Customers can be attacked on the road
+
+Customer groups travel to your bathhouse as ordinary squads. While they are away from your squads, Meitou's **Fights far away** setting lets
+them meet hostile squads and fight it out off screen, and a group that loses never arrives (the bathhouse posts that it never made it, and
+the next group may set out at once). A bathhouse in dangerous country gets fewer customers. To turn it off: **Settings > Advanced > Fights
+far away** (it affects every squad in the world, not only customers).
+
 ## Layout
 
 - `engine/`: MeitouClient as a git submodule, pinned to the engine commit the mod builds against. After a pull that moves it:
