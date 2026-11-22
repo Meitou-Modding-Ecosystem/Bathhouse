@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <None Include="meitou.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="items/icons/*.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
