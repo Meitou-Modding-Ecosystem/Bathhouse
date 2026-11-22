@@ -35,8 +35,8 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   above 0), more tub seats than lit boilers x seats per boiler (lukewarm), else hot. Hot and lukewarm are warm; a tub outdoors is cold. Lit
   boilers drink Water per day each, taken unit by unit from the building's storage pieces (the water tank first in site order); what is owed under
   one unit is saved.
-- **Player bathers** (`BathJobs`): each tub record has a mod job "Take a bath" for people. The system turns a held job into a soak at once and
-  takes the job off; a character that cannot go (cold tub, full tub) barks why.
+- **Player bathers**: a tub's panel has a "Take a bath" button (`BatheCommand`) that sends the player's selected characters (inspecting a
+  building keeps the selection). The next check turns each into a soak; one that cannot go (cold tub, full tub) barks why.
 - **Soaks** (`Soaks`): a sent bather holds the first free seat and gets the bath goal's desire (0.75, urgent tier; 0 for everyone else).
   When the chooser starts the goal the bather walks to the tub's approach point (15 units in front, local +Z), is placed in its seat (one at the
   centre, two side by side, four on a square, 6 units out) and rests there (`CharacterTask.Rest`, sitting on the ground) on row 4401. Warm
@@ -48,7 +48,7 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
 - **Towels** (`Towels`): from the bather's inventory, else the building's first store holding one. A used towel comes back dirty at the
   towels-kept chance (`Rng.Hash` of the world seed, the character and the tick), else it is ruined; a dirty one goes into the building's first
   hamper with room, else on the floor. A player's character right-clicks a towel to use it the same way (the dirty one back in its inventory).
-- **Panels** (`BathhouseUi`): a tub shows its water and seats taken; a boiler shows its building's heat (tooltip: boilers lit, seats heated,
+- **Panels** (`BathhouseUi`): a tub shows its water and seats taken and the bath button; a boiler shows its building's heat (tooltip: boilers lit, seats heated,
   Water) and one switch per Bad status effect of any mod (the first four) for whether soaks clear it. The switches are saved with the game.
 - **Debug row** "Bathhouse: tubs and bathers": each building's heat and each soak.
 

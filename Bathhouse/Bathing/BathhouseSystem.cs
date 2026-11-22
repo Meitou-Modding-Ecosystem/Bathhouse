@@ -11,6 +11,11 @@ namespace Bathhouse.Bathing;
 public sealed record KeepDebuffCommand(string Effect, bool Keep) : SimCommand;
 
 /// <summary>
+/// Sends the player's selected characters to bathe in a tub (the tub panel's "Take a bath" button).
+/// </summary>
+public sealed record BatheCommand(string Tub) : SimCommand;
+
+/// <summary>
 /// What the panel of a tub or boiler shows: its building's heat, and for a tub the seats taken.
 /// </summary>
 public readonly record struct PieceView(BuildingHeat Heat, int Taken, int Seats);
@@ -44,6 +49,11 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     readonly RngPurpose _purpose;
 
     /// <summary>
+    /// The player's characters sent to bathe since the last check, with their tub's site, in command order.
+    /// </summary>
+    readonly List<(CharacterId Who, string Tub)> _sent = [];
+
+    /// <summary>
     /// The game hour of the last check; NaN before the first.
     /// </summary>
     double _lastHours = double.NaN;
@@ -63,12 +73,28 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     {
         foreach (var command in commands)
         {
-            if (command is not KeepDebuffCommand keep) continue;
-
-            if (keep.Keep) _kept.Add(keep.Effect);
-            else _kept.Remove(keep.Effect);
-            _keptView = new SortedSet<string>(_kept, StringComparer.Ordinal);
+            if (command is BatheCommand bathe) Bathe(world, bathe.Tub);
+            else if (command is KeepDebuffCommand keep) Keep(keep);
         }
+    }
+
+    /// <summary>
+    /// Notes the player's selected characters as sent to the tub; the next check sends them.
+    /// </summary>
+    void Bathe(World world, string tub)
+    {
+        foreach (var who in world.Player.Selection) _sent.Add((who, tub));
+    }
+
+    /// <summary>
+    /// Keeps a bad effect from being cleared by soaks, or clears it again.
+    /// </summary>
+    void Keep(KeepDebuffCommand keep)
+    {
+        if (keep.Keep) _kept.Add(keep.Effect);
+        else _kept.Remove(keep.Effect);
+
+        _keptView = new SortedSet<string>(_kept, StringComparer.Ordinal);
     }
 
     public void SlowWorld(World world)
@@ -87,12 +113,16 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     }
 
     /// <summary>
-    /// Sends the player's characters that took a bath verb to their tub; one that cannot go says why.
+    /// Sends the player's characters sent to bathe to their tub; one that cannot go says why.
     /// </summary>
     void SendPlayers(World world, List<Tub> tubs)
     {
-        foreach (var (slot, site) in BathJobs.Take(world))
+        var sent = _sent.ToList();
+        _sent.Clear();
+        foreach (var (who, site) in sent)
         {
+            if (!world.Characters.TryResolveNext(who, out int slot) || !world.Characters.Next[slot].Alive) continue;
+            if (world.Characters.Cold(slot) is not { IsPlayer: true }) continue;
             if (tubs.Find(t => t.Site.Id == site) is not { } tub) continue;
             if (_soaks.Send(world, slot, tub, player: true)) continue;
 

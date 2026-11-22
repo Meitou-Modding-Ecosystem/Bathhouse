@@ -37,7 +37,6 @@ public sealed class BathhouseMod : IMod, IModDataPhase
         context.AddSettings(BathhouseSettings.Current);
         context.AddGoalType(Soaks.Row, "Bathhouse: taking a bath");
         context.AddStatusEffect(Soothing.Soothed);
-        foreach (var kind in BathJobs.Kinds) context.AddJob(kind);
 
         var purpose = context.RngPurpose;
         context.AddItemUse(Ids.Towel, use => Towels.Use(use, purpose));

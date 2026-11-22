@@ -27,7 +27,7 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system) : IUiExtension
         if (!building.Owned || system() is not { } bathhouse || bathhouse.Piece(building.SiteId) is not { } view) return [];
 
         if (building.Record == Ids.Boiler) return [BoilerLine(view), .. DebuffLines(context, bathhouse)];
-        return [TubLine(view)];
+        return [TubLine(view), BatheLine(context)];
     }
 
     /// <summary>
@@ -38,6 +38,20 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system) : IUiExtension
         string water = view.Heat.Warm ? view.Heat.Heat == Heat.Hot ? "hot" : "lukewarm" : "cold";
         return new UiBuildingAction($"Water: {water}, {view.Taken} of {view.Seats} seats taken", BathhouseSystem.Describe(view.Heat.Heat), Nothing);
     }
+
+    /// <summary>
+    /// A tub's button: sends the selected characters to bathe in it.
+    /// </summary>
+    static UiBuildingAction BatheLine(UiBuildingContext context)
+    {
+        string tub = context.Building.SiteId!;
+        return new UiBuildingAction("Take a bath", "Sends the selected characters to soak in this tub.", Bathe(context, tub));
+    }
+
+    /// <summary>
+    /// The press of a tub's button: queues the command that sends the selection.
+    /// </summary>
+    static Action Bathe(UiBuildingContext context, string tub) => () => context.Enqueue(new BatheCommand(tub) { Tick = context.Tick });
 
     /// <summary>
     /// A boiler's line: its building's heat and how many seats the lit boilers heat.
