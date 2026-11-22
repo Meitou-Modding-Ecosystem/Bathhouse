@@ -188,6 +188,7 @@ static class FurnitureRecords
             Ids.WashingMachine => Ids.WashingMachineLook,
             Ids.TeaDryer => Ids.TeaDryerLook,
             Ids.Kiln => Ids.KilnLook,
+            Ids.ReviewBoard => Ids.ReviewBoardLook,
             _ => null,
         };
 

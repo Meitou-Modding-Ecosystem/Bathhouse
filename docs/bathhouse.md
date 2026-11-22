@@ -33,7 +33,7 @@ ids in `Ids` from `Structures/ids.json`), else the stand-in. Each model is scale
 small tub 1.2 m long (0.62 m tall), medium 2 m (0.96), large 3.5 m (0.5), oil 1.8 m (1.03), blood 2.5 m (1.53), steam boiler 2.2 m tall,
 massage bed 2 m long (0.72 m tall), massage station 1 m tall (1.07 m long), check-in counter 2.5 m long (0.95 m tall), laundry hamper
 0.8 m tall. Later exports come in meters at the prompt's height and keep it: soap press 1.8 m, tea bench 1 m, tea table 0.4 m, towel loom
-1.8 m, washing machine 1.6 m, tea dryer 1.6 m, pottery kiln 2 m, towel rack 1.6 m, locker bank 1.7 m. A machine on its own look keeps its stand-in's build cost and power draw
+1.8 m, washing machine 1.6 m, tea dryer 1.6 m, pottery kiln 2 m, towel rack 1.6 m, locker bank 1.7 m, review board 1.8 m. A machine on its own look keeps its stand-in's build cost and power draw
 (`MachineRecords.KeepCost`). The massage bed and the counter keep their stand-in's functionality, inventory and `output rate` (`KeepWork`; the copy carries no use nodes, so a
 customer lies at the bed's origin facing its way, as on the stand-in); the station's operator stands within the
 functionality's use range of its origin (a building with fewer than two use nodes is reached at its position marker).
