@@ -114,8 +114,8 @@ public static class Ids
         BoilerLook = "900600-" + FileName, MassageStationLook = "900700-" + FileName, CounterLook = "900800-" + FileName,
         HamperLook = "900900-" + FileName, SoapPressLook = "901000-" + FileName, TeaBenchLook = "901100-" + FileName,
         TeaTableLook = "901200-" + FileName, TowelLoomLook = "901300-" + FileName, WashingMachineLook = "901400-" + FileName,
-        LockersLook = "901500-" + FileName, TowelRackLook = "901600-" + FileName, TeaDryerLook = "901700-" + FileName, KilnLook = "901800-" + FileName,
-        ReviewBoardLook = "902100-" + FileName, StatueLook = "902200-" + FileName, ZenGardenLook = "902300-" + FileName;
+        LockersLook = "901500-" + FileName, TowelRackLook = "901600-" + FileName, TeaDryerLook = "901700-" + FileName,
+        KilnLook = "901800-" + FileName, ReviewBoardLook = "902100-" + FileName, StatueLook = "902200-" + FileName, ZenGardenLook = "902300-" + FileName;
 
     #endregion
 
