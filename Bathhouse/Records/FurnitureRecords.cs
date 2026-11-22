@@ -81,6 +81,12 @@ static class FurnitureRecords
     const int BloodBathMeat = 10;
 
     /// <summary>
+    /// The massage bed's <c>output rate</c>, the factor it heals a body lying in it by: four times the game's Bed (8), above any bed in the game
+    /// data (the Medical Bed of Universal Wasteland Expansion is 10).
+    /// </summary>
+    const float MassageBedHealing = 32;
+
+    /// <summary>
     /// Every piece, in id order.
     /// </summary>
     static readonly Spec[] Specs =
@@ -158,6 +164,7 @@ static class FurnitureRecords
         record.Bools["creates player town"] = true;
 
         if (spec.Id == Ids.BloodBath) AddMeat(record);
+        if (spec.Id == Ids.MassageBed) record.Floats["output rate"] = MassageBedHealing;
         return record;
     }
 

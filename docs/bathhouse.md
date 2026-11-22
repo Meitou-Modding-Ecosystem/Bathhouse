@@ -106,6 +106,13 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   player's people operates the station (a vanilla operate-machinery job, within 40 units), each hour pays 30 cats suggested x skill (0.5 + 0.5 x
   Dexterity / 50, 0.5 to 1.5). After 1 hour massaged, or 1 hour lying with nobody at the station (or waiting for the bed), it gets up and pays
   the soak, the tea and the massage so far.
+- **Private beds** (`PrivateBeds`): only customers and the player's orders use a massage bed. Every game bed search (sleeping, "Sleep when
+  injured", rescuing or putting someone in the nearest bed, NPC sleep, rented beds) passes over a bed `FixtureRegistry.Reachable` refuses for
+  the searcher's faction, so each massage bed is marked unreachable for every faction (`MarkUnreachable`, until the end of the next 24-hour
+  period, renewed each period and after a load). A use-bed or put-in-bed order naming the bed, and the customers' `EnterBed`, do not ask.
+  Not covered: the engine's `SquadAutonomy.HomeBed`, which gives a code-mod-autonomous player squad the beds of its assigned home in creation
+  order without asking. The bed's `output rate` is 32 (the game's Bed 8), so anyone lying in it heals 4 times as fast as in a Bed. No chair
+  of the mod has the Chair function (17) or a chair spot, so "Sit when idle" never picks one.
 - **Complaints** (`Complaints`): a quality under the kind's demand (or a long wait) pays nothing; the customer's faction loses relation per
   complaint towards the player's (`PlayerRelations.Add`), at most the daily cap per faction. With the fight chance (twice for rowdy kinds) it
   picks a fight: its squad gets a TEMP_ENEMY tag for each of the player's people within 300 units, never the faction.

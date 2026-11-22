@@ -29,8 +29,8 @@ public static class Massage
     public const float AttendantReach = 40;
 
     /// <summary>
-    /// A free massage bed with a station in the building; null for none. Beds other visits hold are taken, and so is one somebody lies in (it is a
-    /// player bed, so the squad sleeps and heals in it too).
+    /// A free massage bed with a station in the building; null for none. Beds other visits hold are taken, and so is one somebody lies in (one of
+    /// the player's people the player ordered into it, <see cref="PrivateBeds"/>).
     /// </summary>
     public static BuildSite? FreeBed(World world, string? building, IEnumerable<Visit> visits)
     {
