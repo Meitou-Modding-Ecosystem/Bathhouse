@@ -145,9 +145,12 @@ static class FurnitureRecords
     /// </summary>
     static FcsRecord Piece(GameDatabase game, Spec spec)
     {
-        var model = OwnLook(game, spec.Id) ?? RecordKit.Model(game, FcsRecordType.Building, spec.ModelId, spec.ModelName);
+        var standIn = RecordKit.Model(game, FcsRecordType.Building, spec.ModelId, spec.ModelName);
+        var model = OwnLook(game, spec.Id) ?? standIn;
         string[] skip = spec.Use == Use.Model ? ["upgrades to", "produces"] : ["functionality", "upgrades to", "produces"];
         var record = RecordKit.Copy(model, spec.Id, spec.Name, skip);
+
+        if (spec.Use == Use.Model && model != standIn) KeepWork(standIn, record);
 
         SetUse(record, spec.Use);
         record.Strings["building category"] = spec.Category;
@@ -162,7 +165,7 @@ static class FurnitureRecords
     /// The building the structure import made from the piece's own model (docs/structures.md), when the data has it; null to copy the game's
     /// stand-in (tests and tools that read the game without the deployed mod).
     /// </summary>
-    static GameRecord? OwnLook(GameDatabase game, string piece)
+    internal static GameRecord? OwnLook(GameDatabase game, string piece)
     {
         string? look = piece switch
         {
@@ -171,10 +174,31 @@ static class FurnitureRecords
             Ids.LargeTub => Ids.LargeTubLook,
             Ids.OilBath => Ids.OilBathLook,
             Ids.BloodBath => Ids.BloodBathLook,
+            Ids.MassageBed => Ids.MassageBedLook,
+            Ids.MassageStation => Ids.MassageStationLook,
+            Ids.Boiler => Ids.BoilerLook,
+            Ids.Counter => Ids.CounterLook,
+            Ids.Hamper => Ids.HamperLook,
             _ => null,
         };
 
         return look is not null && game.Find(look) is { Type: FcsRecordType.Building } building ? building : null;
+    }
+
+    /// <summary>
+    /// A piece that works as its stand-in (the massage bed lies a customer down as the game's bed, the counter sells as the game's shop counter)
+    /// keeps the stand-in's functionality and inventory on its own look. With no use node a sleeper lies at the piece's origin, facing its way.
+    /// </summary>
+    static void KeepWork(GameRecord standIn, FcsRecord record)
+    {
+        RecordKit.CopyLinks(standIn, record, "functionality");
+        RecordKit.CopyLinks(standIn, record, "limit inventory");
+        record.Bools["has inventory"] = standIn.Bools.GetValueOrDefault("has inventory");
+        foreach (string size in (string[])["storage size width", "storage size height"])
+        {
+            if (standIn.Ints.TryGetValue(size, out int value)) record.Ints[size] = value;
+            else record.Ints.Remove(size);
+        }
     }
 
     /// <summary>

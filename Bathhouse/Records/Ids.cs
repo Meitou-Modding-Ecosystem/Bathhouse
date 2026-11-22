@@ -101,11 +101,13 @@ public static class Ids
     #region Models
 
     /// <summary>
-    /// The tubs' own models: the buildings the structure import makes from <c>Structures/&lt;tub&gt;.glb</c> (block b in
-    /// <c>Structures/ids.json</c> is building 900000 + 100 b). Each tub copies its look when the deployed data has it.
+    /// The pieces' own models: the buildings the structure import makes from <c>Structures/&lt;piece&gt;.glb</c> (block b in
+    /// <c>Structures/ids.json</c> is building 900000 + 100 b). Each piece copies its look when the deployed data has it.
     /// </summary>
     public const string SmallTubLook = "900000-" + FileName, BloodBathLook = "900100-" + FileName, LargeTubLook = "900200-" + FileName,
-        MediumTubLook = "900400-" + FileName, OilBathLook = "900500-" + FileName;
+        MassageBedLook = "900300-" + FileName, MediumTubLook = "900400-" + FileName, OilBathLook = "900500-" + FileName,
+        BoilerLook = "900600-" + FileName, MassageStationLook = "900700-" + FileName, CounterLook = "900800-" + FileName,
+        HamperLook = "900900-" + FileName;
 
     #endregion
 
