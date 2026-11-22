@@ -16,10 +16,10 @@ static class MachineRecords
 
     /// <summary>
     /// One machine: its building and functionality ids, name, the game building it copies (string id, then name), that building's
-    /// functionality (string id, then name), its build-menu list, its inputs and outputs, and its text.
+    /// functionality (string id, then name), its inputs and outputs, and its text.
     /// </summary>
     sealed record Spec(string Id, string WorkId, string Name, string ModelId, string ModelName, string WorkModelId, string WorkModelName,
-        string Category, Flow[] Consumes, Flow[] Produces, string Text);
+        Flow[] Consumes, Flow[] Produces, string Text);
 
     /// <summary>
     /// The production machines and the tea bench. Rates follow the game's own: its hemp loom takes 3 hemp a fabric (rate 300).
@@ -27,17 +27,17 @@ static class MachineRecords
     static readonly Spec[] Specs =
     [
         new(Ids.TowelLoom, Ids.TowelLoomWork, "Towel Loom", "2016-gamedata.base", "Fabric Loom (hemp)", "2018-gamedata.base", "Textiles hemp",
-            "CRAFTING", [new("584-gamedata.base", 10, 50)], [new(Ids.Towel, 10)],
+            [new("584-gamedata.base", 10, 50)], [new(Ids.Towel, 10)],
             "Weaves fabrics into thick towels, two from each bolt."),
         new(Ids.SoapPress, Ids.SoapPressWork, "Soap Press", "52163-rebirth.mod", "Hemp Processor", "52158-rebirth.mod", "drugs",
-            "CRAFTING", [new("1965-gamedata.base", 10, 200)], [new(Ids.Soap, 10)], "Presses hemp into bars of soap, two hemp a bar."),
+            [new("1965-gamedata.base", 10, 200)], [new(Ids.Soap, 10)], "Presses hemp into bars of soap, two hemp a bar."),
         new(Ids.WashingMachine, Ids.WasherWork, "Washing Machine", "52162-rebirth.mod", "Sake Still", "52157-rebirth.mod", "Sake",
-            "CRAFTING", [new(Ids.DirtyTowel, 10, 100), new(Ids.Soap, 10, 25)], [new(Ids.Towel, 10)],
+            [new(Ids.DirtyTowel, 10, 100), new(Ids.Soap, 10, 25)], [new(Ids.Towel, 10)],
             "Washes dirty towels clean. One bar of soap does four towels."),
         new(Ids.TeaDryer, Ids.TeaDryerWork, "Tea Dryer", "50922-rebirth.mod", "Biofuel Distillery (Hemp)", "50921-rebirth.mod", "hemp to fuel",
-            "FOOD", [new("42309-changes_otto.mod", 10, 100)], [new(Ids.GreenfruitTea, 10)], "Slices and dries greenfruit into tea."),
+            [new("42309-changes_otto.mod", 10, 100)], [new(Ids.GreenfruitTea, 10)], "Slices and dries greenfruit into tea."),
         new(Ids.Kiln, Ids.KilnWork, "Pottery Kiln", "1944-gamedata.base", "Cooking Stove", "2018-gamedata.base", "Textiles hemp",
-            "CRAFTING", [new("1515-gamedata.base", 10, 100)], [new(Ids.Teaware, 5)], "Fires raw stone into teaware."),
+            [new("1515-gamedata.base", 10, 100)], [new(Ids.Teaware, 5)], "Fires raw stone into teaware."),
     ];
 
     /// <summary>
@@ -87,7 +87,7 @@ static class MachineRecords
         if (model != standIn) KeepCost(standIn, record);
 
         RecordKit.Links(record, "functionality", (work, 0, 0));
-        record.Strings["building category"] = spec.Category;
+        record.Strings["building category"] = RecordKit.BuildCategory;
         record.Strings["Description"] = spec.Text;
         record.Bools["creates player town"] = true;
         return record;
@@ -134,7 +134,7 @@ static class MachineRecords
     /// </summary>
     static FcsRecord TeaBench(GameDatabase game)
     {
-        var spec = new Spec(Ids.TeaBench, Ids.TeaBenchWork, "Tea Bench", "1944-gamedata.base", "Cooking Stove", "", "", "FOOD", [], [],
+        var spec = new Spec(Ids.TeaBench, Ids.TeaBenchWork, "Tea Bench", "1944-gamedata.base", "Cooking Stove", "", "", [], [],
             "Brews greenfruit tea in teaware to make tea sets for the bathhouse's tea tables.");
         return Building(game, spec, Ids.TeaBenchWork);
     }
@@ -153,7 +153,7 @@ static class MachineRecords
         RecordKit.Links(record, "functionality", (lights.StringId, 0, 0));
         record.Ints["power output"] = -BoilerDraw;
         RecordKit.Links(record, "construction", ("42159-gamedata.base", BoilerPlates, 0));
-        record.Strings["building category"] = "POWER";
+        record.Strings["building category"] = RecordKit.BuildCategory;
         record.Strings["Description"] = "Heats every tub in its building while it is switched on, powered and has Water in a box nearby."
             + $" Each boiler heats {BathhouseSettings.DefaultSeatsPerBoiler} bathers' seats.";
         record.Bools["creates player town"] = true;

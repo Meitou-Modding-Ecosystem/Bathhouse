@@ -27,6 +27,8 @@ record names it in `icon` with `auto icon image` false (the game then takes the 
 Item models (`Bathhouse/ItemModels/*.glb`, textures at 1024) are kept out of `Structures`, which would make them buildable furniture; the
 structure import makes buildings only, so the items still look like their stand-ins in the world.
 
+Every building is in the build menu's own `BATH HOUSE` category (`RecordKit.BuildCategory`); each shows there once its research is done.
+
 Own models: `Bathhouse/Structures/<piece>.glb` with a `.json` (`research` `none`, so only the piece shows in the build menu); Play's structure
 import turns each into a building (docs/structures.md) and the piece copies its look when the deployed data has it (`FurnitureRecords.OwnLook`,
 ids in `Ids` from `Structures/ids.json`), else the stand-in. Each model is scaled evenly so its length matches the art prompts' size, mesh collision:
@@ -146,7 +148,7 @@ saved: a loaded staff member plans again.
 ## Research
 
 All in the Crafting list, no cost: Bathhouse Basics (level 1; loom, press, washer, boiler, water tank, small tub, counter, lockers, hamper,
-rack, robe), then Hot Baths (medium and large tubs, review board, decorations), Massage, Tea Service (dryer, kiln, bench, tea table, display)
+rack, robe), then Hot Baths (medium and large tubs, review board, decorations), Massage, Tea Service (dryer, kiln, bench, tea table, tea shelf, display)
 and Oil Baths (level 2), and Blood Baths after Hot Baths (level 3).
 
 ## Settings
