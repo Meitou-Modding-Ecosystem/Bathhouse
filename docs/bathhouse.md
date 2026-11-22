@@ -78,6 +78,8 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   `bathhouse.customers.<n>` (saved by the game: a group finds its platoon again by it), held and sent to the counter's front (20 units along its
   local +Z). Once the platoon loads its living people get visits. A group is let go (hold off, `ModSpawned` off, tag cleared, so the game's
   travel takes it on and may despawn it) when every visit is done, its counter is gone, or after 24 game hours.
+  A group whose platoon disappears is posted and the next may set out at once. On Meitou 0.22.2 a held stand-in still takes part in the
+  game's off-screen fights (Fights far away), so a group can be wiped out on the road; the engine fork keeps held platoons out of them.
 - **Check-in**: the visit goal (desire 0.7) walks the customer to the counter's front and stands it there. It checks in when one of the player's
   people stands within 80 units of the counter, the counter (else a store in its building) holds a Towel and a Soap, and a tub in the building
   is warm with a free seat. It takes the price (below), a Soap is used up and a Towel goes into its inventory (it dries with it), and it is sent
