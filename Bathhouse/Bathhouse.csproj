@@ -6,8 +6,8 @@
   -->
 
   <PropertyGroup>
-    <AssemblyName>ExampleMod</AssemblyName>
-    <RootNamespace>ExampleMod</RootNamespace>
+    <AssemblyName>Bathhouse</AssemblyName>
+    <RootNamespace>Bathhouse</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
