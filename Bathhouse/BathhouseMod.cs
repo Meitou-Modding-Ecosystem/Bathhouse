@@ -1,4 +1,5 @@
 using Bathhouse.Bathing;
+using Bathhouse.Customers;
 using Bathhouse.Records;
 using Meitou.Modding;
 using Meitou.Simulation;
@@ -7,7 +8,7 @@ namespace Bathhouse;
 
 /// <summary>
 /// The mod's entry, named by "entry" in meitou.json (docs/bathhouse.md): adds the records in the data phase, then registers the settings, the bath
-/// goal, the tubs' bath verb, the towel's use, the Soothed buff, the system, the panels and the debug row.
+/// and visit goals, the towel's use, the Soothed buff, the system, the panels and the debug rows.
 /// </summary>
 public sealed class BathhouseMod : IMod, IModDataPhase
 {
@@ -36,13 +37,28 @@ public sealed class BathhouseMod : IMod, IModDataPhase
     {
         context.AddSettings(BathhouseSettings.Current);
         context.AddGoalType(Soaks.Row, "Bathhouse: taking a bath");
+        context.AddGoalType(Clientele.Row, "Bathhouse: visiting the bathhouse");
         context.AddStatusEffect(Soothing.Soothed);
 
         var purpose = context.RngPurpose;
         context.AddItemUse(Ids.Towel, use => Towels.Use(use, purpose));
-        context.AddSystem("bathhouse", _ => _latest = new BathhouseSystem(purpose), SystemAnchor.End);
+        context.AddSystem("bathhouse", build => _latest = new BathhouseSystem(purpose, build.Data), SystemAnchor.End);
         context.AddUi(new BathhouseUi(() => _latest));
         context.AddDebugCommand("Bathhouse: tubs and bathers", _ => Told(context, _latest?.View ?? "no world yet"));
+        context.AddDebugCommand("Bathhouse: send customers (kind)", SendCustomers, hasField: true);
+    }
+
+    /// <summary>
+    /// The debug row that sends a group of the typed customer kind now (drifters, traders, hunters or shek).
+    /// </summary>
+    static string SendCustomers(DebugCommandContext debug)
+    {
+        string kind = debug.Field.Trim().ToLowerInvariant();
+        if (CustomerTypes.Find(kind) is not { Spawnable: true })
+            return $"Kinds: {string.Join(", ", CustomerTypes.All.Where(k => k.Spawnable).Select(k => k.Key))}";
+
+        debug.Enqueue(new SendCustomersCommand(kind) { Tick = debug.Tick });
+        return $"Sending {kind}.";
     }
 
     /// <summary>

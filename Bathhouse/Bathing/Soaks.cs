@@ -129,6 +129,11 @@ public sealed class Soaks(Heating heating, Action<World, int, Soak, SoakEnd> fin
     /// </summary>
     public bool Bathing(CharacterId who) => _present.ContainsKey(who);
 
+    /// <summary>
+    /// The soak of a character in the world now; null for none.
+    /// </summary>
+    public Soak? Of(CharacterId who) => _present.GetValueOrDefault(who);
+
     #endregion
 
     #region Sending
@@ -335,7 +340,7 @@ public sealed class Soaks(Heating heating, Action<World, int, Soak, SoakEnd> fin
     /// <summary>
     /// The ground-plane distance between two points.
     /// </summary>
-    static float Flat(Vector3 a, Vector3 b) => Vector2.Distance(new Vector2(a.X, a.Z), new Vector2(b.X, b.Z));
+    internal static float Flat(Vector3 a, Vector3 b) => Vector2.Distance(new Vector2(a.X, a.Z), new Vector2(b.X, b.Z));
 
     /// <summary>
     /// Stands the character at a point, on the floor nearest the point's height there, as the debug menu's teleport does.

@@ -1,7 +1,10 @@
+using Bathhouse.Customers;
 using Bathhouse.Bathing;
+using Meitou.Data;
 using Meitou.Data.Gameplay.Bodies;
 using Meitou.Simulation;
 using Meitou.Simulation.Bodies;
+using Meitou.Simulation.Population;
 
 namespace Bathhouse.Tests;
 
@@ -75,18 +78,29 @@ public sealed class BathingTests
     }
 
     [Fact]
-    public void The_sidecar_keeps_the_kept_debuffs()
+    public void The_sidecar_keeps_the_kept_debuffs_and_the_counter()
     {
-        var first = new BathhouseSystem(RngPurpose.Test);
-        first.Inputs(null!, [new KeepDebuffCommand("bathhouse.test.poison", Keep: true) { Tick = 0 }]);
+        var first = NewSystem();
+        SimCommand[] commands =
+        [
+            new KeepDebuffCommand("bathhouse.test.poison", Keep: true) { Tick = 0 },
+            new OpenCommand(false) { Tick = 0 },
+            new PriceCommand(Service.Towel, 150) { Tick = 0 },
+        ];
+        first.Inputs(null!, commands);
         var saved = Saved(first);
 
-        var second = new BathhouseSystem(RngPurpose.Test);
+        var second = NewSystem();
         second.Read(new MemoryStream(saved));
 
         Assert.True(second.Keeps("bathhouse.test.poison"));
         Assert.Equal(saved, Saved(second));
     }
+
+    /// <summary>
+    /// A system over empty population data.
+    /// </summary>
+    static BathhouseSystem NewSystem() => new(RngPurpose.Test, new PopulationData { Db = new GameDatabase(), Sites = [], Factions = [] });
 
     /// <summary>
     /// The system's sidecar bytes.

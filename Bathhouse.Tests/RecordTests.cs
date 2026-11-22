@@ -1,3 +1,4 @@
+using Bathhouse.Customers;
 using Bathhouse.Records;
 using Meitou.Content;
 using Meitou.Data;
@@ -90,16 +91,30 @@ public sealed class RecordTests
         Assert.Equal(["1914-gamedata.base"], game.Find(Ids.WaterTank)!.GetReferences("limit inventory").Select(l => l.TargetStringId));
     }
 
-    [Fact]
-    public void Every_race_and_the_player_faction_weigh_the_bath_goal()
+    [Theory]
+    [InlineData(Ids.BathGoal, Ids.BathGoalType)]
+    [InlineData(Ids.VisitGoal, Ids.VisitGoalType)]
+    public void Every_race_and_the_player_faction_weigh_the_goals(string id, int type)
     {
         var game = Game();
-        var goal = game.Find(Ids.BathGoal)!;
+        var goal = game.Find(id)!;
         var owners = game.OfType(FcsRecordType.Race).Append(game.Find("204-gamedata.base")!);
 
-        Assert.Equal(Ids.BathGoalType, goal.GetInt("enum"));
+        Assert.Equal(type, goal.GetInt("enum"));
         Assert.Equal(3, goal.GetInt("classification"));
-        Assert.All(owners, o => Assert.Contains(o.GetReferences("AI Goals"), l => l.TargetStringId == Ids.BathGoal && l.Values.Value1 == 100));
+        Assert.All(owners, o => Assert.Contains(o.GetReferences("AI Goals"), l => l.TargetStringId == id && l.Values.Value1 == 100));
+    }
+
+    [Fact]
+    public void Every_spawnable_customer_kind_names_a_squad_and_a_faction_of_the_game()
+    {
+        var game = Game();
+
+        Assert.All(CustomerTypes.All.Where(k => k.Spawnable), k =>
+        {
+            Assert.Equal(FcsRecordType.SquadTemplate, game.Find(k.Template)?.Type);
+            Assert.Equal(FcsRecordType.Faction, game.Find(k.Faction)?.Type);
+        });
     }
 
     [Fact]
