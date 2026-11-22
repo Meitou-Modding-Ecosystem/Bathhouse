@@ -1,0 +1,10 @@
+{
+  "id": "bathhouse",
+  "version": "0.1.0",
+  "apiVersion": 3,
+  "assemblies": [
+    "Bathhouse.dll"
+  ],
+  "entry": "Bathhouse.BathhouseMod",
+  "gameVersion": ">=0.22.2"
+}

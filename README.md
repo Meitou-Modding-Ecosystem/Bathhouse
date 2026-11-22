@@ -1,7 +1,7 @@
-# Meitou mod template
+# Bathhouse
 
-Template for a [MeitouClient](https://github.com/Meitou-Modding-Ecosystem/MeitouClient) code mod repo in the Meitou-Modding-Ecosystem
-org. GPL-3.0-or-later.
+A [MeitouClient](https://github.com/Meitou-Modding-Ecosystem/MeitouClient) code mod: build and run a bathhouse with towels, soap, tea,
+heated tubs and paying bathers. GPL-3.0-or-later. What it does: [docs/bathhouse.md](docs/bathhouse.md); tracking issue #1.
 
 - Build and run locally with Visual Studio, VS Code or the terminal (this repo's engine or the installed launcher, deployed to the game): [docs/play.md](docs/play.md).
 - Setting up the repos on your machine: [docs/local-development.md](docs/local-development.md).
@@ -9,16 +9,6 @@ org. GPL-3.0-or-later.
 - Checking a built mod against the newest Meitou release (CI does it on every PR): [docs/refcheck.md](docs/refcheck.md).
 - Publishing the mod to the Steam Workshop for the first time, then on every release: [docs/steam-workshop.md](docs/steam-workshop.md).
 - Turning `.glb` models (Meshy, Hi3D, Blender) into buildable structures, no FCS needed: [docs/structures.md](docs/structures.md).
-
-## Use this template
-
-1. Create the repo from this template on GitHub (Use this template > Create a new repository), then clone it with
-   `git clone --recurse-submodules <your repo URL>`.
-2. Rename `ExampleMod` to your mod's name: the folders `ExampleMod` and `ExampleMod.Tests`, the files inside them named `ExampleMod*`, the
-   `AssemblyName`/`RootNamespace` in both `.csproj` files, the namespaces, and the paths in `MeitouMod.slnx` (rename that file too).
-3. In `meitou.json` set `id` (`<author-or-mod>.<name>`), `assemblies` and `entry`; keep the version only there.
-   In `.github/workflows/release.yml` set the tag prefix, `mod-folder` and `slug` (`<mod-name>`, as in the tag `<mod-name>-v<version>`).
-4. Open the `.slnx` in Visual Studio and press F5 ([docs/play.md](docs/play.md)).
 
 ## Layout
 
