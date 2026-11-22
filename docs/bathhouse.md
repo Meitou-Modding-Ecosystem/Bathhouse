@@ -24,8 +24,9 @@ Own models: `Bathhouse/Structures/<piece>.glb` with a `.json` (`research` `none`
 import turns each into a building (docs/structures.md) and the piece copies its look when the deployed data has it (`FurnitureRecords.OwnLook`,
 ids in `Ids` from `Structures/ids.json`), else the stand-in. Each model is scaled evenly so its length matches the art prompts' size, mesh collision:
 small tub 1.2 m long (0.62 m tall), medium 2 m (0.96), large 3.5 m (0.5), oil 1.8 m (1.03), blood 2.5 m (1.53), steam boiler 2.2 m tall,
-massage bed 2 m long (0.72 m tall), massage station 1 m tall (1.07 m long). The massage bed keeps its stand-in's bed functionality (the copy
-carries no use nodes, so a customer lies at the bed's origin facing its way, as on the stand-in); the station's operator stands within the
+massage bed 2 m long (0.72 m tall), massage station 1 m tall (1.07 m long), check-in counter 2.5 m long (0.95 m tall), laundry hamper
+0.8 m tall. The massage bed and the counter keep their stand-in's functionality and inventory (`KeepWork`; the copy carries no use nodes, so a
+customer lies at the bed's origin facing its way, as on the stand-in); the station's operator stands within the
 functionality's use range of its origin (a building with fewer than two use nodes is reached at its position marker).
 Model textures are kept at 2048 (base colour and metal/roughness as JPEG quality 92, normal map as lossless PNG): the import bakes 2048 DDS
 by default (`textureSize`), so a 4096 source only grows the repo.

@@ -1,7 +1,9 @@
 {
   "blocks": {
     "blood-bath": 1,
+    "checkin-counter": 8,
     "large-tub": 2,
+    "laundry-hamper": 9,
     "massage-bed": 3,
     "massage-station": 7,
     "medium-tub": 4,

@@ -150,9 +150,7 @@ static class FurnitureRecords
         string[] skip = spec.Use == Use.Model ? ["upgrades to", "produces"] : ["functionality", "upgrades to", "produces"];
         var record = RecordKit.Copy(model, spec.Id, spec.Name, skip);
 
-        // A piece that works as its stand-in (the massage bed lies a customer down as the game's bed) keeps the stand-in's functionality on its own
-        // look; with no use node the sleeper lies at the piece's origin, facing its way.
-        if (spec.Use == Use.Model && model != standIn) RecordKit.CopyLinks(standIn, record, "functionality");
+        if (spec.Use == Use.Model && model != standIn) KeepWork(standIn, record);
 
         SetUse(record, spec.Use);
         record.Strings["building category"] = spec.Category;
@@ -179,10 +177,28 @@ static class FurnitureRecords
             Ids.MassageBed => Ids.MassageBedLook,
             Ids.MassageStation => Ids.MassageStationLook,
             Ids.Boiler => Ids.BoilerLook,
+            Ids.Counter => Ids.CounterLook,
+            Ids.Hamper => Ids.HamperLook,
             _ => null,
         };
 
         return look is not null && game.Find(look) is { Type: FcsRecordType.Building } building ? building : null;
+    }
+
+    /// <summary>
+    /// A piece that works as its stand-in (the massage bed lies a customer down as the game's bed, the counter sells as the game's shop counter)
+    /// keeps the stand-in's functionality and inventory on its own look. With no use node a sleeper lies at the piece's origin, facing its way.
+    /// </summary>
+    static void KeepWork(GameRecord standIn, FcsRecord record)
+    {
+        RecordKit.CopyLinks(standIn, record, "functionality");
+        RecordKit.CopyLinks(standIn, record, "limit inventory");
+        record.Bools["has inventory"] = standIn.Bools.GetValueOrDefault("has inventory");
+        foreach (string size in (string[])["storage size width", "storage size height"])
+        {
+            if (standIn.Ints.TryGetValue(size, out int value)) record.Ints[size] = value;
+            else record.Ints.Remove(size);
+        }
     }
 
     /// <summary>
