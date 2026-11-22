@@ -290,12 +290,15 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     }
 
     /// <summary>
-    /// A group whose platoon the game removed (killed, or taken out of the world): posted and forgotten.
+    /// A group whose platoon the game removed: posted and forgotten, and the next group may set out at once. One lost before it arrived was most
+    /// likely wiped out on the road (the game's off-screen fights take held stand-ins on a game before the fix in MeitouClient fork #50).
     /// </summary>
     void Lost(World world, CustomerGroup group)
     {
         string name = CustomerTypes.Find(group.Kind)?.Name ?? group.Kind;
-        world.Post($"{name} on their way to the bathhouse are gone.");
+        string what = group.Enlisted ? "left the world" : "never made it, likely attacked on the road";
+        world.Post($"{name} on their way to the bathhouse {what}.");
+        NextGroupAt = Math.Min(NextGroupAt, world.GameHours);
         Forget(group);
     }
 
