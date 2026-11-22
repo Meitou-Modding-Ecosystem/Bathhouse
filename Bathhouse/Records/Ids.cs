@@ -98,6 +98,16 @@ public static class Ids
 
     #endregion
 
+    #region Models
+
+    /// <summary>
+    /// The small tub's own model: the building the structure import makes from <c>Structures/small-tub.glb</c> (its block 0 in
+    /// <c>Structures/ids.json</c>, building +0). The Small Tub copies its look when the deployed data has it.
+    /// </summary>
+    public const string SmallTubLook = "900000-" + FileName;
+
+    #endregion
+
     #region Goals
 
     /// <summary>

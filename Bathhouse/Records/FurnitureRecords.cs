@@ -145,7 +145,7 @@ static class FurnitureRecords
     /// </summary>
     static FcsRecord Piece(GameDatabase game, Spec spec)
     {
-        var model = RecordKit.Model(game, FcsRecordType.Building, spec.ModelId, spec.ModelName);
+        var model = OwnLook(game, spec.Id) ?? RecordKit.Model(game, FcsRecordType.Building, spec.ModelId, spec.ModelName);
         string[] skip = spec.Use == Use.Model ? ["upgrades to", "produces"] : ["functionality", "upgrades to", "produces"];
         var record = RecordKit.Copy(model, spec.Id, spec.Name, skip);
 
@@ -156,6 +156,21 @@ static class FurnitureRecords
 
         if (spec.Id == Ids.BloodBath) AddMeat(record);
         return record;
+    }
+
+    /// <summary>
+    /// The building the structure import made from the piece's own model (docs/structures.md), when the data has it; null to copy the game's
+    /// stand-in (tests and tools that read the game without the deployed mod).
+    /// </summary>
+    static GameRecord? OwnLook(GameDatabase game, string piece)
+    {
+        string? look = piece switch
+        {
+            Ids.SmallTub => Ids.SmallTubLook,
+            _ => null,
+        };
+
+        return look is not null && game.Find(look) is { Type: FcsRecordType.Building } building ? building : null;
     }
 
     /// <summary>

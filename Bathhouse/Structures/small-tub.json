@@ -1,0 +1,2 @@
+// The small tub's look: the Small Tub record (FurnitureRecords) copies this building, which nothing unlocks itself.
+{ "name": "Small Tub model", "height": 0.8, "placement": "indoor", "createsTown": false, "research": "none", "category": "INTERIOR" }

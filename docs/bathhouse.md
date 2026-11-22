@@ -16,9 +16,13 @@ for its look (a stand-in until the mod's models land) and links game items by id
 | Crafting (function 10) | Tea Bench: Tea Set from Teaware + Greenfruit Tea (the Tea Set's `ingredients`) | Cooking Stove |
 | Power | Steam Boiler: draws 10, functionality the game's Lights (a consumer with no operator, so the Power switch shows) | Boiler Tank |
 | Water | Bathhouse Water Tank: Resource storage limited to Water, as the game's Water Tower | Small Water Tank |
-| Tubs (no functionality) | Small Tub (1 seat), Medium Tub (2), Large Bath (4), Oil Bath, Blood Bath (+10 Raw Meat to build) | Wooden Barrel, Large Barrels, Booze Barrels, Booze Barrel, Cannibal Butcher Table |
+| Tubs (no functionality) | Small Tub (1 seat), Medium Tub (2), Large Bath (4), Oil Bath, Blood Bath (+10 Raw Meat to build) | own model (below), Large Barrels, Booze Barrels, Booze Barrel, Cannibal Butcher Table |
 | Service | Massage Bed (bed), Massage Station (production: Towel to Dirty Towel, 1 operator), Check-in Counter (shop counter), Lockers (locked storage), Laundry Hamper, Towel Rack, Tea Table (storage), Review Board | Bed, Small Table, Shop Counter, Crossbow Locker, Small Barrel, Shelf, Small Table, banner_traders |
 | Decorations | Zen Garden, Wall Art, Tapestry, Statue, Towel Hanger, Tea Set Display | Carpet: Rusty Rug, banner_empire, banner_holy, Emperor Statue, Wall Shelf 1, Wall Shelf 2 |
+
+Own models: `Bathhouse/Structures/<piece>.glb` with a `.json` (`research` `none`, so only the piece shows in the build menu); Play's structure
+import turns each into a building (docs/structures.md) and the piece copies its look when the deployed data has it (`FurnitureRecords.OwnLook`,
+ids in `Ids` from `Structures/ids.json`), else the stand-in. The Small Tub's model is 0.8 m tall, 2751 triangles, mesh collision.
 
 Tubs have no functionality so that no game or mod AI (a town bar's, Fiefdom's residents) sits in them; bathing is the mod's code.
 
