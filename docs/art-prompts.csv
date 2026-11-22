@@ -1,0 +1,35 @@
+Object,Kind,Object line for step 1,Size (m)
+Small tub,Furniture,"a one-person wooden soaking tub of curved planks bound with iron hoops, a low step on one side",1.2 x 1.2 x 0.8
+Medium tub,Furniture,a two-person stone-lined soaking basin with a timber rim and a small steam vent pipe,2 x 1.5 x 0.8
+Large tub,Furniture,"a large communal bath of fitted stone blocks with a carved wooden edge, steps in, brass pipe outlets",3.5 x 2.5 x 0.9
+Oil bath,Furniture,"an iron soaking vat for robots, dark machine oil inside, gauges and a drain valve, riveted plates",1.8 x 1.4 x 1
+Blood bath,Furniture,"a crude butcher's soaking trough of stained stone and bone, hooks on a frame above, grim but not gory",2.5 x 1.6 x 1
+Steam boiler,Furniture,"a squat riveted iron boiler with a firebox door, pressure gauge, pipes running out and a chimney stub",1.5 x 1.5 x 2.2
+Massage bed,Furniture,"a padded wooden massage table with a face cradle, folded towel at one end",2 x 0.8 x 0.8
+Massage station,Furniture,"a small wooden cart with oil bottles, stones and rolled towels",0.8 x 0.5 x 1
+Check-in counter,Furniture,"a reception counter of dark timber with a small bell, ledger, soap and folded towels on display",2.5 x 0.8 x 1.1
+Locker bank,Furniture,a row of four tall riveted iron lockers with padlocks and number plates,1.6 x 0.6 x 2
+Laundry hamper,Furniture,"a woven reed laundry basket with a cloth lid, a dirty towel hanging out",0.7 x 0.7 x 0.8
+Towel rack,Furniture,a freestanding timber rack with clean folded towels on shelves,1 x 0.4 x 1.6
+Tea table,Furniture,a low square tea table with floor cushions and a tea tray,1.2 x 1.2 x 0.4
+Tea bench,Furniture,"a workbench with a kettle, bowls of dried leaves, cups and a small brazier",1.6 x 0.7 x 1
+Towel loom,Furniture,a hand loom of worn timber weaving thick cloth towels,1.8 x 1.2 x 1.8
+Soap press,Furniture,a screw press of timber and iron with a vat and soap moulds,1.5 x 1 x 1.8
+Washing machine,Furniture,a hand-cranked wooden drum washer with a wringer and a water tank,1.5 x 1 x 1.6
+Tea dryer,Furniture,stacked woven drying trays on a timber frame holding sliced greenfruit,1.4 x 0.8 x 1.6
+Pottery kiln,Furniture,a small domed clay and stone kiln with a fire mouth and a chimney,1.5 x 1.5 x 2
+Review board,Furniture,a wooden notice board on legs with pinned paper notes and a star rating plaque,1.2 x 0.3 x 1.8
+Zen garden,Furniture,a raked gravel garden in a low timber frame with three rocks and a rake,2.5 x 2.5 x 0.4
+Wall art,Furniture,a framed ink painting of a desert landscape,1 x 0.05 x 0.7
+Tapestry,Furniture,a long hanging cloth tapestry with a woven crane pattern on a wooden rod,1 x 0.1 x 2
+Statue,Furniture,"a weathered stone statue of a seated, robed figure on a plinth",0.8 x 0.8 x 1.8
+Towel hanger,Furniture,a wall peg rail with two hanging towels,0.8 x 0.2 x 0.4
+Tea set display,Furniture,a small shelf with a teapot and cups on show,0.8 x 0.3 x 0.6
+Towel,Item,"a thick folded clean cloth towel, off-white with a stripe",0.3 x 0.2 x 0.1
+Dirty towel,Item,the same towel crumpled and stained grey-brown,0.3 x 0.2 x 0.1
+Soap,Item,a rough hand-cut bar of greenish hemp soap tied with twine,0.1 x 0.06 x 0.04
+Greenfruit tea,Item,a small cloth pouch of dried green tea leaves,0.15 x 0.1 x 0.1
+Teaware,Item,"a set of plain fired-stone tea cups and a teapot, unglazed",0.3 x 0.2 x 0.15
+Tea set,Item,"a tray with a filled teapot and cups, ready to serve",0.35 x 0.25 x 0.15
+Used teaware,Item,"the same tray with empty, stained cups",0.35 x 0.25 x 0.15
+Bathhouse robe,Item (armour),"a simple wrapped cotton bath robe with a cloth belt, worn and faded",folded 0.4 x 0.3 x 0.1

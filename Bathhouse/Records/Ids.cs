@@ -69,6 +69,11 @@ public static class Ids
     /// </summary>
     public const string Boiler = "36-" + FileName;
 
+    /// <summary>
+    /// The water tank the boilers draw from: storage for Water only.
+    /// </summary>
+    public const string WaterTank = "37-" + FileName;
+
     #endregion
 
     #region Furniture
@@ -90,6 +95,20 @@ public static class Ids
     /// </summary>
     public const string ZenGarden = "60-" + FileName, WallArt = "61-" + FileName, Tapestry = "62-" + FileName, Statue = "63-" + FileName,
         TowelHanger = "64-" + FileName, TeaDisplay = "65-" + FileName;
+
+    #endregion
+
+    #region Goals
+
+    /// <summary>
+    /// The bath goal's <c>AI_TASK</c>, listed in every race's and the player faction's <c>AI Goals</c> so anyone can be sent to soak.
+    /// </summary>
+    public const string BathGoal = "90-" + FileName;
+
+    /// <summary>
+    /// The bath goal's task type (its <c>enum</c>), also the row its walk and soak run on. Claimed by the mod; Bathhouse keeps 4401 to 4409.
+    /// </summary>
+    public const int BathGoalType = 4401;
 
     #endregion
 

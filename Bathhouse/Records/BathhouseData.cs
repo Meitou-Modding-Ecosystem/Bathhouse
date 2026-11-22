@@ -12,13 +12,17 @@ public static class BathhouseData
     /// <summary>
     /// The data file's author and description.
     /// </summary>
-    const string Author = "Meitou-Modding-Ecosystem", Description = "Bathhouse: towels, soap, tea, heated tubs and bathers. Generated; see docs/bathhouse.md.";
+    const string Author = "Meitou-Modding-Ecosystem",
+        Description = "Bathhouse: towels, soap, tea, heated tubs and bathers. Generated; see docs/bathhouse.md.";
 
     /// <summary>
     /// Every record, in id order. Throws when the game lacks a record one copies.
     /// </summary>
     public static IReadOnlyList<FcsRecord> Records(GameDatabase game) =>
-        [.. ItemRecords.Build(game), .. MachineRecords.Build(game), .. FurnitureRecords.Build(game), .. ResearchRecords.Build()];
+    [
+        .. ItemRecords.Build(game), .. MachineRecords.Build(game), .. FurnitureRecords.Build(game), .. ResearchRecords.Build(),
+        .. GoalRecords.Build(game)
+    ];
 
     /// <summary>
     /// The records as a data file, for tools and tests that apply them as a .mod file would be.

@@ -24,8 +24,12 @@ static class ResearchRecords
     static readonly Spec[] Specs =
     [
         new(Ids.BasicsResearch, "Bathhouse Basics", 1, 6, [],
-            [Ids.TowelLoom, Ids.SoapPress, Ids.WashingMachine, Ids.Boiler, Ids.SmallTub, Ids.Counter, Ids.Lockers, Ids.Hamper, Ids.TowelRack],
-            [Ids.Robe], "Hot water, clean towels and a place to soak. Unlocks the towel loom, soap press, washing machine, steam boiler, small tub,"
+            [
+                Ids.TowelLoom, Ids.SoapPress, Ids.WashingMachine, Ids.Boiler, Ids.WaterTank, Ids.SmallTub, Ids.Counter, Ids.Lockers, Ids.Hamper,
+                Ids.TowelRack
+            ],
+            [Ids.Robe], "Hot water, clean towels and a place to soak. Unlocks the towel loom, soap press, washing machine, steam boiler, water tank,"
+            + " small tub,"
             + " check-in counter, lockers, laundry hamper, towel rack and the bathhouse robe."),
         new(Ids.HotBathsResearch, "Hot Baths", 2, 8, [Ids.BasicsResearch],
             [Ids.MediumTub, Ids.LargeTub, Ids.ReviewBoard, Ids.ZenGarden, Ids.WallArt, Ids.Tapestry, Ids.Statue, Ids.TowelHanger], [],

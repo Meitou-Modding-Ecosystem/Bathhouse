@@ -37,10 +37,29 @@ public sealed class BathhouseSettings
     #region Bathing
 
     /// <summary>
-    /// Game hours a soak lasts.
+    /// Game hours a soak in a small tub lasts.
     /// </summary>
-    [Setting("Soak length (hours)", Min = 1, Max = 12, Step = 1)]
-    public int SoakHours { get; set; } = 3;
+    [Setting("Small tub (hours)", Hint = "How long a soak in a small tub lasts.", Min = 1, Max = 12, Step = 1, SubGroup = "Soak length")]
+    public int SmallSoakHours { get; set; } = 2;
+
+    /// <summary>
+    /// Game hours a soak in a medium tub lasts.
+    /// </summary>
+    [Setting("Medium tub (hours)", Hint = "How long a soak in a medium tub lasts.", Min = 1, Max = 12, Step = 1, SubGroup = "Soak length")]
+    public int MediumSoakHours { get; set; } = 3;
+
+    /// <summary>
+    /// Game hours a soak in a large bath lasts.
+    /// </summary>
+    [Setting("Large bath (hours)", Hint = "How long a soak in a large bath lasts.", Min = 1, Max = 12, Step = 1, SubGroup = "Soak length")]
+    public int LargeSoakHours { get; set; } = 4;
+
+    /// <summary>
+    /// Game hours a soak in the oil or blood bath lasts.
+    /// </summary>
+    [Setting("Oil and blood baths (hours)", Hint = "How long a soak in the oil bath or blood bath lasts.", Min = 1, Max = 12, Step = 1,
+        SubGroup = "Soak length")]
+    public int SpecialSoakHours { get; set; } = 3;
 
     /// <summary>
     /// Game days the Soothed buff lasts after a soak.
@@ -49,9 +68,9 @@ public sealed class BathhouseSettings
     public int BuffDays { get; set; } = 3;
 
     /// <summary>
-    /// Whether a soak clears status effects marked bad (those switched off in the bathhouse's debuff list stay).
+    /// Whether a soak clears status effects marked bad (those switched off on a boiler's panel stay).
     /// </summary>
-    [Setting("Soaks clear debuffs", Hint = "A soak removes bad status effects, except those switched off in the bathhouse window.")]
+    [Setting("Soaks clear debuffs", Hint = "A soak removes bad status effects, except those switched off on a steam boiler's panel.")]
     public bool ClearDebuffs { get; set; } = true;
 
     /// <summary>
@@ -85,7 +104,8 @@ public sealed class BathhouseSettings
     /// <summary>
     /// The chance an unhappy bather picks a fight, in percent (rowdy kinds double it). Only their own squad turns hostile.
     /// </summary>
-    [Setting("Fight chance (%)", Hint = "How often an unhappy bather picks a fight. Only their own squad turns hostile.", Min = 0, Max = 50, Step = 1)]
+    [Setting("Fight chance (%)", Hint = "How often an unhappy bather picks a fight. Only their own squad turns hostile.", Min = 0, Max = 50,
+        Step = 1)]
     public int FightChance { get; set; } = 5;
 
     #endregion
