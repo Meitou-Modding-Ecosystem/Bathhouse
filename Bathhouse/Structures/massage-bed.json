@@ -1,1 +1,1 @@
-{ "name": "Massage Bed model", "height": 0.86, "placement": "indoor", "createsTown": false, "research": "none", "category": "INTERIOR" }
+{ "name": "Massage Bed model", "height": 0.86, "yaw": 90, "placement": "indoor", "createsTown": false, "research": "none", "category": "INTERIOR" }

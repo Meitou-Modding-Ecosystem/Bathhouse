@@ -1,6 +1,6 @@
 {
   "id": "bathhouse",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "apiVersion": 3,
   "assemblies": [
     "Bathhouse.dll"
