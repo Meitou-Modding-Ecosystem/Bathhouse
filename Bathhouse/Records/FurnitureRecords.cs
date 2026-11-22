@@ -179,6 +179,14 @@ static class FurnitureRecords
             Ids.Boiler => Ids.BoilerLook,
             Ids.Counter => Ids.CounterLook,
             Ids.Hamper => Ids.HamperLook,
+            Ids.Lockers => Ids.LockersLook,
+            Ids.TowelRack => Ids.TowelRackLook,
+            Ids.TeaTable => Ids.TeaTableLook,
+            Ids.SoapPress => Ids.SoapPressLook,
+            Ids.TeaBench => Ids.TeaBenchLook,
+            Ids.TowelLoom => Ids.TowelLoomLook,
+            Ids.WashingMachine => Ids.WashingMachineLook,
+            Ids.TeaDryer => Ids.TeaDryerLook,
             _ => null,
         };
 
