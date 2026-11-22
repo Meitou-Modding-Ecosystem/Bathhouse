@@ -34,7 +34,7 @@ public static class Ids
     public const string GreenfruitTea = "4-" + FileName;
 
     /// <summary>
-    /// Empty cups and pot: fired at the kiln, and what a drunk tea set leaves.
+    /// Empty cups and pot: fired at the kiln, and rinsed out of a used tea set.
     /// </summary>
     public const string Teaware = "5-" + FileName;
 
@@ -42,6 +42,11 @@ public static class Ids
     /// A tray of filled teaware, served to bathers.
     /// </summary>
     public const string TeaSet = "6-" + FileName;
+
+    /// <summary>
+    /// The tray of empty, stained teaware a drunk tea set leaves on its table.
+    /// </summary>
+    public const string UsedTeaSet = "8-" + FileName;
 
     /// <summary>
     /// The staff's robe (<c>ARMOUR</c>).
@@ -109,7 +114,8 @@ public static class Ids
         BoilerLook = "900600-" + FileName, MassageStationLook = "900700-" + FileName, CounterLook = "900800-" + FileName,
         HamperLook = "900900-" + FileName, SoapPressLook = "901000-" + FileName, TeaBenchLook = "901100-" + FileName,
         TeaTableLook = "901200-" + FileName, TowelLoomLook = "901300-" + FileName, WashingMachineLook = "901400-" + FileName,
-        LockersLook = "901500-" + FileName, TowelRackLook = "901600-" + FileName, TeaDryerLook = "901700-" + FileName, KilnLook = "901800-" + FileName;
+        LockersLook = "901500-" + FileName, TowelRackLook = "901600-" + FileName, TeaDryerLook = "901700-" + FileName,
+        KilnLook = "901800-" + FileName, ReviewBoardLook = "902100-" + FileName, StatueLook = "902200-" + FileName, ZenGardenLook = "902300-" + FileName;
 
     #endregion
 

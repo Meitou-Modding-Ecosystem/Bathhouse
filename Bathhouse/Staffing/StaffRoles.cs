@@ -27,7 +27,7 @@ public enum StaffRole
     Laundry,
 
     /// <summary>
-    /// Stocks the tea tables with Tea Sets and clears their used Teaware.
+    /// Stocks the tea tables with Tea Sets and clears their Used Tea Sets.
     /// </summary>
     Tea,
 }

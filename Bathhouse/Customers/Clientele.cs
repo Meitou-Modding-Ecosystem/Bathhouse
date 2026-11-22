@@ -532,7 +532,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     }
 
     /// <summary>
-    /// The customer buys a Tea Set from a tea table in the building when one holds a set and it takes the tea's price: the set becomes used Teaware
+    /// The customer buys a Tea Set from a tea table in the building when one holds a set and it takes the tea's price: the set becomes a Used Tea Set
     /// on the table. Returns the price (0 for no tea).
     /// </summary>
     long Tea(World world, int slot, Visit visit, string? building)
@@ -541,7 +541,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
         if (table is null || Goods.StoreOf(world, table) is not { } store) return 0;
         if (!Accepts(world, slot, visit, Prices.Percent(Service.Tea) / 100.0, TeaSalt) || !Goods.Take(store, Ids.TeaSet)) return 0;
 
-        if (Goods.Make(world, Ids.Teaware) is { } used) store.Add(used);
+        if (Goods.Make(world, Ids.UsedTeaSet) is { } used) store.Add(used);
         return Prices.Price(Service.Tea, TubKind.Small);
     }
 

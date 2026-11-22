@@ -10,7 +10,7 @@ for its look (a stand-in until the mod's models land) and links game items by id
 
 | Kind | Records | Copies (look) |
 | --- | --- | --- |
-| Items | Towel, Dirty Towel, Soap, Greenfruit Tea, Teaware, Tea Set | Fabrics, Fabrics, Foodcube, Greenfruit, Cup, Ceramic Bowl |
+| Items | Towel, Dirty Towel, Soap, Greenfruit Tea, Teaware, Tea Set, Used Tea Set | Fabrics, Fabrics, Foodcube, Greenfruit, Cup, Ceramic Bowl, Ceramic Bowl |
 | Armour | Bathhouse Robe | Monk Robe |
 | Production (function 4) | Towel Loom (Fabrics to 2 Towels), Soap Press (2 Hemp to Soap), Washing Machine (Dirty Towel + 1/4 Soap to Towel), Tea Dryer (Greenfruit to Greenfruit Tea), Pottery Kiln (Raw Stone to Teaware) | Fabric Loom (hemp), Hemp Processor, Sake Still, Biofuel Distillery (Hemp), Cooking Stove |
 | Crafting (function 10) | Tea Bench: Tea Set from Teaware + Greenfruit Tea (the Tea Set's `ingredients`) | Cooking Stove |
@@ -33,8 +33,8 @@ ids in `Ids` from `Structures/ids.json`), else the stand-in. Each model is scale
 small tub 1.2 m long (0.62 m tall), medium 2 m (0.96), large 3.5 m (0.5), oil 1.8 m (1.03), blood 2.5 m (1.53), steam boiler 2.2 m tall,
 massage bed 2 m long (0.72 m tall), massage station 1 m tall (1.07 m long), check-in counter 2.5 m long (0.95 m tall), laundry hamper
 0.8 m tall. Later exports come in meters at the prompt's height and keep it: soap press 1.8 m, tea bench 1 m, tea table 0.4 m, towel loom
-1.8 m, washing machine 1.6 m, tea dryer 1.6 m, pottery kiln 2 m, towel rack 1.6 m, locker bank 1.7 m. A machine on its own look keeps its stand-in's build cost and power draw
-(`MachineRecords.KeepCost`). The massage bed and the counter keep their stand-in's functionality and inventory (`KeepWork`; the copy carries no use nodes, so a
+1.8 m, washing machine 1.6 m, tea dryer 1.6 m, pottery kiln 2 m, towel rack 1.6 m, locker bank 1.7 m, review board 1.8 m, statue 1.8 m (`statue-1`: more statues may follow), zen garden 0.4 m. A machine on its own look keeps its stand-in's build cost and power draw
+(`MachineRecords.KeepCost`). The massage bed and the counter keep their stand-in's functionality, inventory and `output rate` (`KeepWork`; the copy carries no use nodes, so a
 customer lies at the bed's origin facing its way, as on the stand-in); the station's operator stands within the
 functionality's use range of its origin (a building with fewer than two use nodes is reached at its position marker).
 Model textures are kept at 2048 (base colour and metal/roughness as JPEG quality 92, normal map as lossless PNG): the import bakes 2048 DDS
@@ -100,12 +100,20 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   short by cold and 0.2 for a dirty tub. At or above 0.8 the customer owes the full price, below it price x quality / 0.8. Check-in prefers a
   clean tub. After a good enough soak it buys tea, may take a massage, then pays what it owes (added to the player's money and posted).
 - **Tea**: when a tea table in the tub's building holds a Tea Set and the customer takes the tea price (the same chance rule, ratio = percent /
-  100), the set becomes Teaware on the table and the tea's price (20 cats suggested) is owed.
+  100), the set becomes a Used Tea Set on the table and the tea's price (20 cats suggested) is owed.
 - **Massage** (`Massage`): each massage bed is paired with the nearest massage station in its building. With a free bed (one whose bed fixture
   no other visit holds) and the massage price taken, the customer walks to the bed (visit goal) and lies in it (`EnterBed`). While one of the
   player's people operates the station (a vanilla operate-machinery job, within 40 units), each hour pays 30 cats suggested x skill (0.5 + 0.5 x
   Dexterity / 50, 0.5 to 1.5). After 1 hour massaged, or 1 hour lying with nobody at the station (or waiting for the bed), it gets up and pays
   the soak, the tea and the massage so far.
+- **Private beds** (`PrivateBeds`): only customers and the player's orders use a massage bed. Every game bed search (sleeping, "Sleep when
+  injured", rescuing or putting someone in the nearest bed, NPC sleep, rented beds) passes over a bed `FixtureRegistry.Reachable` refuses for
+  the searcher's faction, so each massage bed is marked unreachable for every faction (`MarkUnreachable`, until the end of the next 24-hour
+  period, renewed each period and after a load). A use-bed or put-in-bed order naming the bed, and the customers' `EnterBed`, do not ask.
+  Not covered: the engine's `SquadAutonomy.HomeBed`, which gives a code-mod-autonomous player squad the beds of its assigned home in creation
+  order without asking. The bed heals as the game's Bed (its stand-in's `output rate`, 8); while someone works its station (`BedHealing`) the mod adds 3 times what
+  the game healed of each part since the last check, out of the part's treated damage, so it heals 4 times as fast. No chair
+  of the mod has the Chair function (17) or a chair spot, so "Sit when idle" never picks one.
 - **Complaints** (`Complaints`): a quality under the kind's demand (or a long wait) pays nothing; the customer's faction loses relation per
   complaint towards the player's (`PlayerRelations.Add`), at most the daily cap per faction. With the fight chance (twice for rowdy kinds) it
   picks a fight: its squad gets a TEMP_ENEMY tag for each of the player's people within 300 units, never the faction.
@@ -129,7 +137,7 @@ saved: a loaded staff member plans again.
   in it ends (`TubCare`, saved).
 - **Laundry runner** (washing machine): delivers what it carries; takes up to 10 clean towels from the washer to the first towel rack, else the
   counter, with room; fetches up to 10 Dirty Towels from a hamper; keeps 3 Soap in the washer from a store in the building.
-- **Tea server** (tea table): brings a Tea Set from a store to a table without one; clears a table's used Teaware into a store.
+- **Tea server** (tea table): brings a Tea Set from a store to a table without one; takes a table's Used Tea Sets to a store, where each is rinsed into Teaware.
 
 ## Research
 

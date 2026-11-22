@@ -213,7 +213,7 @@ public sealed class Plans(Soaks soaks, TubCare care)
     #region Tea
 
     /// <summary>
-    /// The tea server's next errand: deliver carried Tea Sets, clear a table's used Teaware into a store, or bring a Tea Set to a table without one.
+    /// The tea server's next errand: deliver carried Tea Sets, rinse a table's Used Tea Sets into Teaware in a store, or bring a Tea Set to a table without one.
     /// </summary>
     static Leg[]? Tea(World world, int slot, string? building)
     {
@@ -224,13 +224,31 @@ public sealed class Plans(Soaks soaks, TubCare care)
         if (Goods.Count(Goods.Carried(world, slot), Ids.TeaSet) > 0 && bare is not null)
             return [new Leg(bare.Position, Handling, (w, s) => Put(w, s, bare, Ids.TeaSet, 1))];
 
-        var used = tables.FirstOrDefault(t => Goods.Count(Goods.StoreOf(world, t), Ids.Teaware) > 0);
+        var used = tables.FirstOrDefault(t => Goods.Count(Goods.StoreOf(world, t), Ids.UsedTeaSet) > 0);
         if (used is not null && TeaStore(world, building, Ids.Teaware, room: true) is { } shelf)
-            return [Pick(used, Ids.Teaware, Armful), new Leg(shelf.Position, Handling, (w, s) => Put(w, s, shelf, Ids.Teaware))];
+            return [Pick(used, Ids.UsedTeaSet, Armful), new Leg(shelf.Position, Handling, (w, s) => Rinse(w, s, shelf))];
 
         if (bare is null || TeaStore(world, building, Ids.TeaSet, room: false) is not { } stock) return null;
 
         return [Pick(stock, Ids.TeaSet, 1), new Leg(bare.Position, Handling, (w, s) => Put(w, s, bare, Ids.TeaSet, 1))];
+    }
+
+    /// <summary>
+    /// Rinses the carried Used Tea Sets: each becomes a Teaware in the store, while it has room; the rest stay carried.
+    /// </summary>
+    static bool Rinse(World world, int slot, BuildSite shelf)
+    {
+        if (Goods.StoreOf(world, shelf) is not { } store || Goods.Carried(world, slot) is not { } bag) return false;
+
+        int rinsed = 0;
+        while (Goods.Count(bag, Ids.UsedTeaSet) > 0 && Goods.Make(world, Ids.Teaware) is { } clean && store.HasRoomFor(clean))
+        {
+            Goods.Take(bag, Ids.UsedTeaSet);
+            store.Add(clean);
+            rinsed++;
+        }
+
+        return rinsed > 0;
     }
 
     /// <summary>

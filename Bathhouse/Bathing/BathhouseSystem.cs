@@ -96,6 +96,16 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     readonly Staff _staff;
 
     /// <summary>
+    /// Keeps the massage beds out of the game's own bed searches.
+    /// </summary>
+    readonly PrivateBeds _privateBeds;
+
+    /// <summary>
+    /// The attended massage beds' fast healing.
+    /// </summary>
+    readonly BedHealing _bedHealing = new();
+
+    /// <summary>
     /// The customer kinds the debug row asked to send since the last check.
     /// </summary>
     readonly List<string> _sendKinds = [];
@@ -124,6 +134,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
         _soaks = new Soaks(_heating, Finished);
         _clientele = new Clientele(_heating, _soaks, _care, data, purpose);
         _staff = new Staff(new Plans(_soaks, _care));
+        _privateBeds = new PrivateBeds(data.Relations);
     }
 
     public void Register(ChooserRegistry chooser)
@@ -180,6 +191,8 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
         _soaks.Step(world, hours, tub => Length(tub.Kind, settings));
         _clientele.Step(world, tubs, settings, hours);
         _staff.Step(world);
+        _privateBeds.Step(world);
+        _bedHealing.Step(world);
         Publish(world, tubs);
     }
 

@@ -11,15 +11,18 @@
     "medium-tub": 4,
     "oil-bath": 5,
     "pottery-kiln": 18,
+    "review-board": 21,
     "small-tub": 0,
     "soap": 20,
     "soap-press": 10,
+    "statue-1": 22,
     "steam-boiler": 6,
     "tea-bench": 11,
     "tea-dryer": 17,
     "tea-table": 12,
     "towel-loom": 13,
     "towel-rack": 16,
-    "washing-machine": 14
+    "washing-machine": 14,
+    "zen-garden": 23
   }
 }

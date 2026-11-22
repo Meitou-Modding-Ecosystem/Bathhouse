@@ -39,7 +39,9 @@ static class ItemRecords
         new(Ids.Teaware, "Teaware", "42319-changes_otto.mod", "Cup", 60, 5,
             "A pot and cups of fired stone. Fill it with greenfruit tea at a tea bench to make a tea set.", "teaware"),
         new(Ids.TeaSet, "Tea Set", "42316-changes_otto.mod", "Ceramic Bowl", 120, 5,
-            "A tray of hot greenfruit tea, ready to serve. Drunk, it leaves its teaware behind.", "teaset"),
+            "A tray of hot greenfruit tea, ready to serve. Drunk, it leaves a used tea set behind.", "teaset"),
+        new(Ids.UsedTeaSet, "Used Tea Set", "42316-changes_otto.mod", "Ceramic Bowl", 30, 5,
+            "A tray of empty, stained cups. The tea server rinses it back into teaware.", "usedteaset"),
     ];
 
     /// <summary>

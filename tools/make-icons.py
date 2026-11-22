@@ -18,6 +18,7 @@ ICONS = {
     "greenfruittea": (3, 3),
     "teaware": (2, 2),
     "teaset": (2, 2),
+    "usedteaset": (2, 2),
     "bathhouserobe": (2, 2),
 }
 

@@ -188,6 +188,9 @@ static class FurnitureRecords
             Ids.WashingMachine => Ids.WashingMachineLook,
             Ids.TeaDryer => Ids.TeaDryerLook,
             Ids.Kiln => Ids.KilnLook,
+            Ids.ReviewBoard => Ids.ReviewBoardLook,
+            Ids.Statue => Ids.StatueLook,
+            Ids.ZenGarden => Ids.ZenGardenLook,
             _ => null,
         };
 
@@ -196,12 +199,14 @@ static class FurnitureRecords
 
     /// <summary>
     /// A piece that works as its stand-in (the massage bed lies a customer down as the game's bed, the counter sells as the game's shop counter)
-    /// keeps the stand-in's functionality and inventory on its own look. With no use node a sleeper lies at the piece's origin, facing its way.
+    /// keeps the stand-in's functionality, inventory and <c>output rate</c> (a bed's healing factor) on its own look. With no use node a sleeper lies
+    /// at the piece's origin, facing its way.
     /// </summary>
     static void KeepWork(GameRecord standIn, FcsRecord record)
     {
         RecordKit.CopyLinks(standIn, record, "functionality");
         RecordKit.CopyLinks(standIn, record, "limit inventory");
+        if (standIn.Floats.TryGetValue("output rate", out float rate)) record.Floats["output rate"] = rate;
         record.Bools["has inventory"] = standIn.Bools.GetValueOrDefault("has inventory");
         foreach (string size in (string[])["storage size width", "storage size height"])
         {
