@@ -76,7 +76,7 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
 `Customers/Clientele`, stepped in the same check after the soaks.
 
 - **Kinds** (`CustomerTypes`): key, squad template, faction, price tolerance, rowdy, reputation needed. Drifters (3950-gamedata.base, Drifters,
-  0.8), traders (1161, Traders Guild, 1.0), bounty hunters (5337, 1.0, reputation 2), Shek (51336-rebirth.mod wandering duelists, 1.0, rowdy,
+  1.0), traders (1161, Traders Guild, 1.0), bounty hunters (5337, 1.0, reputation 2), Shek (51336-rebirth.mod wandering duelists, 1.0, rowdy,
   reputation 2). Skeletons (1.2), crab raiders (rowdy), nobles (2.0) and cannibals (1.5, rowdy) have lines but no source yet. Reputation is 1
   until milestone 5, so drifters and traders come. Demand (the least quality a kind leaves without complaining) is tolerance / 4.
 - **Groups** (`Spawner`): while the bathhouse is open, every hours-between-customers setting, from 6:00 to 22:00, at most 2 groups at once, when

@@ -13,7 +13,7 @@ public sealed record CustomerType(string Key, string Name, string Template, stri
     public bool Spawnable => Template.Length > 0;
 
     /// <summary>
-    /// The least visit quality this kind leaves without complaining: a quarter of its tolerance (drifters 0.2, nobles 0.5).
+    /// The least visit quality this kind leaves without complaining: a quarter of its tolerance (drifters and traders 0.25, nobles 0.5).
     /// </summary>
     public float Demand => Tolerance / 4;
 }
@@ -34,7 +34,7 @@ public static class CustomerTypes
     /// </summary>
     public static readonly IReadOnlyList<CustomerType> All =
     [
-        new("drifters", "Drifters", "3950-gamedata.base", "51707-rebirth.mod", 0.8f, false, 1),
+        new("drifters", "Drifters", "3950-gamedata.base", "51707-rebirth.mod", 1.0f, false, 1),
         new("traders", "Traders", "1161-gamedata.base", "1088-gamedata.base", 1.0f, false, 1),
         new("hunters", "Bounty hunters", "5337-gamedata.base", "14508-gamedata.base", 1.0f, false, 2),
         new("shek", "Shek", "51336-rebirth.mod", "11624-Dialogue (10).mod", 1.0f, true, 2),
