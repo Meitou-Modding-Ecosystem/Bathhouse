@@ -44,6 +44,12 @@ static class RecordKit
     }
 
     /// <summary>
+    /// Sets <paramref name="list"/> of <paramref name="record"/> to a copy of <paramref name="from"/>'s links in that list.
+    /// </summary>
+    public static void CopyLinks(GameRecord from, FcsRecord record, string list) =>
+        record.References[list] = [.. from.GetReferences(list).Select(Link)];
+
+    /// <summary>
     /// Sets <paramref name="list"/> to links to <paramref name="targets"/>, each with the values (v0, v1).
     /// </summary>
     public static void Links(FcsRecord record, string list, params (string Target, int V0, int V1)[] targets) =>

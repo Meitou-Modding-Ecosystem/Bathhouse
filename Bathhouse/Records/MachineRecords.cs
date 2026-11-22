@@ -132,7 +132,8 @@ static class MachineRecords
     /// </summary>
     static FcsRecord Boiler(GameDatabase game)
     {
-        var model = RecordKit.Model(game, FcsRecordType.Building, "5369-furniture_otto.mod", "Boiler Tank");
+        var model = FurnitureRecords.OwnLook(game, Ids.Boiler)
+            ?? RecordKit.Model(game, FcsRecordType.Building, "5369-furniture_otto.mod", "Boiler Tank");
         var lights = RecordKit.Model(game, FcsRecordType.BuildingFunctionality, "5358-gamedata.base", "Lights");
         var record = RecordKit.Copy(model, Ids.Boiler, "Steam Boiler", "functionality");
 
