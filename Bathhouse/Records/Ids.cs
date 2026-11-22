@@ -93,7 +93,8 @@ public static class Ids
     /// The service furniture.
     /// </summary>
     public const string MassageBed = "50-" + FileName, MassageStation = "51-" + FileName, Counter = "52-" + FileName, Lockers = "53-" + FileName,
-        Hamper = "54-" + FileName, TowelRack = "55-" + FileName, TeaTable = "56-" + FileName, ReviewBoard = "57-" + FileName;
+        Hamper = "54-" + FileName, TowelRack = "55-" + FileName, TeaTable = "56-" + FileName, ReviewBoard = "57-" + FileName,
+        TeaShelf = "58-" + FileName;
 
     /// <summary>
     /// The decorations.

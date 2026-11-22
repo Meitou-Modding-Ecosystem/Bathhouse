@@ -30,6 +30,12 @@ static class FurnitureRecords
         LockedStorage,
 
         /// <summary>
+        /// Storage for its own goods only (the game's Resource storage with a <c>limit inventory</c>, <see cref="Limits"/>), so haulers never fill
+        /// it with other things.
+        /// </summary>
+        Limited,
+
+        /// <summary>
         /// Keeps the model's own functionality (the bed, the shop counter).
         /// </summary>
         Model,
@@ -71,6 +77,23 @@ static class FurnitureRecords
     const int StorageWidth = 8, StorageHeight = 8;
 
     /// <summary>
+    /// The only items each <see cref="Use.Limited"/> piece takes.
+    /// </summary>
+    static readonly Dictionary<string, string[]> Limits = new()
+    {
+        [Ids.Hamper] = [Ids.DirtyTowel],
+        [Ids.TowelRack] = [Ids.Towel],
+        [Ids.TeaTable] = [Ids.TeaSet, Ids.UsedTeaSet],
+        [Ids.TeaShelf] = [Ids.GreenfruitTea, Ids.Teaware, Ids.TeaSet, Ids.UsedTeaSet],
+    };
+
+    /// <summary>
+    /// The <c>stackable bonus mult</c> of a piece limited to one item: the game sizes such a storage to one stack of it, so this many stacks fit
+    /// (50 towels).
+    /// </summary>
+    const float OneItemStacks = 5;
+
+    /// <summary>
     /// The game's Raw Meat, the blood bath's extra build cost.
     /// </summary>
     const string RawMeat = "42243-rebirth.mod";
@@ -105,11 +128,13 @@ static class FurnitureRecords
             "Bathers check in here and take a towel and soap from its stock."),
         new(Ids.Lockers, "Lockers", "1532622-rebirth.mod", "Crossbow Locker", Use.LockedStorage, "STORAGE",
             "Bathers lock their gear away while they soak."),
-        new(Ids.Hamper, "Laundry Hamper", "5355-furniture_otto.mod", "Small Barrel", Use.Storage, "STORAGE",
+        new(Ids.Hamper, "Laundry Hamper", "5355-furniture_otto.mod", "Small Barrel", Use.Limited, "STORAGE",
             "Bathers drop their dirty towels here."),
-        new(Ids.TowelRack, "Towel Rack", "3470-otto.mod", "Shelf", Use.Storage, "STORAGE", "Holds clean towels for the counter and the tubs."),
-        new(Ids.TeaTable, "Tea Table", "3471-otto.mod", "Small Table", Use.Storage, "INTERIOR",
+        new(Ids.TowelRack, "Towel Rack", "3470-otto.mod", "Shelf", Use.Limited, "STORAGE", "Holds clean towels for the counter and the tubs."),
+        new(Ids.TeaTable, "Tea Table", "3471-otto.mod", "Small Table", Use.Limited, "INTERIOR",
             "Keep tea sets here. Bathers nearby buy tea."),
+        new(Ids.TeaShelf, "Tea Shelf", "3470-otto.mod", "Shelf", Use.Limited, "STORAGE",
+            "Stores greenfruit tea, teaware and tea sets for the tea service."),
         new(Ids.ReviewBoard, "Review Board", "54552-Newwworld.mod", "banner_traders", Use.None, "INTERIOR",
             "Shows the bathhouse's rating and its latest reviews."),
         new(Ids.ZenGarden, "Zen Garden", "50606-Newwworld.mod", "Carpet: Rusty Rug", Use.None, "INTERIOR", "Raked gravel and three stones."),
@@ -152,7 +177,7 @@ static class FurnitureRecords
 
         if (spec.Use == Use.Model && model != standIn) KeepWork(standIn, record);
 
-        SetUse(record, spec.Use);
+        SetUse(record, spec);
         record.Strings["building category"] = spec.Category;
         record.Strings["Description"] = spec.Text;
         record.Bools["creates player town"] = true;
@@ -218,8 +243,9 @@ static class FurnitureRecords
     /// <summary>
     /// Gives the piece the functionality, inventory and lock its use asks for.
     /// </summary>
-    static void SetUse(FcsRecord record, Use use)
+    static void SetUse(FcsRecord record, Spec spec)
     {
+        var use = spec.Use;
         bool storage = use is Use.Storage or Use.LockedStorage;
         record.Bools["has inventory"] = storage || use == Use.Model && record.Bools.GetValueOrDefault("has inventory");
         record.Bools["has lock"] = use == Use.LockedStorage;
@@ -233,6 +259,20 @@ static class FurnitureRecords
 
         if (use == Use.Massage) RecordKit.Links(record, "functionality", (Ids.MassageWork, 0, 0));
         if (use == Use.Water) SetWater(record);
+        if (use == Use.Limited) SetLimited(record, Limits[spec.Id]);
+    }
+
+    /// <summary>
+    /// Makes the piece a store for its own goods only; one limited to a single item holds <see cref="OneItemStacks"/> stacks of it.
+    /// </summary>
+    static void SetLimited(FcsRecord record, string[] items)
+    {
+        record.Bools["has inventory"] = true;
+        RecordKit.Links(record, "functionality", (ResourceStorage, 0, 0));
+        RecordKit.Links(record, "limit inventory", items.Select(i => (i, 0, 100)).ToArray());
+        record.Ints["storage size width"] = StorageWidth;
+        record.Ints["storage size height"] = StorageHeight;
+        if (items.Length == 1) record.Floats["stackable bonus mult"] = OneItemStacks;
     }
 
     /// <summary>

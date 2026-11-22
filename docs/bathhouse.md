@@ -17,7 +17,7 @@ for its look (a stand-in until the mod's models land) and links game items by id
 | Power | Steam Boiler: draws 10, functionality the game's Lights (a consumer with no operator, so the Power switch shows) | Boiler Tank |
 | Water | Bathhouse Water Tank: Resource storage limited to Water, as the game's Water Tower | Small Water Tank |
 | Tubs (no functionality) | Small Tub (1 seat), Medium Tub (2), Large Bath (4), Oil Bath, Blood Bath (+10 Raw Meat to build) | own model (below), Large Barrels, Booze Barrels, Booze Barrel, Cannibal Butcher Table |
-| Service | Massage Bed (bed), Massage Station (production: Towel to Dirty Towel, 1 operator), Check-in Counter (shop counter), Lockers (locked storage), Laundry Hamper, Towel Rack, Tea Table (storage), Review Board | Bed, Small Table, Shop Counter, Crossbow Locker, Small Barrel, Shelf, Small Table, banner_traders |
+| Service | Massage Bed (bed), Massage Station (production: Towel to Dirty Towel, 1 operator), Check-in Counter (shop counter), Lockers (locked storage), Laundry Hamper (Dirty Towels only), Towel Rack (Towels only), Tea Table (Tea Sets and Used Tea Sets only), Tea Shelf (Greenfruit Tea, Teaware, Tea Sets, Used Tea Sets only), Review Board | Bed, Small Table, Shop Counter, Crossbow Locker, Small Barrel, Shelf, Small Table, Shelf, banner_traders |
 | Decorations | Zen Garden, Wall Art, Tapestry, Statue, Towel Hanger, Tea Set Display | Carpet: Rusty Rug, banner_empire, banner_holy, Emperor Statue, Wall Shelf 1, Wall Shelf 2 |
 
 The items and the robe show the mod's own icons, not the copied item's: `tools/make-icons.py` fits each `concept-art/<name>-inventory.png`
@@ -90,7 +90,7 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   A group whose platoon disappears is posted and the next may set out at once. A held stand-in takes part in Meitou's off-screen fights
   (Settings > Advanced > Fights far away, on by default), so a group can be wiped out on the road; kept on purpose (README).
 - **Check-in**: the visit goal (desire 0.7) walks the customer to the counter's front and stands it there. It checks in when one of the player's
-  people stands within 80 units of the counter, the counter (else a store in its building) holds a Towel and a Soap, and a tub in the building
+  people stands within 80 units of the counter, a Towel and a Soap are each found in the counter, else in a store in its building (`Stock`; they may come from different stores), and a tub in the building
   is warm with a free seat. It takes the price (below), a Soap is used up and a Towel goes into its inventory (it dries with it), and it is sent
   to soak. After waiting 2 hours it leaves with a complaint; closing the bathhouse sends arriving customers away.
 - **Prices** (`Pricing`): bath (small 30, medium 40, large 50, oil 60, blood 80 cats), towel 15, soap 10, times the reputation factor (1 until
@@ -106,6 +106,10 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   player's people operates the station (a vanilla operate-machinery job, within 40 units), each hour pays 30 cats suggested x skill (0.5 + 0.5 x
   Dexterity / 50, 0.5 to 1.5). After 1 hour massaged, or 1 hour lying with nobody at the station (or waiting for the bed), it gets up and pays
   the soak, the tea and the massage so far.
+- **Limited storage** (`FurnitureRecords.Limits`): the hamper, towel rack, tea table and tea shelf are the game's Resource storage with a
+  `limit inventory`, so haulers (who fill the nearest store that `Accepts` an item) never put other goods in them. The game sizes a store limited to
+  one item to one stack of it, so the hamper and rack carry `stackable bonus mult` 5 (50 towels). The tea server takes from and rinses into tea
+  shelves first (`Plans.TeaStore`).
 - **Private beds** (`PrivateBeds`): only customers and the player's orders use a massage bed. Every game bed search (sleeping, "Sleep when
   injured", rescuing or putting someone in the nearest bed, NPC sleep, rented beds) passes over a bed `FixtureRegistry.Reachable` refuses for
   the searcher's faction, so each massage bed is marked unreachable for every faction (`MarkUnreachable`, until the end of the next 24-hour
