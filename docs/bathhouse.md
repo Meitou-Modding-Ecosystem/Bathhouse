@@ -23,7 +23,7 @@ for its look (a stand-in until the mod's models land) and links game items by id
 The items and the robe show the mod's own icons, not the copied item's: `tools/make-icons.py` fits each `concept-art/<name>-inventory.png`
 (transparent background) into the item's inventory footprint at 50 px a cell as `Bathhouse/items/icons/bathhouse-<name>.png`, and the
 record names it in `icon` with `auto icon image` false (the game then takes the file by its bare name from its Icons group, which a mod's
-`items/icons` folder joins, as Rebirth's `.\mods\Basic\items\icons\Foodcube.png`). Rerun it when an inventory picture or a footprint changes.
+`items/icons` folder joins, as Rebirth's `.\mods\Basic\items\icons\Foodcube.png`). Play copies `Bathhouse/items/` into the deployed mod folder (`PlayDeployAssets`). Rerun it when an inventory picture or a footprint changes.
 Item models (`Bathhouse/ItemModels/*.glb`, textures at 1024) are kept out of `Structures`, which would make them buildable furniture; the
 structure import makes buildings only, so the items still look like their stand-ins in the world.
 
