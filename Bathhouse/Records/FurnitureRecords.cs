@@ -1,3 +1,4 @@
+using System.Numerics;
 using Meitou.Data;
 using Meitou.Data.Fcs;
 
@@ -127,11 +128,12 @@ static class FurnitureRecords
         new(Ids.BloodBath, "Blood Bath", "2642-Cannibals.mod", "Cannibal Butcher Table", Use.None,
             "A grim soak for grim guests. Other bathers refuse a building that has one, and the Holy Nation and United Cities disapprove. " + TubUse),
         new(Ids.MassageBed, "Massage Bed", "3460-otto.mod", "Bed", Use.Model,
-            "Customers lie here for a massage. Build a massage station in the same building: each bed pairs with the nearest one. Heals four times"
-            + " as fast while someone works the station. Your own people only use it when ordered to."),
+            "Customers lie here for a massage. Build a massage station in the same building: each bed pairs with the nearest one. Heals bandaged"
+            + " wounds four times as fast while someone works the station. Your own people only use it when ordered to."),
         new(Ids.MassageStation, "Massage Station", "3471-otto.mod", "Small Table", Use.Massage,
-            "Give one of your people its operate job: while a customer lies on the nearest massage bed in the same building, each hour pays by the"
-            + " worker's Dexterity. Set the massage price on its panel."),
+            "Give one of your people its operate job and keep towels in it: the attendant only works while it has some, using one an hour."
+            + " While a customer lies on the nearest massage bed in the same building, each hour pays by the worker's Dexterity. Set the massage"
+            + " price on its panel."),
         new(Ids.Counter, "Check-in Counter", "3469-otto.mod", "Shop Counter", Use.Model,
             "The heart of the bathhouse: customers come to it from 6:00 to 22:00 while it stands in a building with a warm tub. Keep towels"
             + " and soap in it or in the building's stores, have someone stand by it (Bathhouse clerk, panel button), and set prices and open it"
@@ -163,6 +165,11 @@ static class FurnitureRecords
     public static IEnumerable<FcsRecord> Build(GameDatabase game) => [MassageWork(game), .. Specs.Select(s => Piece(game, s))];
 
     /// <summary>
+    /// How near its operator spot the attendant works (<c>use range</c>, the game's Textiles 40): close, so it stands at the station.
+    /// </summary>
+    const float StationReach = 10;
+
+    /// <summary>
     /// The massage station's functionality: a production machine for one attendant that turns towels into dirty towels (one an hour's work), so
     /// characters and Fiefdom residents work it. What it earns is the mod's code.
     /// </summary>
@@ -172,6 +179,7 @@ static class FurnitureRecords
         var record = RecordKit.Copy(model, Ids.MassageWork, "massage", "consumes", "produces");
 
         record.Ints["max operators"] = 1;
+        record.Floats["use range"] = StationReach;
         RecordKit.Links(record, "consumes", (Ids.Towel, 5, 100));
         RecordKit.Links(record, "produces", (Ids.DirtyTowel, 5, 0));
         return record;
@@ -188,6 +196,8 @@ static class FurnitureRecords
         var record = RecordKit.Copy(model, spec.Id, spec.Name, skip);
 
         if (spec.Use == Use.Model && model != standIn) KeepWork(standIn, record);
+        if (spec.Id == Ids.MassageBed && model != standIn) KeepUseNodes(standIn, record);
+        if (spec.Id == Ids.MassageStation && model != standIn) AddUseNode(record, StationFront, 0);
 
         SetUse(record, spec);
         record.Strings["building category"] = RecordKit.BuildCategory;
@@ -252,6 +262,45 @@ static class FurnitureRecords
             if (standIn.Ints.TryGetValue(size, out int value)) record.Ints[size] = value;
             else record.Ints.Remove(size);
         }
+    }
+
+    /// <summary>
+    /// The game's use node (NODE_USE, node type 4): where a sleeper lies in a bed and where a machine's operator stands.
+    /// </summary>
+    const string UseNodeRecord = "1183-gamedata.base";
+
+    /// <summary>
+    /// The massage station's operator spot on its own model: in front of it (local +Z), clear of its 0.67 m depth, so the attendant walks up to it
+    /// instead of stopping anywhere within reach of the station's centre.
+    /// </summary>
+    static readonly Vector3 StationFront = new(0, 0, 7);
+
+    /// <summary>
+    /// Gives a piece on its own model the stand-in's use nodes, scaled as the stand-in scales them. The massage bed's model is turned to lie along
+    /// local Z as the game's Bed does (its .json <c>yaw</c>) and is as long, so a sleeper lies on it from either end as on the Bed instead of at its
+    /// centre facing across it.
+    /// </summary>
+    static void KeepUseNodes(GameRecord standIn, FcsRecord record)
+    {
+        float scale = standIn.GetFloat("scale", 1) / record.Floats.GetValueOrDefault("scale", 1);
+        var nodes = standIn.Instances.Values
+            .Where(i => i.Target == UseNodeRecord)
+            .OrderBy(i => i.Id, StringComparer.Ordinal);
+
+        foreach (var node in nodes)
+        {
+            var copy = new FcsInstance { Id = node.Id, Target = UseNodeRecord, Position = node.Position * scale, Rotation = node.Rotation };
+            record.Instances.Add(copy);
+        }
+    }
+
+    /// <summary>
+    /// Adds a use node at <paramref name="at"/> (building units), turned <paramref name="yaw"/> radians about Y.
+    /// </summary>
+    static void AddUseNode(FcsRecord record, Vector3 at, float yaw)
+    {
+        var turn = Quaternion.CreateFromAxisAngle(Vector3.UnitY, yaw);
+        record.Instances.Add(new FcsInstance { Id = $"usenode{record.Instances.Count + 1}", Target = UseNodeRecord, Position = at, Rotation = turn });
     }
 
     /// <summary>
