@@ -252,13 +252,24 @@ public sealed class Plans(Soaks soaks, TubCare care)
     }
 
     /// <summary>
-    /// The first store in the building that is not a tea table, hamper or counter: with room for a record, or holding one.
+    /// The first store in the building that takes a record and is not a tea table or counter, tea shelves first: with room for it, or holding one.
     /// </summary>
     static BuildSite? TeaStore(World world, string building, string record, bool room) =>
-        world.Buildings.All.FirstOrDefault(s => s.Parent == building && s.Complete && !s.Destroyed
-            && s.Record is not Ids.TeaTable and not Ids.Hamper and not Ids.Counter
-            && world.Machines.Find(s.Id) is { Data.IsStorage: true, Storage: { } store }
-            && (room ? Goods.Make(world, record) is { } unit && store.HasRoomFor(unit) : Goods.Count(store, record) > 0));
+        world.Buildings.All
+            .OrderBy(s => s.Record != Ids.TeaShelf)
+            .FirstOrDefault(s => IsTeaStore(world, s, building, record, room));
+
+    /// <summary>
+    /// Whether a site is a finished store in the building, not a tea table or counter, that takes a record: with room for it, or holding one.
+    /// </summary>
+    static bool IsTeaStore(World world, BuildSite site, string building, string record, bool room)
+    {
+        if (site.Parent != building || !site.Complete || site.Destroyed || site.Record is Ids.TeaTable or Ids.Counter) return false;
+        if (world.Machines.Find(site.Id) is not { Data.IsStorage: true, Storage: { } store } machine) return false;
+        if (!machine.Data.Accepts(record, Meitou.Data.Fcs.FcsRecordType.Item)) return false;
+
+        return room ? Goods.Make(world, record) is { } unit && store.HasRoomFor(unit) : Goods.Count(store, record) > 0;
+    }
 
     #endregion
 
