@@ -22,7 +22,12 @@ for its look (a stand-in until the mod's models land) and links game items by id
 
 Own models: `Bathhouse/Structures/<piece>.glb` with a `.json` (`research` `none`, so only the piece shows in the build menu); Play's structure
 import turns each into a building (docs/structures.md) and the piece copies its look when the deployed data has it (`FurnitureRecords.OwnLook`,
-ids in `Ids` from `Structures/ids.json`), else the stand-in. The Small Tub's model is 0.8 m tall, 2751 triangles, mesh collision.
+ids in `Ids` from `Structures/ids.json`), else the stand-in. Each model is scaled evenly so its length matches the art prompts' size, mesh collision:
+small tub 1.2 m long (0.62 m tall), medium 2 m (0.96), large 3.5 m (0.5), oil 1.8 m (1.03), blood 2.5 m (1.53). The steam boiler (2.2 m tall)
+and massage bed (2 m long) are imported but not worn yet: the boiler copies a vanilla machine's data and the bed needs the vanilla bed's
+lie-down node.
+Model textures are kept at 2048 (base colour and metal/roughness as JPEG quality 92, normal map as lossless PNG): the import bakes 2048 DDS
+by default (`textureSize`), so a 4096 source only grows the repo.
 
 Tubs have no functionality so that no game or mod AI (a town bar's, Fiefdom's residents) sits in them; bathing is the mod's code.
 
@@ -132,3 +137,5 @@ game (sidecar version 3; version 2 reads with tea and massage at 100%).
 research, the goals' lists and the customer kinds' squads and factions.
 `BathingTests` checks the heat rule, seats, the towel roll's split, which effects a soak clears, soak lengths and the sidecar round trip.
 `CustomerTests` checks price acceptance, the price steps, quality and pay, the complaints' cap, demand and the barks.
+`StaffTests` checks dirty tubs, the massage skill, the dirty tub's quality part, tea and massage prices and the staff roles. `BathingTests`
+also reads a version 2 sidecar.

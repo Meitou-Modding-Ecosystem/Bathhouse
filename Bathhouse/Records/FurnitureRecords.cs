@@ -167,6 +167,10 @@ static class FurnitureRecords
         string? look = piece switch
         {
             Ids.SmallTub => Ids.SmallTubLook,
+            Ids.MediumTub => Ids.MediumTubLook,
+            Ids.LargeTub => Ids.LargeTubLook,
+            Ids.OilBath => Ids.OilBathLook,
+            Ids.BloodBath => Ids.BloodBathLook,
             _ => null,
         };
 

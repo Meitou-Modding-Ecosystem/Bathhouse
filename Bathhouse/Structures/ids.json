@@ -1,5 +1,11 @@
 {
   "blocks": {
-    "small-tub": 0
+    "blood-bath": 1,
+    "large-tub": 2,
+    "massage-bed": 3,
+    "medium-tub": 4,
+    "oil-bath": 5,
+    "small-tub": 0,
+    "steam-boiler": 6
   }
 }

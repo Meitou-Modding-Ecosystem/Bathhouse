@@ -101,10 +101,11 @@ public static class Ids
     #region Models
 
     /// <summary>
-    /// The small tub's own model: the building the structure import makes from <c>Structures/small-tub.glb</c> (its block 0 in
-    /// <c>Structures/ids.json</c>, building +0). The Small Tub copies its look when the deployed data has it.
+    /// The tubs' own models: the buildings the structure import makes from <c>Structures/&lt;tub&gt;.glb</c> (block b in
+    /// <c>Structures/ids.json</c> is building 900000 + 100 b). Each tub copies its look when the deployed data has it.
     /// </summary>
-    public const string SmallTubLook = "900000-" + FileName;
+    public const string SmallTubLook = "900000-" + FileName, BloodBathLook = "900100-" + FileName, LargeTubLook = "900200-" + FileName,
+        MediumTubLook = "900400-" + FileName, OilBathLook = "900500-" + FileName;
 
     #endregion
 

@@ -86,6 +86,7 @@ public sealed class BathingTests
             new KeepDebuffCommand("bathhouse.test.poison", Keep: true) { Tick = 0 },
             new OpenCommand(false) { Tick = 0 },
             new PriceCommand(Service.Towel, 150) { Tick = 0 },
+            new PriceCommand(Service.Massage, 200) { Tick = 0 },
         ];
         first.Inputs(null!, commands);
         var saved = Saved(first);
@@ -95,6 +96,47 @@ public sealed class BathingTests
 
         Assert.True(second.Keeps("bathhouse.test.poison"));
         Assert.Equal(saved, Saved(second));
+    }
+
+    [Fact]
+    public void A_version_2_sidecar_reads_with_tea_and_massage_at_full_price()
+    {
+        var old = NewSystem();
+        old.Read(new MemoryStream(Version2(open: false, bath: 75, towel: 150, soap: 200)));
+
+        var now = NewSystem();
+        SimCommand[] commands =
+        [
+            new OpenCommand(false) { Tick = 0 },
+            new PriceCommand(Service.Bath, 75) { Tick = 0 },
+            new PriceCommand(Service.Towel, 150) { Tick = 0 },
+            new PriceCommand(Service.Soap, 200) { Tick = 0 },
+        ];
+        now.Inputs(null!, commands);
+
+        Assert.Equal(Saved(now), Saved(old));
+    }
+
+    /// <summary>
+    /// A version 2 sidecar with no debuffs, water, soaks, groups or visits, the next group at hour 0 and no complaints yet.
+    /// </summary>
+    static byte[] Version2(bool open, int bath, int towel, int soap)
+    {
+        using var stream = new MemoryStream();
+        using var w = new BinaryWriter(stream);
+        int[] header = [2, 0, 0, 0];
+        foreach (int value in header) w.Write(value);
+
+        w.Write(open);
+        int[] percents = [bath, towel, soap];
+        foreach (int percent in percents) w.Write(percent);
+
+        w.Write(0.0);
+        int[] rest = [0, -1, 0, 0, 0];
+        foreach (int value in rest) w.Write(value);
+
+        w.Flush();
+        return stream.ToArray();
     }
 
     /// <summary>
