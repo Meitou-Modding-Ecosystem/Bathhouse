@@ -8,37 +8,50 @@ using Meitou.Simulation.Production;
 namespace Bathhouse.Customers;
 
 /// <summary>
-/// The counter's stock (docs/bathhouse.md "Check-in"): a towel and a soap taken from the counter's own storage, else from a store in its building;
-/// the towel goes into the customer's inventory (it dries with it after the soak) and the soap is used up.
+/// Where a check-in's towel and soap come from: each from the counter's own storage, else from the first store in its building that holds one.
+/// </summary>
+public readonly record struct Supplies(Inventory Towels, Inventory Soap);
+
+/// <summary>
+/// The counter's stock (docs/bathhouse.md "Check-in"): a towel and a soap, each taken from the counter's own storage, else from a store in its
+/// building (the towel rack holds towels only, so the two often come from different stores); the towel goes into the customer's inventory (it
+/// dries with it after the soak) and the soap is used up.
 /// </summary>
 public static class Stock
 {
     /// <summary>
-    /// The counter's storage when it holds a towel and a soap, else the building's first store that does; null for none.
+    /// Where the counter's next towel and soap come from; null when the counter and its building lack either.
     /// </summary>
-    public static Inventory? Of(World world, BuildSite counter)
+    public static Supplies? Of(World world, BuildSite counter)
     {
-        if (world.Machines.Find(counter.Id)?.Storage is { } own && Holds(own)) return own;
+        var own = world.Machines.Find(counter.Id)?.Storage;
+        var stores = counter.Parent is null ? [] : Heating.StoresIn(world, counter.Parent).ToList();
+        if (Source(own, stores, Ids.Towel) is not { } towels || Source(own, stores, Ids.Soap) is not { } soap) return null;
 
-        return counter.Parent is null ? null : Heating.StoresIn(world, counter.Parent).FirstOrDefault(Holds);
+        return new Supplies(towels, soap);
     }
 
     /// <summary>
-    /// Takes a towel and a soap from the stock; the towel goes into the customer's inventory (a customer with no room for it dries without one).
+    /// Takes a towel and a soap from the supplies; the towel goes into the customer's inventory (a customer with no room for it dries without one).
     /// </summary>
-    public static void Hand(World world, int slot, Inventory stock)
+    public static void Hand(World world, int slot, Supplies supplies)
     {
-        if (Item(stock, Ids.Soap) is { } soap) stock.RemoveOne(soap);
-        if (Item(stock, Ids.Towel) is not { } towel || !stock.RemoveOne(towel)) return;
+        if (Item(supplies.Soap, Ids.Soap) is { } soap) supplies.Soap.RemoveOne(soap);
+        if (Item(supplies.Towels, Ids.Towel) is not { } towel || !supplies.Towels.RemoveOne(towel)) return;
 
         var fresh = world.Systems.OfType<ProductionSystem>().FirstOrDefault()?.Items.Create(Ids.Towel);
         if (fresh is not null && world.Characters.Cold(slot)?.Inventory is { } bag) bag.Add(fresh);
     }
 
     /// <summary>
-    /// Whether an inventory holds a towel and a soap.
+    /// The counter's own storage when it holds a record, else the first of the stores that does; null for none.
     /// </summary>
-    static bool Holds(Inventory inventory) => Item(inventory, Ids.Towel) is not null && Item(inventory, Ids.Soap) is not null;
+    static Inventory? Source(Inventory? own, List<Inventory> stores, string record)
+    {
+        if (own is not null && Item(own, record) is not null) return own;
+
+        return stores.FirstOrDefault(s => Item(s, record) is not null);
+    }
 
     /// <summary>
     /// The first item of a record in an inventory; null for none.
