@@ -22,7 +22,10 @@ for its look (a stand-in until the mod's models land) and links game items by id
 
 Own models: `Bathhouse/Structures/<piece>.glb` with a `.json` (`research` `none`, so only the piece shows in the build menu); Play's structure
 import turns each into a building (docs/structures.md) and the piece copies its look when the deployed data has it (`FurnitureRecords.OwnLook`,
-ids in `Ids` from `Structures/ids.json`), else the stand-in. The Small Tub's model is 0.8 m tall, 2751 triangles, mesh collision.
+ids in `Ids` from `Structures/ids.json`), else the stand-in. Each model is scaled evenly so its length matches the art prompts' size, mesh collision:
+small tub 1.2 m long (0.62 m tall), medium 2 m (0.96), large 3.5 m (0.5), oil 1.8 m (1.03), blood 2.5 m (1.53). The steam boiler (2.2 m tall)
+and massage bed (2 m long) are imported but not worn yet: the boiler copies a vanilla machine's data and the bed needs the vanilla bed's
+lie-down node.
 Model textures are kept at 2048 (base colour and metal/roughness as JPEG quality 92, normal map as lossless PNG): the import bakes 2048 DDS
 by default (`textureSize`), so a 4096 source only grows the repo.
 
