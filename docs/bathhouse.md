@@ -20,6 +20,11 @@ for its look (a stand-in until the mod's models land) and links game items by id
 | Service | Massage Bed (bed), Massage Station (production: Towel to Dirty Towel, 1 operator), Check-in Counter (shop counter), Lockers (locked storage), Laundry Hamper, Towel Rack, Tea Table (storage), Review Board | Bed, Small Table, Shop Counter, Crossbow Locker, Small Barrel, Shelf, Small Table, banner_traders |
 | Decorations | Zen Garden, Wall Art, Tapestry, Statue, Towel Hanger, Tea Set Display | Carpet: Rusty Rug, banner_empire, banner_holy, Emperor Statue, Wall Shelf 1, Wall Shelf 2 |
 
+The items and the robe show the mod's own icons, not the copied item's: `tools/make-icons.py` fits each `concept-art/<name>-inventory.png`
+(transparent background) into the item's inventory footprint at 50 px a cell as `Bathhouse/items/icons/bathhouse-<name>.png`, and the
+record names it in `icon` with `auto icon image` false (the game then takes the file by its bare name from its Icons group, which a mod's
+`items/icons` folder joins, as Rebirth's `.\mods\Basic\items\icons\Foodcube.png`). Rerun it when an inventory picture or a footprint changes.
+
 Own models: `Bathhouse/Structures/<piece>.glb` with a `.json` (`research` `none`, so only the piece shows in the build menu); Play's structure
 import turns each into a building (docs/structures.md) and the piece copies its look when the deployed data has it (`FurnitureRecords.OwnLook`,
 ids in `Ids` from `Structures/ids.json`), else the stand-in. Each model is scaled evenly so its length matches the art prompts' size, mesh collision:
