@@ -2,6 +2,7 @@
   "blocks": {
     "blood-bath": 1,
     "checkin-counter": 8,
+    "dirty-towel": 19,
     "large-tub": 2,
     "laundry-hamper": 9,
     "locker-bank": 15,
@@ -11,6 +12,7 @@
     "oil-bath": 5,
     "pottery-kiln": 18,
     "small-tub": 0,
+    "soap": 20,
     "soap-press": 10,
     "steam-boiler": 6,
     "tea-bench": 11,
