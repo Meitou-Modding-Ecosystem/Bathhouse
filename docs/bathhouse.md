@@ -27,7 +27,8 @@ record names it in `icon` with `auto icon image` false (the game then takes the 
 Item models (`Bathhouse/ItemModels/*.glb`, textures at 1024) are kept out of `Structures`, which would make them buildable furniture; the
 structure import makes buildings only, so the items still look like their stand-ins in the world.
 
-Every building is in the build menu's own `BATH HOUSE` category (`RecordKit.BuildCategory`); each shows there once its research is done.
+Every building is in the build menu's own `BATH HOUSE` category (`RecordKit.BuildCategory`); each shows there once its research is done. Each
+building's description says how to use it (what it needs, which staff job its panel offers).
 
 Own models: `Bathhouse/Structures/<piece>.glb` with a `.json` (`research` `none`, so only the piece shows in the build menu); Play's structure
 import turns each into a building (docs/structures.md) and the piece copies its look when the deployed data has it (`FurnitureRecords.OwnLook`,
@@ -35,7 +36,7 @@ ids in `Ids` from `Structures/ids.json`), else the stand-in. Each model is scale
 small tub 1.2 m long (0.62 m tall), medium 2 m (0.96), large 3.5 m (0.5), oil 1.8 m (1.03), blood 2.5 m (1.53), steam boiler 2.2 m tall,
 massage bed 2 m long (0.72 m tall), massage station 1 m tall (1.07 m long), check-in counter 2.5 m long (0.95 m tall), laundry hamper
 0.8 m tall. Later exports come in meters at the prompt's height and keep it: soap press 1.8 m, tea bench 1 m, tea table 0.4 m, towel loom
-1.8 m, washing machine 1.6 m, tea dryer 1.6 m, pottery kiln 2 m, towel rack 1.6 m, locker bank 1.7 m, review board 1.8 m, statue 1.8 m (`statue-1`: more statues may follow), zen garden 0.4 m. A machine on its own look keeps its stand-in's build cost and power draw
+1.8 m, washing machine 1.6 m, tea dryer 1.6 m, pottery kiln 2 m, towel rack 1.6 m, locker bank 1.7 m, review board 1.8 m, tea set display 0.67 m (0.8 m wide), tea shelf 1.7 m, statue 1.8 m (`statue-1`: more statues may follow), zen garden 0.4 m. A machine on its own look keeps its stand-in's build cost and power draw
 (`MachineRecords.KeepCost`). The massage bed and the counter keep their stand-in's functionality, inventory and `output rate` (`KeepWork`; the copy carries no use nodes, so a
 customer lies at the bed's origin facing its way, as on the stand-in); the station's operator stands within the
 functionality's use range of its origin (a building with fewer than two use nodes is reached at its position marker).

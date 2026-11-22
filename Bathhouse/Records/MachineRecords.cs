@@ -28,16 +28,20 @@ static class MachineRecords
     [
         new(Ids.TowelLoom, Ids.TowelLoomWork, "Towel Loom", "2016-gamedata.base", "Fabric Loom (hemp)", "2018-gamedata.base", "Textiles hemp",
             [new("584-gamedata.base", 10, 50)], [new(Ids.Towel, 10)],
-            "Weaves fabrics into thick towels, two from each bolt."),
+            "Weaves fabric into thick towels, two from each bolt. Give one of your people its operate job and keep it in fabric."),
         new(Ids.SoapPress, Ids.SoapPressWork, "Soap Press", "52163-rebirth.mod", "Hemp Processor", "52158-rebirth.mod", "drugs",
-            [new("1965-gamedata.base", 10, 200)], [new(Ids.Soap, 10)], "Presses hemp into bars of soap, two hemp a bar."),
+            [new("1965-gamedata.base", 10, 200)], [new(Ids.Soap, 10)],
+            "Presses hemp into bars of soap, two hemp a bar. Give one of your people its operate job and keep it in hemp."),
         new(Ids.WashingMachine, Ids.WasherWork, "Washing Machine", "52162-rebirth.mod", "Sake Still", "52157-rebirth.mod", "Sake",
             [new(Ids.DirtyTowel, 10, 100), new(Ids.Soap, 10, 25)], [new(Ids.Towel, 10)],
-            "Washes dirty towels clean. One bar of soap does four towels."),
+            "Washes dirty towels clean; one bar of soap does four towels. A Laundry runner (panel button) fetches dirty towels from the hampers,"
+            + " keeps it in soap and takes clean towels to the towel racks. It also needs an operator."),
         new(Ids.TeaDryer, Ids.TeaDryerWork, "Tea Dryer", "50922-rebirth.mod", "Biofuel Distillery (Hemp)", "50921-rebirth.mod", "hemp to fuel",
-            [new("42309-changes_otto.mod", 10, 100)], [new(Ids.GreenfruitTea, 10)], "Slices and dries greenfruit into tea."),
+            [new("42309-changes_otto.mod", 10, 100)], [new(Ids.GreenfruitTea, 10)],
+            "Slices and dries greenfruit into greenfruit tea. Give one of your people its operate job and keep it in greenfruit."),
         new(Ids.Kiln, Ids.KilnWork, "Pottery Kiln", "1944-gamedata.base", "Cooking Stove", "2018-gamedata.base", "Textiles hemp",
-            [new("1515-gamedata.base", 10, 100)], [new(Ids.Teaware, 5)], "Fires raw stone into teaware."),
+            [new("1515-gamedata.base", 10, 100)], [new(Ids.Teaware, 5)],
+            "Fires raw stone into teaware. Give one of your people its operate job and keep it in raw stone."),
     ];
 
     /// <summary>
@@ -135,7 +139,7 @@ static class MachineRecords
     static FcsRecord TeaBench(GameDatabase game)
     {
         var spec = new Spec(Ids.TeaBench, Ids.TeaBenchWork, "Tea Bench", "1944-gamedata.base", "Cooking Stove", "", "", [], [],
-            "Brews greenfruit tea in teaware to make tea sets for the bathhouse's tea tables.");
+            "Brews greenfruit tea in teaware into tea sets for the tea tables. Craft at it like a cooking stove and store the sets on a tea shelf.");
         return Building(game, spec, Ids.TeaBenchWork);
     }
 
@@ -154,7 +158,8 @@ static class MachineRecords
         record.Ints["power output"] = -BoilerDraw;
         RecordKit.Links(record, "construction", ("42159-gamedata.base", BoilerPlates, 0));
         record.Strings["building category"] = RecordKit.BuildCategory;
-        record.Strings["Description"] = "Heats every tub in its building while it is switched on, powered and has Water in a box nearby."
+        record.Strings["Description"] = "Heats the tubs in its building while it is switched on and powered. It drinks Water every day"
+            + " from the building's stores, so build a bathhouse water tank beside it."
             + $" Each boiler heats {BathhouseSettings.DefaultSeatsPerBoiler} bathers' seats.";
         record.Bools["creates player town"] = true;
         return record;
