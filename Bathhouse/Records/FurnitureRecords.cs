@@ -38,6 +38,11 @@ static class FurnitureRecords
         /// The massage station's functionality (<see cref="Ids.MassageWork"/>).
         /// </summary>
         Massage,
+
+        /// <summary>
+        /// Storage for Water only (the game's Resource storage, limited as the Water Tower is): the boilers' supply.
+        /// </summary>
+        Water,
     }
 
     /// <summary>
@@ -49,6 +54,16 @@ static class FurnitureRecords
     /// The game's General storage functionality: any item, worked by nobody.
     /// </summary>
     const string GeneralStorage = "2950-gamedata.base";
+
+    /// <summary>
+    /// The game's Resource storage functionality, which the Water Tower limits to Water.
+    /// </summary>
+    const string ResourceStorage = "1518-gamedata.base";
+
+    /// <summary>
+    /// The game's Water item.
+    /// </summary>
+    public const string Water = "1914-gamedata.base";
 
     /// <summary>
     /// The storage grid of the hamper, towel rack, tea table and lockers, in inventory cells.
@@ -70,6 +85,8 @@ static class FurnitureRecords
     /// </summary>
     static readonly Spec[] Specs =
     [
+        new(Ids.WaterTank, "Bathhouse Water Tank", "12839-nodes_otto.mod", "Small Water Tank", Use.Water, "STORAGE",
+            "Holds the Water the steam boilers in this building turn into hot baths."),
         new(Ids.SmallTub, "Small Tub", "5351-furniture_otto.mod", "Wooden Barrel", Use.None, "INTERIOR",
             "A one-person soaking tub. Needs a lit steam boiler in the same building."),
         new(Ids.MediumTub, "Medium Tub", "896-gamedata.base", "Large Barrels", Use.None, "INTERIOR",
@@ -158,6 +175,19 @@ static class FurnitureRecords
         }
 
         if (use == Use.Massage) RecordKit.Links(record, "functionality", (Ids.MassageWork, 0, 0));
+        if (use == Use.Water) SetWater(record);
+    }
+
+    /// <summary>
+    /// Makes the piece a Water store, as the game's Water Tower is.
+    /// </summary>
+    static void SetWater(FcsRecord record)
+    {
+        record.Bools["has inventory"] = true;
+        RecordKit.Links(record, "functionality", (ResourceStorage, 0, 0));
+        RecordKit.Links(record, "limit inventory", (Water, 0, 100));
+        record.Ints["storage size width"] = StorageWidth;
+        record.Ints["storage size height"] = StorageHeight;
     }
 
     /// <summary>

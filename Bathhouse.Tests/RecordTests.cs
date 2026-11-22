@@ -82,6 +82,27 @@ public sealed class RecordTests
         Assert.Empty(Game().Find(tub)!.GetReferences("functionality"));
 
     [Fact]
+    public void The_water_tank_stores_only_water()
+    {
+        var game = Game();
+
+        Assert.True(Machine(Ids.WaterTank).IsStorage);
+        Assert.Equal(["1914-gamedata.base"], game.Find(Ids.WaterTank)!.GetReferences("limit inventory").Select(l => l.TargetStringId));
+    }
+
+    [Fact]
+    public void Every_race_and_the_player_faction_weigh_the_bath_goal()
+    {
+        var game = Game();
+        var goal = game.Find(Ids.BathGoal)!;
+        var owners = game.OfType(FcsRecordType.Race).Append(game.Find("204-gamedata.base")!);
+
+        Assert.Equal(Ids.BathGoalType, goal.GetInt("enum"));
+        Assert.Equal(3, goal.GetInt("classification"));
+        Assert.All(owners, o => Assert.Contains(o.GetReferences("AI Goals"), l => l.TargetStringId == Ids.BathGoal && l.Values.Value1 == 100));
+    }
+
+    [Fact]
     public void Research_unlocks_every_building()
     {
         var game = Game();
