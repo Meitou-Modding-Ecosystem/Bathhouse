@@ -1,5 +1,6 @@
 using Bathhouse.Customers;
 using Bathhouse.Records;
+using Bathhouse.Staffing;
 using Meitou.Game.Ui;
 using Meitou.Simulation;
 
@@ -7,7 +8,8 @@ namespace Bathhouse.Bathing;
 
 /// <summary>
 /// The bathhouse's panel lines (docs/bathhouse.md "Panels"): a tub shows its water and seats and the bath button, a boiler what it heats and the
-/// switches for the bad effects soaks clear, a counter the open switch and the prices. The sources run on the host's thread and read only the
+/// switches for the bad effects soaks clear, a counter the open switch and the prices, a tea table and a massage station their price; a piece with
+/// a staff job (<see cref="StaffRoles.OfferedBy"/>) adds the button that assigns it. The sources run on the host's thread and read only the
 /// system's published views.
 /// </summary>
 public sealed class BathhouseUi(Func<BathhouseSystem?> system) : IUiExtension
@@ -28,11 +30,47 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system) : IUiExtension
     {
         var building = context.Building;
         if (!building.Owned || system() is not { } bathhouse) return [];
-        if (building.Record == Ids.Counter) return CounterLines(context, bathhouse.Counter);
+
+        var lines = PieceLines(context, bathhouse).ToList();
+        if (StaffRoles.OfferedBy(building.Record) is { } role && building.SiteId is { } site) lines.Add(AssignLine(context, site, role));
+        return lines;
+    }
+
+    /// <summary>
+    /// The piece's own lines, before its staff button.
+    /// </summary>
+    static IEnumerable<UiBuildingAction> PieceLines(UiBuildingContext context, BathhouseSystem bathhouse)
+    {
+        var building = context.Building;
+        var counter = bathhouse.Counter;
+        if (building.Record == Ids.Counter) return CounterLines(context, counter);
+        if (building.Record == Ids.TeaTable) return [PriceLine(context, Service.Tea, counter.Percent(Service.Tea), Tooltip(Service.Tea))];
+        if (building.Record == Ids.MassageStation)
+            return [PriceLine(context, Service.Massage, counter.Percent(Service.Massage), Tooltip(Service.Massage))];
         if (bathhouse.Piece(building.SiteId) is not { } view) return [];
 
         if (building.Record == Ids.Boiler) return [BoilerLine(view), .. DebuffLines(context, bathhouse)];
         return [TubLine(view), BatheLine(context)];
+    }
+
+    /// <summary>
+    /// A staff button: gives the selected characters the piece's job.
+    /// </summary>
+    static UiBuildingAction AssignLine(UiBuildingContext context, string site, StaffRole role)
+    {
+        var assign = new AssignStaffCommand(site, role) { Tick = 0 };
+        string tooltip = "Adds this job to the selected characters' jobs (remove it in their jobs panel).";
+        return new UiBuildingAction($"Assign selected: {StaffRoles.Name(role)}", tooltip, Send(context, assign));
+    }
+
+    /// <summary>
+    /// The tooltip of the tea or massage price line.
+    /// </summary>
+    static string Tooltip(Service service)
+    {
+        long price = (long)Math.Round(Pricing.Suggested(service, TubKind.Small));
+        string what = service == Service.Tea ? "a Tea Set after the soak" : "an hour of massage, times the attendant's skill";
+        return $"Suggested {price} cats for {what}. Press for the next step.";
     }
 
     /// <summary>
@@ -99,9 +137,8 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system) : IUiExtension
         yield return new UiBuildingAction($"Customers: {(view.Open ? "open" : "closed")}", tooltip, Send(context, open));
 
         string visit = $"A medium tub visit costs {view.VisitPrice} cats. Press for the next step.";
-        yield return PriceLine(context, Service.Bath, view.Bath, visit);
-        yield return PriceLine(context, Service.Towel, view.Towel, visit);
-        yield return PriceLine(context, Service.Soap, view.Soap, visit);
+        foreach (var service in (Service[])[Service.Bath, Service.Towel, Service.Soap])
+            yield return PriceLine(context, service, view.Percent(service), visit);
     }
 
     /// <summary>

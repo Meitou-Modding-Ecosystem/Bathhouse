@@ -21,6 +21,16 @@ public enum Service
     /// The soap taken at check-in.
     /// </summary>
     Soap,
+
+    /// <summary>
+    /// A Tea Set bought from a tea table after the soak.
+    /// </summary>
+    Tea,
+
+    /// <summary>
+    /// An hour of massage, times the attendant's skill.
+    /// </summary>
+    Massage,
 }
 
 /// <summary>
@@ -42,7 +52,7 @@ public sealed class Pricing
     /// <summary>
     /// Each service's percent of its suggested price, in <see cref="Service"/> order.
     /// </summary>
-    readonly int[] _percents = [100, 100, 100];
+    readonly int[] _percents = [100, 100, 100, 100, 100];
 
     /// <summary>
     /// A service's percent.
@@ -71,6 +81,8 @@ public sealed class Pricing
     {
         Service.Towel => 15,
         Service.Soap => 10,
+        Service.Tea => 20,
+        Service.Massage => 30,
         _ => tub switch
         {
             TubKind.Small => 30,
@@ -92,11 +104,11 @@ public sealed class Pricing
     public long Price(Service service, TubKind tub) => (long)Math.Round(Suggested(service, tub) * Percent(service) / 100);
 
     /// <summary>
-    /// A whole visit's price (bath, towel and soap) and its suggested price.
+    /// A check-in's price (bath, towel and soap) and its suggested price.
     /// </summary>
     public (long Price, double Suggested) Visit(TubKind tub)
     {
-        var services = Enum.GetValues<Service>();
+        Service[] services = [Service.Bath, Service.Towel, Service.Soap];
         return (services.Sum(s => Price(s, tub)), services.Sum(s => Suggested(s, tub)));
     }
 

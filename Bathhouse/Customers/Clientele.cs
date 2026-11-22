@@ -1,11 +1,13 @@
 using System.Text;
 using Bathhouse.Bathing;
 using Bathhouse.Records;
+using Bathhouse.Staffing;
 using Meitou.Data.Gameplay.Ai;
 using Meitou.Simulation;
 using Meitou.Simulation.Ai;
 using Meitou.Simulation.Construction;
 using Meitou.Simulation.Factions;
+using Meitou.Simulation.Locks;
 using Meitou.Simulation.Movement;
 using Meitou.Simulation.Population;
 
@@ -16,7 +18,7 @@ namespace Bathhouse.Customers;
 /// goal walks each to the counter, where it checks in, takes a towel and soap, agrees to the price and is sent to soak), and the payment or
 /// complaint after the soak. Steps in the system's serial check; the goal's desire reads only what that step wrote.
 /// </summary>
-public sealed class Clientele(Heating heating, Soaks soaks, PopulationData data, RngPurpose purpose) : IModGoal
+public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, PopulationData data, RngPurpose purpose) : IModGoal
 {
     #region State
 
@@ -56,9 +58,24 @@ public sealed class Clientele(Heating heating, Soaks soaks, PopulationData data,
     public static readonly TaskType Row = (TaskType)Ids.VisitGoalType;
 
     /// <summary>
+    /// How near (ground plane) to a massage bed counts as there.
+    /// </summary>
+    public const float BedReach = 60;
+
+    /// <summary>
     /// The roll's counter salt for the price.
     /// </summary>
     const ulong PriceSalt = 0x9_21CE;
+
+    /// <summary>
+    /// The roll's counter salt for the tea.
+    /// </summary>
+    const ulong TeaSalt = 0x7EA;
+
+    /// <summary>
+    /// The roll's counter salt for the massage.
+    /// </summary>
+    const ulong MassageSalt = 0x3A55;
 
     /// <summary>
     /// Groups by tag. Saved and hashed.
@@ -140,9 +157,10 @@ public sealed class Clientele(Heating heating, Soaks soaks, PopulationData data,
     #region Stepping
 
     /// <summary>
-    /// The serial step: a group sent when one is due, the groups kept on course or let go, and each present customer's visit stepped.
+    /// The serial step: a group sent when one is due, the groups kept on course or let go, and each present customer's visit stepped
+    /// (<paramref name="hours"/>: game hours since the last step).
     /// </summary>
-    public void Step(World world, IReadOnlyList<Tub> tubs, BathhouseSettings settings)
+    public void Step(World world, IReadOnlyList<Tub> tubs, BathhouseSettings settings, double hours)
     {
         Schedule(world, tubs, settings);
         StepGroups(world);
@@ -151,7 +169,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, PopulationData data,
         {
             if (!world.Characters.TryResolveNext(who, out int slot)) continue;
 
-            StepVisit(world, slot, visit, tubs);
+            StepVisit(world, slot, visit, tubs, hours);
         }
     }
 
@@ -309,14 +327,17 @@ public sealed class Clientele(Heating heating, Soaks soaks, PopulationData data,
 
     #region Goal
 
-    float IModGoal.Desire(in ModGoalAsk ask) => _present.TryGetValue(ask.Id, out var visit) && visit.Phase == VisitPhase.Arriving ? Want : 0;
+    float IModGoal.Desire(in ModGoalAsk ask) =>
+        _present.TryGetValue(ask.Id, out var visit) && visit.Phase is VisitPhase.Arriving or VisitPhase.Massage ? Want : 0;
 
     /// <summary>
-    /// Walks the customer to its counter's front, or stands it there when it has arrived.
+    /// Walks the customer to its counter's front, or stands it there when it has arrived; one going for a massage walks to its bed.
     /// </summary>
     bool IModGoal.Start(World world, in ModGoalStart ask)
     {
-        if (!_present.TryGetValue(ask.Id, out var visit) || CounterOf(world, visit) is not { } counter) return false;
+        if (!_present.TryGetValue(ask.Id, out var visit)) return false;
+        if (visit.Phase == VisitPhase.Massage) return ToBed(world, ask.Slot, visit);
+        if (CounterOf(world, visit) is not { } counter) return false;
         if (AtCounter(world, ask.Slot, counter))
             return TaskStart.Become(world, ask.Slot, CharacterTask.Idle, Row, TaskSource.Goal) == StartResult.Started;
 
@@ -335,12 +356,14 @@ public sealed class Clientele(Heating heating, Soaks soaks, PopulationData data,
     #region Visits
 
     /// <summary>
-    /// One customer: an arriving one checks in at the counter, waits or leaves; a soaking one says its line on getting in.
+    /// One customer: an arriving one checks in at the counter, waits or leaves; a soaking one says its line on getting in; one on a massage bed is
+    /// massaged.
     /// </summary>
-    void StepVisit(World world, int slot, Visit visit, IReadOnlyList<Tub> tubs)
+    void StepVisit(World world, int slot, Visit visit, IReadOnlyList<Tub> tubs, double hours)
     {
         if (visit.Phase == VisitPhase.Arriving) Arrive(world, slot, visit, tubs);
         else if (visit.Phase == VisitPhase.Soaking) Soaking(world, slot, visit);
+        else if (visit.Phase == VisitPhase.Massage) Massaging(world, slot, visit, hours);
     }
 
     /// <summary>
@@ -401,6 +424,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, PopulationData data,
 
         Stock.Hand(world, slot, stock);
         visit.Price = price;
+        visit.DirtyTub = care.IsDirty(tub.Site.Id);
         visit.Phase = VisitPhase.Soaking;
         if (ModGoals.Holds(world, slot, Row)) ModGoals.Done(world, slot, Row);
         return true;
@@ -409,19 +433,22 @@ public sealed class Clientele(Heating heating, Soaks soaks, PopulationData data,
     /// <summary>
     /// Whether the customer takes a price <paramref name="ratio"/> times the suggested one (<see cref="Pricing.AcceptChance"/>).
     /// </summary>
-    bool Accepts(World world, int slot, Visit visit, double ratio)
+    bool Accepts(World world, int slot, Visit visit, double ratio, ulong salt = PriceSalt)
     {
         double tolerance = CustomerTypes.Find(visit.Kind)?.Tolerance ?? 1;
         ulong key = Rng.Key(world.Characters.IdOf(slot));
-        double roll = Rng.Float(Rng.Hash(world.Seed, key, purpose, PriceSalt ^ (ulong)world.Tick));
+        double roll = Rng.Float(Rng.Hash(world.Seed, key, purpose, salt ^ (ulong)world.Tick));
         return roll < Pricing.AcceptChance(ratio, tolerance);
     }
 
     /// <summary>
-    /// The first tub with a free seat and warm water in the counter's building; null for none.
+    /// The first clean tub, else the first dirty one, with a free seat and warm water in the counter's building; null for none.
     /// </summary>
-    Tub? FreeTub(BuildSite counter, IReadOnlyList<Tub> tubs) =>
-        tubs.FirstOrDefault(t => t.Building == counter.Parent && heating.Of(t.Building).Warm && soaks.FreeSeat(t) is not null);
+    Tub? FreeTub(BuildSite counter, IReadOnlyList<Tub> tubs)
+    {
+        var free = tubs.Where(t => t.Building == counter.Parent && heating.Of(t.Building).Warm && soaks.FreeSeat(t) is not null).ToList();
+        return free.FirstOrDefault(t => !care.IsDirty(t.Site.Id)) ?? free.FirstOrDefault();
+    }
 
     /// <summary>
     /// Whether one of the player's people, alive and on their feet, stands at the counter.
@@ -462,8 +489,8 @@ public sealed class Clientele(Heating heating, Soaks soaks, PopulationData data,
     #region Payment
 
     /// <summary>
-    /// A customer's soak ended (the system's callback for soaks of people not the player's): it pays for a visit good enough for its kind, else
-    /// complains; one that never soaked just leaves.
+    /// A customer's soak ended (the system's callback for soaks of people not the player's): for a visit good enough for its kind it buys tea when a
+    /// table has some, then takes a massage or pays; a visit not good enough complains; one that never soaked just leaves.
     /// </summary>
     public void Bathed(World world, int slot, Soak soak, SoakEnd end)
     {
@@ -475,25 +502,44 @@ public sealed class Clientele(Heating heating, Soaks soaks, PopulationData data,
         }
 
         var kind = CustomerTypes.Find(visit.Kind);
-        var quality = Quality.Of(soak.Soaked, soak.Lukewarm, visit.Waited, end == SoakEnd.Cold);
+        var quality = Quality.Of(soak.Soaked, soak.Lukewarm, visit.Waited, end == SoakEnd.Cold, visit.DirtyTub);
         if (end == SoakEnd.Cold) Barks.Say(world, world.Characters.IdOf(slot), visit.Kind, BarkEvent.Cold, purpose);
+        if (kind is null || quality.Total < kind.Demand)
+        {
+            Unhappy(world, slot, visit, $"quality {quality}");
+            return;
+        }
 
-        if (kind is null || quality.Total < kind.Demand) Unhappy(world, slot, visit, $"quality {quality}");
-        else Pay(world, slot, visit, kind, quality);
+        var tub = world.Buildings.Find(soak.Tub);
+        visit.Owed = quality.Pay(visit.Price) + Tea(world, slot, visit, tub?.Parent);
+        if (!OfferMassage(world, slot, visit, tub?.Parent)) Pay(world, slot, visit, kind, $"quality {quality}");
     }
 
     /// <summary>
-    /// The customer pays its price scaled by quality and leaves happy.
+    /// The customer pays what it owes and leaves happy.
     /// </summary>
-    void Pay(World world, int slot, Visit visit, CustomerType kind, Quality quality)
+    void Pay(World world, int slot, Visit visit, CustomerType kind, string why)
     {
-        long paid = quality.Pay(visit.Price);
-        world.Player.Money += paid;
-        Latest = $"{world.Characters.NameOf(world.Characters.IdOf(slot))} ({kind.Name}) paid {paid} of {visit.Price} cats, quality {quality}.";
+        world.Player.Money += visit.Owed;
+        Latest = $"{world.Characters.NameOf(world.Characters.IdOf(slot))} ({kind.Name}) paid {visit.Owed} cats, {why}.";
         world.Post(Latest);
 
         Barks.Say(world, world.Characters.IdOf(slot), visit.Kind, BarkEvent.Happy, purpose);
         visit.Phase = VisitPhase.Done;
+    }
+
+    /// <summary>
+    /// The customer buys a Tea Set from a tea table in the building when one holds a set and it takes the tea's price: the set becomes used Teaware
+    /// on the table. Returns the price (0 for no tea).
+    /// </summary>
+    long Tea(World world, int slot, Visit visit, string? building)
+    {
+        var table = Goods.PiecesIn(world, building, Ids.TeaTable).FirstOrDefault(t => Goods.Count(Goods.StoreOf(world, t), Ids.TeaSet) > 0);
+        if (table is null || Goods.StoreOf(world, table) is not { } store) return 0;
+        if (!Accepts(world, slot, visit, Prices.Percent(Service.Tea) / 100.0, TeaSalt) || !Goods.Take(store, Ids.TeaSet)) return 0;
+
+        if (Goods.Make(world, Ids.Teaware) is { } used) store.Add(used);
+        return Prices.Price(Service.Tea, TubKind.Small);
     }
 
     /// <summary>
@@ -534,6 +580,127 @@ public sealed class Clientele(Heating heating, Soaks soaks, PopulationData data,
 
     #endregion
 
+    #region Massage
+
+    /// <summary>
+    /// Offers a soaked customer a massage: a free bed with a station in the building and a price it takes send it to the bed. False for none.
+    /// </summary>
+    bool OfferMassage(World world, int slot, Visit visit, string? building)
+    {
+        if (Massage.FreeBed(world, building, _visits.Values) is not { } bed) return false;
+        if (!Accepts(world, slot, visit, Prices.Percent(Service.Massage) / 100.0, MassageSalt)) return false;
+
+        visit.Bed = bed.Id;
+        visit.Phase = VisitPhase.Massage;
+        return true;
+    }
+
+    /// <summary>
+    /// Walks the customer to its bed, or lies it down when it is there (the visit goal's start); true when it lies there already.
+    /// </summary>
+    bool ToBed(World world, int slot, Visit visit)
+    {
+        if (BedOf(world, visit) is not { } bed) return false;
+        if (visit.Lying) return true;
+        if (Soaks.Flat(world.Characters.Next[slot].Position, bed.Site.Position) <= BedReach) return LieDown(world, slot, visit, bed.Fixture);
+
+        return TaskStart.Walk(world, slot, bed.Site.Position, SpeedMode.Walk, Row, TaskSource.Goal) == StartResult.Started;
+    }
+
+    /// <summary>
+    /// A customer on the massage: lies down on arrival; massaged while someone works the station, else waiting; paid once the massage is done, and
+    /// leaving after waiting too long or when it got up.
+    /// </summary>
+    void Massaging(World world, int slot, Visit visit, double hours)
+    {
+        if (BedOf(world, visit) is not { } bed)
+        {
+            Settle(world, slot, visit, "its massage bed is gone");
+            return;
+        }
+
+        if (!visit.Lying)
+        {
+            Approach(world, slot, visit, bed, hours);
+            return;
+        }
+
+        if (world.Characters.Cold(slot) is not { InSomething: HeldState.Bed })
+        {
+            Settle(world, slot, visit, "it got up from the massage bed");
+            return;
+        }
+
+        Rub(world, visit, bed.Site, hours);
+        if (visit.Massaged >= Massage.Hours) Settle(world, slot, visit, $"massage {visit.Massaged:0.0} h");
+        else if (visit.BedWait > Massage.MostWait) Settle(world, slot, visit, "nobody came to the massage station");
+    }
+
+    /// <summary>
+    /// A customer not lying yet: lies down at the bed when it is there and free; waits there meanwhile.
+    /// </summary>
+    void Approach(World world, int slot, Visit visit, (BuildSite Site, Fixture Fixture) bed, double hours)
+    {
+        ref readonly var hot = ref world.Characters.Next[slot];
+        if (Soaks.Flat(hot.Position, bed.Site.Position) > BedReach || hot.Task == (byte)CharacterTask.GoTo) return;
+        if (LieDown(world, slot, visit, bed.Fixture)) return;
+
+        visit.BedWait += hours;
+        if (visit.BedWait > Massage.MostWait) Settle(world, slot, visit, "its massage bed was taken");
+    }
+
+    /// <summary>
+    /// Lies the customer on the bed; false when the bed would not take it.
+    /// </summary>
+    bool LieDown(World world, int slot, Visit visit, Fixture bed)
+    {
+        visit.Lying = world.Fixtures.EnterBed(world, world.Characters.IdOf(slot), bed);
+        return visit.Lying;
+    }
+
+    /// <summary>
+    /// An hour of massage pays the massage price times the attendant's skill; time with nobody at the station is waiting.
+    /// </summary>
+    void Rub(World world, Visit visit, BuildSite bed, double hours)
+    {
+        float? dexterity = Massage.Station(world, bed) is { } station ? Massage.Attendant(world, station) : null;
+        if (dexterity is not { } skill)
+        {
+            visit.BedWait += hours;
+            return;
+        }
+
+        visit.Massaged += hours;
+        visit.MassagePay += Prices.Price(Service.Massage, TubKind.Small) * hours * Massage.Skill(skill);
+    }
+
+    /// <summary>
+    /// The massage is over: the customer gets up and pays for the soak, the tea and the massage so far.
+    /// </summary>
+    void Settle(World world, int slot, Visit visit, string why)
+    {
+        if (visit.Lying) world.Fixtures.LeaveBed(world, world.Characters.IdOf(slot));
+        visit.Lying = false;
+        visit.Owed += (long)Math.Round(visit.MassagePay);
+        if (ModGoals.Holds(world, slot, Row)) ModGoals.Done(world, slot, Row);
+
+        var kind = CustomerTypes.Find(visit.Kind);
+        if (kind is null) Leave(world, slot, visit);
+        else Pay(world, slot, visit, kind, why);
+    }
+
+    /// <summary>
+    /// The visit's massage bed and its fixture while both stand; null once either is gone.
+    /// </summary>
+    static (BuildSite Site, Fixture Fixture)? BedOf(World world, Visit visit)
+    {
+        if (visit.Bed is null || world.Buildings.Find(visit.Bed) is not { Destroyed: false } site) return null;
+
+        return Massage.BedOf(world, site) is { } fixture ? (site, fixture) : null;
+    }
+
+    #endregion
+
     #region Views
 
     /// <summary>
@@ -542,14 +709,15 @@ public sealed class Clientele(Heating heating, Soaks soaks, PopulationData data,
     public void Describe(World world, StringBuilder text)
     {
         text.AppendLine($"Customers: {(Open ? "open" : "closed")}, next group at hour {NextGroupAt:0.0}, prices "
-            + $"{Prices.Percent(Service.Bath)}/{Prices.Percent(Service.Towel)}/{Prices.Percent(Service.Soap)}%");
+            + string.Join("/", Enum.GetValues<Service>().Select(Prices.Percent)) + "%");
         foreach (var group in _groups.Values)
             text.AppendLine($"{group.Tag}: {group.Kind} to {group.Counter}, {(group.Enlisted ? "arrived" : "on the way")}");
 
         foreach (var visit in _visits.Values)
         {
             string name = world.Characters.NameOf(world.LastingIds.Find(visit.Customer));
-            text.AppendLine($"{name}: {visit.Phase}, waited {visit.Waited:0.0} h, price {visit.Price}");
+            text.AppendLine($"{name}: {visit.Phase}, waited {visit.Waited:0.0} h, price {visit.Price}, owes {visit.Owed}"
+                + $"{(visit.DirtyTub ? ", dirty tub" : "")}{(visit.Bed is null ? "" : $", massaged {visit.Massaged:0.0} h")}");
         }
     }
 

@@ -1,16 +1,18 @@
+using Bathhouse.Staffing;
 using Meitou.Simulation;
 
 namespace Bathhouse.Customers;
 
 /// <summary>
-/// The customers' part of the sidecar (layout version 2) and of the state hash: open, prices, schedule, the complaints' day, groups and visits.
+/// The customers' part of the sidecar (layout versions 2 and 3) and of the state hash: open, prices, schedule, the complaints' day, groups, visits
+/// and, from version 3, the tea and massage prices, the visits' massage and the dirty tubs.
 /// </summary>
 public static class ClienteleSave
 {
     /// <summary>
     /// Writes the customers' state.
     /// </summary>
-    public static void Write(BinaryWriter w, Clientele clientele)
+    public static void Write(BinaryWriter w, Clientele clientele, TubCare care)
     {
         w.Write(clientele.Open);
         foreach (var service in Enum.GetValues<Service>()) w.Write(clientele.Prices.Percent(service));
@@ -19,28 +21,42 @@ public static class ClienteleSave
         WriteComplaints(w, clientele.Complaints);
         WriteGroups(w, clientele.Groups);
         WriteVisits(w, clientele.Visits);
+        w.Write(care.Dirty.Count);
+        foreach (string tub in care.Dirty) w.Write(tub);
     }
 
     /// <summary>
-    /// Reads the customers' state written by <see cref="Write"/>.
+    /// Reads the customers' state written by <see cref="Write"/> in layout <paramref name="version"/> (2: bath, towel and soap prices only).
     /// </summary>
-    public static void Read(BinaryReader r, Clientele clientele)
+    public static void Read(BinaryReader r, Clientele clientele, TubCare care, int version)
     {
         clientele.Clear();
         clientele.Open = r.ReadBoolean();
-        foreach (var service in Enum.GetValues<Service>()) clientele.Prices.Set(service, r.ReadInt32());
+        foreach (var service in Services(version)) clientele.Prices.Set(service, r.ReadInt32());
         clientele.NextGroupAt = r.ReadDouble();
         clientele.Serial = r.ReadInt32();
         ReadComplaints(r, clientele.Complaints);
         ReadGroups(r, clientele);
-        ReadVisits(r, clientele);
+        ReadVisits(r, clientele, version);
+        var dirty = new List<string>();
+        int count = version >= 3 ? r.ReadInt32() : 0;
+        for (int k = 0; k < count; k++) dirty.Add(r.ReadString());
+        care.Restore(dirty);
     }
+
+    /// <summary>
+    /// The services whose prices a layout holds.
+    /// </summary>
+    static IEnumerable<Service> Services(int version) => version >= 3 ? Enum.GetValues<Service>() : [Service.Bath, Service.Towel, Service.Soap];
 
     /// <summary>
     /// Adds the customers' state to the world's hash.
     /// </summary>
-    public static void Hash(ref StateHasher hasher, Clientele clientele)
+    public static void Hash(ref StateHasher hasher, Clientele clientele, TubCare care)
     {
+        hasher.Add(care.Dirty.Count);
+        foreach (string tub in care.Dirty) hasher.Add(Rng.StableHash(tub));
+
         hasher.Add(clientele.Open);
         foreach (var service in Enum.GetValues<Service>()) hasher.Add(clientele.Prices.Percent(service));
         hasher.Add(clientele.NextGroupAt);
@@ -58,6 +74,9 @@ public static class ClienteleSave
             hasher.Add(visit.Customer.Value);
             hasher.Add((int)visit.Phase);
             hasher.Add(visit.Price);
+            hasher.Add(visit.Owed);
+            hasher.Add(visit.Massaged);
+            hasher.Add(visit.BedWait);
         }
     }
 
@@ -131,13 +150,19 @@ public static class ClienteleSave
             w.Write(visit.ArrivedAt);
             w.Write(visit.Waited);
             w.Write(visit.Price);
+            w.Write(visit.DirtyTub);
+            w.Write(visit.Owed);
+            w.Write(visit.Bed ?? "");
+            w.Write(visit.Massaged);
+            w.Write(visit.BedWait);
+            w.Write(visit.MassagePay);
         }
     }
 
     /// <summary>
     /// Reads the visits.
     /// </summary>
-    static void ReadVisits(BinaryReader r, Clientele clientele)
+    static void ReadVisits(BinaryReader r, Clientele clientele, int version)
     {
         int count = r.ReadInt32();
         for (int k = 0; k < count; k++)
@@ -147,7 +172,22 @@ public static class ClienteleSave
             visit.ArrivedAt = r.ReadDouble();
             visit.Waited = r.ReadDouble();
             visit.Price = r.ReadInt64();
+            if (version >= 3) ReadMassage(r, visit);
             clientele.Restore(visit);
         }
+    }
+
+    /// <summary>
+    /// Reads a visit's dirty tub, what it owes and its massage (layout 3).
+    /// </summary>
+    static void ReadMassage(BinaryReader r, Visit visit)
+    {
+        visit.DirtyTub = r.ReadBoolean();
+        visit.Owed = r.ReadInt64();
+        string bed = r.ReadString();
+        visit.Bed = bed.Length == 0 ? null : bed;
+        visit.Massaged = r.ReadDouble();
+        visit.BedWait = r.ReadDouble();
+        visit.MassagePay = r.ReadDouble();
     }
 }
