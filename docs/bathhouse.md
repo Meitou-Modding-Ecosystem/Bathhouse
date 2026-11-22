@@ -10,7 +10,7 @@ for its look (a stand-in until the mod's models land) and links game items by id
 
 | Kind | Records | Copies (look) |
 | --- | --- | --- |
-| Items | Towel, Dirty Towel, Soap, Greenfruit Tea, Teaware, Tea Set | Fabrics, Fabrics, Foodcube, Greenfruit, Cup, Ceramic Bowl |
+| Items | Towel, Dirty Towel, Soap, Greenfruit Tea, Teaware, Tea Set, Used Tea Set | Fabrics, Fabrics, Foodcube, Greenfruit, Cup, Ceramic Bowl, Ceramic Bowl |
 | Armour | Bathhouse Robe | Monk Robe |
 | Production (function 4) | Towel Loom (Fabrics to 2 Towels), Soap Press (2 Hemp to Soap), Washing Machine (Dirty Towel + 1/4 Soap to Towel), Tea Dryer (Greenfruit to Greenfruit Tea), Pottery Kiln (Raw Stone to Teaware) | Fabric Loom (hemp), Hemp Processor, Sake Still, Biofuel Distillery (Hemp), Cooking Stove |
 | Crafting (function 10) | Tea Bench: Tea Set from Teaware + Greenfruit Tea (the Tea Set's `ingredients`) | Cooking Stove |
@@ -100,7 +100,7 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   short by cold and 0.2 for a dirty tub. At or above 0.8 the customer owes the full price, below it price x quality / 0.8. Check-in prefers a
   clean tub. After a good enough soak it buys tea, may take a massage, then pays what it owes (added to the player's money and posted).
 - **Tea**: when a tea table in the tub's building holds a Tea Set and the customer takes the tea price (the same chance rule, ratio = percent /
-  100), the set becomes Teaware on the table and the tea's price (20 cats suggested) is owed.
+  100), the set becomes a Used Tea Set on the table and the tea's price (20 cats suggested) is owed.
 - **Massage** (`Massage`): each massage bed is paired with the nearest massage station in its building. With a free bed (one whose bed fixture
   no other visit holds) and the massage price taken, the customer walks to the bed (visit goal) and lies in it (`EnterBed`). While one of the
   player's people operates the station (a vanilla operate-machinery job, within 40 units), each hour pays 30 cats suggested x skill (0.5 + 0.5 x
@@ -137,7 +137,7 @@ saved: a loaded staff member plans again.
   in it ends (`TubCare`, saved).
 - **Laundry runner** (washing machine): delivers what it carries; takes up to 10 clean towels from the washer to the first towel rack, else the
   counter, with room; fetches up to 10 Dirty Towels from a hamper; keeps 3 Soap in the washer from a store in the building.
-- **Tea server** (tea table): brings a Tea Set from a store to a table without one; clears a table's used Teaware into a store.
+- **Tea server** (tea table): brings a Tea Set from a store to a table without one; takes a table's Used Tea Sets to a store, where each is rinsed into Teaware.
 
 ## Research
 

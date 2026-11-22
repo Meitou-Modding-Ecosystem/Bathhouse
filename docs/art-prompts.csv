@@ -31,5 +31,5 @@ Soap,Item,a rough hand-cut bar of greenish hemp soap tied with twine,0.1 x 0.06 
 Greenfruit tea,Item,a small cloth pouch of dried green tea leaves,0.15 x 0.1 x 0.1
 Teaware,Item,"a set of plain fired-stone tea cups and a teapot, unglazed",0.3 x 0.2 x 0.15
 Tea set,Item,"a tray with a filled teapot and cups, ready to serve",0.35 x 0.25 x 0.15
-Used teaware,Item,"the same tray with empty, stained cups",0.35 x 0.25 x 0.15
+Used tea set,Item,"the same tray with empty, stained cups",0.35 x 0.25 x 0.15
 Bathhouse robe,Item (armour),"a simple wrapped cotton bath robe with a cloth belt, worn and faded",folded 0.4 x 0.3 x 0.1
