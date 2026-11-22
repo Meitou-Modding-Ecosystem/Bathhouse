@@ -78,15 +78,40 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
 - **Prices** (`Pricing`): bath (small 30, medium 40, large 50, oil 60, blood 80 cats), towel 15, soap 10, times the reputation factor (1 until
   milestone 5) for the suggested price. The counter's panel sets each service to 50, 75, 100, 125, 150 or 200% of it. A customer takes a visit
   price at or under tolerance x suggested; above it with chance e^(-8 (ratio / tolerance - 1)), 13% at a quarter over, else it leaves.
-- **Quality and payment** (`Quality`): 1 less 0.5 x the lukewarm share of the soak, 0.15 a game hour waited (at most 0.3) and 0.3 for a soak cut
-  short by cold. At or above 0.8 the customer pays the full price, below it price x quality / 0.8, added to the player's money and posted.
+- **Quality and payment** (`Quality`): 1 less 0.5 x the lukewarm share of the soak, 0.15 a game hour waited (at most 0.3), 0.3 for a soak cut
+  short by cold and 0.2 for a dirty tub. At or above 0.8 the customer owes the full price, below it price x quality / 0.8. Check-in prefers a
+  clean tub. After a good enough soak it buys tea, may take a massage, then pays what it owes (added to the player's money and posted).
+- **Tea**: when a tea table in the tub's building holds a Tea Set and the customer takes the tea price (the same chance rule, ratio = percent /
+  100), the set becomes Teaware on the table and the tea's price (20 cats suggested) is owed.
+- **Massage** (`Massage`): each massage bed is paired with the nearest massage station in its building. With a free bed (one whose bed fixture
+  no other visit holds) and the massage price taken, the customer walks to the bed (visit goal) and lies in it (`EnterBed`). While one of the
+  player's people operates the station (a vanilla operate-machinery job, within 40 units), each hour pays 30 cats suggested x skill (0.5 + 0.5 x
+  Dexterity / 50, 0.5 to 1.5). After 1 hour massaged, or 1 hour lying with nobody at the station (or waiting for the bed), it gets up and pays
+  the soak, the tea and the massage so far.
 - **Complaints** (`Complaints`): a quality under the kind's demand (or a long wait) pays nothing; the customer's faction loses relation per
   complaint towards the player's (`PlayerRelations.Add`), at most the daily cap per faction. With the fight chance (twice for rowdy kinds) it
   picks a fight: its squad gets a TEMP_ENEMY tag for each of the player's people within 300 units, never the faction.
 - **Barks** (`Barks`): two lines per kind for getting into a tub, cold water, a complaint, leaving happy, the price and a fight. English only (the
   engine has no translation catalog for mods).
-- **Counter panel**: an open switch (tooltip: groups and customers under way, the latest payment or complaint) and a price line per service.
-- **Debug rows**: "Bathhouse: tubs and bathers" lists groups and visits; "Bathhouse: send customers (kind)" sends a group now.
+- **Panels**: the counter has an open switch (tooltip: groups and customers under way, the latest payment or complaint) and the bath, towel and
+  soap price lines; the tea table and the massage station have their price line.
+- **Debug rows**: "Bathhouse: tubs and bathers" lists groups, visits, staff errands and dirty tubs; "Bathhouse: send customers (kind)" sends a
+  group now.
+
+## Staff
+
+`Staffing/`. Four mod job types (`AddJobType`, 4403 to 4406), each in the character's job list on the piece it was given at: the piece's panel
+button "Assign selected: <job>" gives it to the selected characters (one job of a type each); the jobs panel shows and removes it and the game
+saves it. `Staff` is the jobs' `IJobSource`: when the chooser asks, the job's plan (`Plans`) gives an errand of stops (walk there, work for a
+time, then move goods, re-checking they are there); the errand runs on the job's row until done, then the chooser picks again. Errands are not
+saved: a loaded staff member plans again.
+
+- **Clerk** (counter): stands 15 units behind the counter for an hour at a time, so it is staffed.
+- **Tub scrubber** (any tub): scrubs the building's first dirty tub nobody soaks in, 0.5 h (the blood bath 1.5 h). A tub gets dirty when a soak
+  in it ends (`TubCare`, saved).
+- **Laundry runner** (washing machine): delivers what it carries; takes up to 10 clean towels from the washer to the first towel rack, else the
+  counter, with room; fetches up to 10 Dirty Towels from a hamper; keeps 3 Soap in the washer from a store in the building.
+- **Tea server** (tea table): brings a Tea Set from a store to a table without one; clears a table's used Teaware into a store.
 
 ## Research
 
@@ -99,7 +124,7 @@ and Oil Baths (level 2), and Blood Baths after Hot Baths (level 3).
 `BathhouseSettings`, on the Settings screen's Mods page: seats per boiler (4), Water per boiler a day (2), soak length by tub (small 2 h,
 medium 3, large 4, oil and blood 3), Soothed buff (3 days), soaks clear debuffs (on), towels kept (80%), hours between customers (6),
 relation lost per complaint (1), most relation lost a day (5), fight chance (5%). Prices and the open switch are on the counter, saved with the
-game (sidecar version 2).
+game (sidecar version 3; version 2 reads with tea and massage at 100%).
 
 ## Tests
 

@@ -1,6 +1,7 @@
 using Bathhouse.Bathing;
 using Bathhouse.Customers;
 using Bathhouse.Records;
+using Bathhouse.Staffing;
 using Meitou.Modding;
 using Meitou.Simulation;
 
@@ -38,6 +39,7 @@ public sealed class BathhouseMod : IMod, IModDataPhase
         context.AddSettings(BathhouseSettings.Current);
         context.AddGoalType(Soaks.Row, "Bathhouse: taking a bath");
         context.AddGoalType(Clientele.Row, "Bathhouse: visiting the bathhouse");
+        foreach (var role in StaffRoles.All) context.AddJobType(StaffRoles.TypeOf(role), StaffRoles.Name(role));
         context.AddStatusEffect(Soothing.Soothed);
 
         var purpose = context.RngPurpose;

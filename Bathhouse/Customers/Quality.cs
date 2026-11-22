@@ -1,10 +1,10 @@
 namespace Bathhouse.Customers;
 
 /// <summary>
-/// A visit's quality and its parts (docs/bathhouse.md "Quality and payment"): 1 less what lukewarm water, waiting and a soak cut short by cold took
-/// off, never below 0. Decor, robes and staff skill join in later milestones.
+/// A visit's quality and its parts (docs/bathhouse.md "Quality and payment"): 1 less what lukewarm water, waiting, a soak cut short by cold and a
+/// dirty tub took off, never below 0. Decor, robes and staff skill join in later milestones.
 /// </summary>
-public readonly record struct Quality(float Heat, float Wait, float Cold)
+public readonly record struct Quality(float Heat, float Wait, float Cold, float Dirt = 0)
 {
     /// <summary>
     /// The most lukewarm water takes off (a soak all lukewarm).
@@ -27,6 +27,11 @@ public readonly record struct Quality(float Heat, float Wait, float Cold)
     public const float ColdWeight = 0.3f;
 
     /// <summary>
+    /// What a tub nobody scrubbed since its last bather takes off.
+    /// </summary>
+    public const float DirtWeight = 0.2f;
+
+    /// <summary>
     /// The quality at or above which a customer pays the full price; under it, the price scaled by quality over this.
     /// </summary>
     public const float FullPay = 0.8f;
@@ -34,17 +39,17 @@ public readonly record struct Quality(float Heat, float Wait, float Cold)
     /// <summary>
     /// The score: 1 less each part, from 0 to 1.
     /// </summary>
-    public float Total => Math.Clamp(1 - Heat - Wait - Cold, 0, 1);
+    public float Total => Math.Clamp(1 - Heat - Wait - Cold - Dirt, 0, 1);
 
     /// <summary>
     /// The parts of a visit that soaked <paramref name="soaked"/> hours, <paramref name="lukewarm"/> of them lukewarm, after waiting
-    /// <paramref name="waited"/> hours, and whether cold water ended it.
+    /// <paramref name="waited"/> hours, whether cold water ended it and whether its tub was dirty.
     /// </summary>
-    public static Quality Of(double soaked, double lukewarm, double waited, bool cold)
+    public static Quality Of(double soaked, double lukewarm, double waited, bool cold, bool dirty = false)
     {
         float heat = soaked > 0 ? HeatWeight * (float)Math.Clamp(lukewarm / soaked, 0, 1) : 0;
         float wait = Math.Min(MostWait, WaitPerHour * (float)Math.Max(0, waited));
-        return new Quality(heat, wait, cold ? ColdWeight : 0);
+        return new Quality(heat, wait, cold ? ColdWeight : 0, dirty ? DirtWeight : 0);
     }
 
     /// <summary>
@@ -55,5 +60,5 @@ public readonly record struct Quality(float Heat, float Wait, float Cold)
     /// <summary>
     /// The parts as the debug row and the payment message show them.
     /// </summary>
-    public override string ToString() => $"{Total:P0} (heat -{Heat:P0}, wait -{Wait:P0}, cold -{Cold:P0})";
+    public override string ToString() => $"{Total:P0} (heat -{Heat:P0}, wait -{Wait:P0}, cold -{Cold:P0}, dirty tub -{Dirt:P0})";
 }

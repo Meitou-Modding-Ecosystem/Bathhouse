@@ -130,6 +130,11 @@ public static class Ids
     /// </summary>
     public const int VisitGoalType = 4402;
 
+    /// <summary>
+    /// The staff job types (docs/bathhouse.md "Staff"): clerk, scrubber, laundry runner and tea server, each also its errands' row.
+    /// </summary>
+    public const int ClerkJob = 4403, ScrubberJob = 4404, LaundryJob = 4405, TeaJob = 4406;
+
     #endregion
 
     #region Research

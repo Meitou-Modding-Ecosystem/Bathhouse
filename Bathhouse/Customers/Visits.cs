@@ -21,6 +21,11 @@ public enum VisitPhase
     /// Paid, complained or turned away; leaves with its group.
     /// </summary>
     Done,
+
+    /// <summary>
+    /// Soaked and lying on a massage bed (after <see cref="Done"/> in number, as saves keep it).
+    /// </summary>
+    Massage,
 }
 
 /// <summary>
@@ -67,6 +72,41 @@ public sealed class Visit
     /// Whether it has said its line on getting into the tub (not saved).
     /// </summary>
     public bool InTub { get; set; }
+
+    /// <summary>
+    /// Whether its tub was dirty when it checked in.
+    /// </summary>
+    public bool DirtyTub { get; set; }
+
+    /// <summary>
+    /// What it owes for the soak and tea, paid when its massage ends.
+    /// </summary>
+    public long Owed { get; set; }
+
+    /// <summary>
+    /// The massage bed's site id; null for none.
+    /// </summary>
+    public string? Bed { get; set; }
+
+    /// <summary>
+    /// Whether it lies on its massage bed (not saved: a loaded customer lies down again).
+    /// </summary>
+    public bool Lying { get; set; }
+
+    /// <summary>
+    /// Game hours massaged so far.
+    /// </summary>
+    public double Massaged { get; set; }
+
+    /// <summary>
+    /// Game hours lying on the bed with no attendant.
+    /// </summary>
+    public double BedWait { get; set; }
+
+    /// <summary>
+    /// What the massage has earned so far, in cats.
+    /// </summary>
+    public double MassagePay { get; set; }
 }
 
 /// <summary>
