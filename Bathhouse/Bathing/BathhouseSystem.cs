@@ -1,7 +1,10 @@
+using System.Runtime.CompilerServices;
 using System.Text;
+using Bathhouse.Customers;
 using Meitou.Modding;
 using Meitou.Simulation;
 using Meitou.Simulation.Ai;
+using Meitou.Simulation.Population;
 
 namespace Bathhouse.Bathing;
 
@@ -16,13 +19,34 @@ public sealed record KeepDebuffCommand(string Effect, bool Keep) : SimCommand;
 public sealed record BatheCommand(string Tub) : SimCommand;
 
 /// <summary>
+/// Opens the bathhouse to customers, or closes it (the counter's switch).
+/// </summary>
+public sealed record OpenCommand(bool Open) : SimCommand;
+
+/// <summary>
+/// Sets a service's price, in percent of its suggested price (the counter's price lines).
+/// </summary>
+public sealed record PriceCommand(Service Service, int Percent) : SimCommand;
+
+/// <summary>
+/// Sends a group of a customer kind to the open counter now (the debug row).
+/// </summary>
+public sealed record SendCustomersCommand(string Kind) : SimCommand;
+
+/// <summary>
+/// What a counter's panel shows: whether the bathhouse is open, each service's percent and a medium tub's visit price, the groups and visits under
+/// way, and the latest payment or complaint.
+/// </summary>
+public readonly record struct CounterView(bool Open, int Bath, int Towel, int Soap, long VisitPrice, int Groups, int Visits, string Latest);
+
+/// <summary>
 /// What the panel of a tub or boiler shows: its building's heat, and for a tub the seats taken.
 /// </summary>
 public readonly record struct PieceView(BuildingHeat Heat, int Taken, int Seats);
 
 /// <summary>
-/// The bathhouse in one world (docs/bathhouse.md "Heated tubs"): heating checked, bath verbs turned into soaks and soaks stepped once a game second
-/// in its serial step; the soaks, the water owed and the kept debuffs saved in the mod's sidecar and hashed.
+/// The bathhouse in one world (docs/bathhouse.md "Heated tubs", "Customers"): heating checked, bathers sent, soaks and customers stepped once a game
+/// second in its serial step; the soaks, the water owed, the kept debuffs and the customers saved in the mod's sidecar and hashed.
 /// </summary>
 public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, IChooserOwner
 {
@@ -44,6 +68,16 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     readonly Soaks _soaks;
 
     /// <summary>
+    /// The customers and the visit goal.
+    /// </summary>
+    readonly Clientele _clientele;
+
+    /// <summary>
+    /// The customer kinds the debug row asked to send since the last check.
+    /// </summary>
+    readonly List<string> _sendKinds = [];
+
+    /// <summary>
     /// The mod's random purpose, for towel rolls.
     /// </summary>
     readonly RngPurpose _purpose;
@@ -61,13 +95,18 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     /// <summary>
     /// A system for one world.
     /// </summary>
-    public BathhouseSystem(RngPurpose purpose)
+    public BathhouseSystem(RngPurpose purpose, PopulationData data)
     {
         _purpose = purpose;
         _soaks = new Soaks(_heating, Finished);
+        _clientele = new Clientele(_heating, _soaks, data, purpose);
     }
 
-    public void Register(ChooserRegistry chooser) => chooser.Goal(Soaks.Row, _soaks);
+    public void Register(ChooserRegistry chooser)
+    {
+        chooser.Goal(Soaks.Row, _soaks);
+        chooser.Goal(Clientele.Row, _clientele);
+    }
 
     public void Inputs(World world, IReadOnlyList<SimCommand> commands)
     {
@@ -75,6 +114,9 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
         {
             if (command is BatheCommand bathe) Bathe(world, bathe.Tub);
             else if (command is KeepDebuffCommand keep) Keep(keep);
+            else if (command is OpenCommand open) _clientele.Open = open.Open;
+            else if (command is PriceCommand price) _clientele.Prices.Set(price.Service, price.Percent);
+            else if (command is SendCustomersCommand send) _sendKinds.Add(send.Kind);
         }
     }
 
@@ -108,8 +150,25 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
         var tubs = Tubs.All(world);
         _heating.Check(world, tubs, settings);
         SendPlayers(world, tubs);
+        SendCustomers(world, tubs);
         _soaks.Step(world, hours, tub => Length(tub.Kind, settings));
+        _clientele.Step(world, tubs, settings);
         Publish(world, tubs);
+    }
+
+    /// <summary>
+    /// Sends the groups the debug row asked for; one that cannot come is posted.
+    /// </summary>
+    void SendCustomers(World world, List<Tub> tubs)
+    {
+        foreach (string key in _sendKinds)
+        {
+            if (CustomerTypes.Find(key) is { } kind && _clientele.SendNow(world, tubs, kind)) continue;
+
+            world.Post($"Bathhouse: no {key} group sent (needs a known kind with a source, and a counter in a building with a warm tub).");
+        }
+
+        _sendKinds.Clear();
     }
 
     /// <summary>
@@ -133,11 +192,16 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     }
 
     /// <summary>
-    /// What a finished soak earns: the Soothed buff, bad effects cleared and a towel used. An abandoned one earns nothing.
+    /// What a finished soak earns: the Soothed buff, bad effects cleared and a towel used, then a customer pays or complains. An abandoned one earns
+    /// nothing.
     /// </summary>
     void Finished(World world, int slot, Soak soak, SoakEnd end)
     {
-        if (end == SoakEnd.Abandoned) return;
+        if (end == SoakEnd.Abandoned)
+        {
+            if (!soak.Player) _clientele.Bathed(world, slot, soak, end);
+            return;
+        }
 
         var settings = BathhouseSettings.Current;
         var who = world.Characters.IdOf(slot);
@@ -146,6 +210,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
 
         string? building = world.Buildings.Find(soak.Tub)?.Parent;
         Towels.Dry(world, slot, building, _purpose, settings.DirtyChance);
+        if (!soak.Player) _clientele.Bathed(world, slot, soak, end);
     }
 
     /// <summary>
@@ -193,6 +258,16 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     public PieceView? Piece(string? site) => site is not null && _pieces.TryGetValue(site, out var view) ? view : null;
 
     /// <summary>
+    /// The latest view of the counters (written in the tick, read on the host's thread).
+    /// </summary>
+    volatile StrongBox<CounterView> _counter = new(new CounterView(true, 100, 100, 100, 0, 0, 0, "No customers yet."));
+
+    /// <summary>
+    /// What a counter's panel shows.
+    /// </summary>
+    public CounterView Counter => _counter.Value;
+
+    /// <summary>
     /// The debug row's view: each building's heat, then each soak.
     /// </summary>
     public string View => _view;
@@ -213,7 +288,19 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
             pieces[site.Id] = new PieceView(_heating.Of(site.Parent), 0, 0);
 
         _pieces = pieces;
+        _counter = new StrongBox<CounterView>(CounterNow());
         _view = Describe(world, tubs);
+    }
+
+    /// <summary>
+    /// The counters' view now.
+    /// </summary>
+    CounterView CounterNow()
+    {
+        var prices = _clientele.Prices;
+        int running = _clientele.Visits.Count(v => v.Phase != VisitPhase.Done);
+        return new CounterView(_clientele.Open, prices.Percent(Service.Bath), prices.Percent(Service.Towel), prices.Percent(Service.Soap),
+            prices.Visit(TubKind.Medium).Price, _clientele.Groups.Count, running, _clientele.Latest);
     }
 
     /// <summary>
@@ -235,7 +322,8 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
             text.AppendLine($"{name}: tub {soak.Tub} seat {soak.Seat}, {soak.Soaked:0.0} h soaked{(soak.Seated ? ", in the water" : "")}");
         }
 
-        return text.Length == 0 ? "No tubs built." : text.ToString();
+        _clientele.Describe(world, text);
+        return text.ToString();
     }
 
     #endregion
@@ -264,7 +352,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     /// <summary>
     /// The sidecar layout's version.
     /// </summary>
-    public const int SaveVersion = 1;
+    public const int SaveVersion = 2;
 
     public void Write(Stream stream)
     {
@@ -281,6 +369,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
         }
 
         WriteSoaks(w);
+        ClienteleSave.Write(w, _clientele);
     }
 
     /// <summary>
@@ -304,7 +393,8 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     public void Read(Stream stream)
     {
         using var r = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true);
-        if (r.ReadInt32() is < 1 or > SaveVersion) return;
+        int version = r.ReadInt32();
+        if (version is < 1 or > SaveVersion) return;
 
         _kept.Clear();
         int kept = r.ReadInt32();
@@ -316,6 +406,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
         for (int k = 0; k < owed; k++) _heating.Owed[r.ReadString()] = r.ReadDouble();
 
         ReadSoaks(r);
+        if (version >= 2) ClienteleSave.Read(r, _clientele);
     }
 
     /// <summary>
@@ -365,6 +456,8 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
             hasher.Add(soak.Soaked);
             hasher.Add(soak.Seated);
         }
+
+        ClienteleSave.Hash(ref hasher, _clientele);
     }
 
     #endregion

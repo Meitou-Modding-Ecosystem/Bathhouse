@@ -22,9 +22,9 @@ for its look (a stand-in until the mod's models land) and links game items by id
 
 Tubs have no functionality so that no game or mod AI (a town bar's, Fiefdom's residents) sits in them; bathing is the mod's code.
 
-The bath goal is an `AI_TASK` "Taking a bath" (`enum` 4401, classification 3 urgent, targeting 1), added with weight 100 to the `AI Goals` of
-every RACE and of the player's faction (204 Nameless), the lists the chooser weighs for NPCs and the player's characters. Bathhouse keeps task
-type numbers 4401 to 4409.
+The goals are `AI_TASK`s "Taking a bath" (`enum` 4401) and "Visiting the bathhouse" (4402), classification 3 urgent, targeting 1, added with
+weight 100 to the `AI Goals` of every RACE and of the player's faction (204 Nameless), the lists the chooser weighs for NPCs and the player's
+characters. Bathhouse keeps task type numbers 4401 to 4409.
 
 ## Heated tubs
 
@@ -48,9 +48,41 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
 - **Towels** (`Towels`): from the bather's inventory, else the building's first store holding one. A used towel comes back dirty at the
   towels-kept chance (`Rng.Hash` of the world seed, the character and the tick), else it is ruined; a dirty one goes into the building's first
   hamper with room, else on the floor. A player's character right-clicks a towel to use it the same way (the dirty one back in its inventory).
-- **Panels** (`BathhouseUi`): a tub shows its water and seats taken and the bath button; a boiler shows its building's heat (tooltip: boilers lit, seats heated,
-  Water) and one switch per Bad status effect of any mod (the first four) for whether soaks clear it. The switches are saved with the game.
+- **Panels** (`BathhouseUi`): a tub shows its water and seats taken and the bath button; a boiler shows its building's heat (tooltip: boilers lit,
+  seats heated, Water) and one switch per Bad status effect of any mod (the first four) for whether soaks clear it. The switches are saved with
+  the game.
 - **Debug row** "Bathhouse: tubs and bathers": each building's heat and each soak.
+
+## Customers
+
+`Customers/Clientele`, stepped in the same check after the soaks.
+
+- **Kinds** (`CustomerTypes`): key, squad template, faction, price tolerance, rowdy, reputation needed. Drifters (3950-gamedata.base, Drifters,
+  0.8), traders (1161, Traders Guild, 1.0), bounty hunters (5337, 1.0, reputation 2), Shek (51336-rebirth.mod wandering duelists, 1.0, rowdy,
+  reputation 2). Skeletons (1.2), crab raiders (rowdy), nobles (2.0) and cannibals (1.5, rowdy) have lines but no source yet. Reputation is 1
+  until milestone 5, so drifters and traders come. Demand (the least quality a kind leaves without complaining) is tolerance / 4.
+- **Groups** (`Spawner`): while the bathhouse is open, every hours-between-customers setting, from 6:00 to 22:00, at most 2 groups at once, when
+  a finished counter stands in a building with a warm tub. A kind whose faction is not hostile to the player's either way is picked with
+  `Rng.Hash`, spawned with `SpawnPlatoon` 800 to 1500 units from the counter (homed at the nearest town), tagged `Platoon.ModTag`
+  `bathhouse.customers.<n>` (saved by the game: a group finds its platoon again by it), held and sent to the counter's front (20 units along its
+  local +Z). Once the platoon loads its living people get visits. A group is let go (hold off, `ModSpawned` off, tag cleared, so the game's
+  travel takes it on and may despawn it) when every visit is done, its counter is gone, or after 24 game hours.
+- **Check-in**: the visit goal (desire 0.7) walks the customer to the counter's front and stands it there. It checks in when one of the player's
+  people stands within 80 units of the counter, the counter (else a store in its building) holds a Towel and a Soap, and a tub in the building
+  is warm with a free seat. It takes the price (below), a Soap is used up and a Towel goes into its inventory (it dries with it), and it is sent
+  to soak. After waiting 2 hours it leaves with a complaint; closing the bathhouse sends arriving customers away.
+- **Prices** (`Pricing`): bath (small 30, medium 40, large 50, oil 60, blood 80 cats), towel 15, soap 10, times the reputation factor (1 until
+  milestone 5) for the suggested price. The counter's panel sets each service to 50, 75, 100, 125, 150 or 200% of it. A customer takes a visit
+  price at or under tolerance x suggested; above it with chance e^(-8 (ratio / tolerance - 1)), 13% at a quarter over, else it leaves.
+- **Quality and payment** (`Quality`): 1 less 0.5 x the lukewarm share of the soak, 0.15 a game hour waited (at most 0.3) and 0.3 for a soak cut
+  short by cold. At or above 0.8 the customer pays the full price, below it price x quality / 0.8, added to the player's money and posted.
+- **Complaints** (`Complaints`): a quality under the kind's demand (or a long wait) pays nothing; the customer's faction loses relation per
+  complaint towards the player's (`PlayerRelations.Add`), at most the daily cap per faction. With the fight chance (twice for rowdy kinds) it
+  picks a fight: its squad gets a TEMP_ENEMY tag for each of the player's people within 300 units, never the faction.
+- **Barks** (`Barks`): two lines per kind for getting into a tub, cold water, a complaint, leaving happy, the price and a fight. English only (the
+  engine has no translation catalog for mods).
+- **Counter panel**: an open switch (tooltip: groups and customers under way, the latest payment or complaint) and a price line per service.
+- **Debug rows**: "Bathhouse: tubs and bathers" lists groups and visits; "Bathhouse: send customers (kind)" sends a group now.
 
 ## Research
 
@@ -62,10 +94,12 @@ and Oil Baths (level 2), and Blood Baths after Hot Baths (level 3).
 
 `BathhouseSettings`, on the Settings screen's Mods page: seats per boiler (4), Water per boiler a day (2), soak length by tub (small 2 h,
 medium 3, large 4, oil and blood 3), Soothed buff (3 days), soaks clear debuffs (on), towels kept (80%), hours between customers (6),
-relation lost per complaint (1), most relation lost a day (5), fight chance (5%).
+relation lost per complaint (1), most relation lost a day (5), fight chance (5%). Prices and the open switch are on the counter, saved with the
+game (sidecar version 2).
 
 ## Tests
 
 `Bathhouse.Tests/RecordTests` applies the records to the installed game (`KENSHI_PATH`; skipped without one) and checks links, machine data,
-research and the bath goal's lists. `BathingTests` checks the heat rule, seats, the towel roll's split, which effects a soak clears, soak lengths
-and the sidecar round trip.
+research, the goals' lists and the customer kinds' squads and factions.
+`BathingTests` checks the heat rule, seats, the towel roll's split, which effects a soak clears, soak lengths and the sidecar round trip.
+`CustomerTests` checks price acceptance, the price steps, quality and pay, the complaints' cap, demand and the barks.

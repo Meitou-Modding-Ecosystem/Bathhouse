@@ -1,0 +1,557 @@
+using System.Text;
+using Bathhouse.Bathing;
+using Bathhouse.Records;
+using Meitou.Data.Gameplay.Ai;
+using Meitou.Simulation;
+using Meitou.Simulation.Ai;
+using Meitou.Simulation.Construction;
+using Meitou.Simulation.Factions;
+using Meitou.Simulation.Movement;
+using Meitou.Simulation.Population;
+
+namespace Bathhouse.Customers;
+
+/// <summary>
+/// The bathhouse's customers (docs/bathhouse.md "Customers"): groups sent on a schedule while a counter is open, their members' visits (the visit
+/// goal walks each to the counter, where it checks in, takes a towel and soap, agrees to the price and is sent to soak), and the payment or
+/// complaint after the soak. Steps in the system's serial check; the goal's desire reads only what that step wrote.
+/// </summary>
+public sealed class Clientele(Heating heating, Soaks soaks, PopulationData data, RngPurpose purpose) : IModGoal
+{
+    #region State
+
+    /// <summary>
+    /// The visit goal's desire for an arriving customer: urgent tier, under the bath goal's.
+    /// </summary>
+    public const float Want = 0.7f;
+
+    /// <summary>
+    /// How near (ground plane) to the counter's front counts as there.
+    /// </summary>
+    public const float Reach = 30;
+
+    /// <summary>
+    /// How near a player's character must stand to a counter to staff it.
+    /// </summary>
+    public const float StaffReach = 80;
+
+    /// <summary>
+    /// The most groups on their way or visiting at once.
+    /// </summary>
+    public const int MostGroups = 2;
+
+    /// <summary>
+    /// Game hours a customer waits at the counter before leaving with a complaint.
+    /// </summary>
+    public const double MostWait = 2;
+
+    /// <summary>
+    /// Game hours after which a group is let go whatever its visits say.
+    /// </summary>
+    public const double GroupHours = 24;
+
+    /// <summary>
+    /// The visit goal's type and its walk's row.
+    /// </summary>
+    public static readonly TaskType Row = (TaskType)Ids.VisitGoalType;
+
+    /// <summary>
+    /// The roll's counter salt for the price.
+    /// </summary>
+    const ulong PriceSalt = 0x9_21CE;
+
+    /// <summary>
+    /// Groups by tag. Saved and hashed.
+    /// </summary>
+    readonly SortedDictionary<string, CustomerGroup> _groups = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Visits by the customer's lasting id. Saved and hashed.
+    /// </summary>
+    readonly SortedDictionary<ulong, Visit> _visits = [];
+
+    /// <summary>
+    /// The visits of customers in the world now, by character id: what <see cref="IModGoal.Desire"/> reads. Rebuilt in the serial step.
+    /// </summary>
+    Dictionary<CharacterId, Visit> _present = [];
+
+    /// <summary>
+    /// The price list. Saved and hashed.
+    /// </summary>
+    public Pricing Prices { get; } = new();
+
+    /// <summary>
+    /// The complaints' relation tally. Saved and hashed.
+    /// </summary>
+    public Complaints Complaints { get; } = new(data.Relations);
+
+    /// <summary>
+    /// Whether the bathhouse takes customers (the counter's switch). Saved and hashed.
+    /// </summary>
+    public bool Open { get; set; } = true;
+
+    /// <summary>
+    /// The game hour the next group may set out. Saved and hashed.
+    /// </summary>
+    public double NextGroupAt { get; set; }
+
+    /// <summary>
+    /// The number of the next group's tag. Saved and hashed.
+    /// </summary>
+    public int Serial { get; set; }
+
+    /// <summary>
+    /// The latest payment or complaint, for the counter's tooltip (not saved).
+    /// </summary>
+    public string Latest { get; private set; } = "No customers yet.";
+
+    /// <summary>
+    /// The groups, for saving, hashing and the views.
+    /// </summary>
+    public IReadOnlyCollection<CustomerGroup> Groups => _groups.Values;
+
+    /// <summary>
+    /// The visits, for saving, hashing and the views.
+    /// </summary>
+    public IReadOnlyCollection<Visit> Visits => _visits.Values;
+
+    /// <summary>
+    /// Puts back a group read from a save.
+    /// </summary>
+    public void Restore(CustomerGroup group) => _groups[group.Tag] = group;
+
+    /// <summary>
+    /// Puts back a visit read from a save.
+    /// </summary>
+    public void Restore(Visit visit) => _visits[visit.Customer.Value] = visit;
+
+    /// <summary>
+    /// Forgets every group and visit (before a save is read).
+    /// </summary>
+    public void Clear()
+    {
+        _groups.Clear();
+        _visits.Clear();
+        _present.Clear();
+    }
+
+    #endregion
+
+    #region Stepping
+
+    /// <summary>
+    /// The serial step: a group sent when one is due, the groups kept on course or let go, and each present customer's visit stepped.
+    /// </summary>
+    public void Step(World world, IReadOnlyList<Tub> tubs, BathhouseSettings settings)
+    {
+        Schedule(world, tubs, settings);
+        StepGroups(world);
+        Find(world);
+        foreach (var (who, visit) in _present.ToList())
+        {
+            if (!world.Characters.TryResolveNext(who, out int slot)) continue;
+
+            StepVisit(world, slot, visit, tubs);
+        }
+    }
+
+    /// <summary>
+    /// Sends a group of a kind to the open counter now, whatever the schedule and reputation say (the debug row); false when it could not.
+    /// </summary>
+    public bool SendNow(World world, IReadOnlyList<Tub> tubs, CustomerType kind)
+    {
+        if (Spawner.OpenCounter(world, b => Warm(tubs, b)) is not { } counter || !kind.Spawnable) return false;
+
+        return SpawnGroup(world, kind, counter);
+    }
+
+    /// <summary>
+    /// Sends a group when one is due: open, daytime, room for another group, an open counter and a kind that may come.
+    /// </summary>
+    void Schedule(World world, IReadOnlyList<Tub> tubs, BathhouseSettings settings)
+    {
+        if (!Open || settings.HoursBetweenGroups <= 0 || _groups.Count >= MostGroups || world.GameHours < NextGroupAt) return;
+        if (!Spawner.Daytime(world.GameHours) || Spawner.OpenCounter(world, b => Warm(tubs, b)) is not { } counter) return;
+
+        NextGroupAt = world.GameHours + settings.HoursBetweenGroups;
+        if (Spawner.Pick(world, data, Serial, purpose) is { } kind) SpawnGroup(world, kind, counter);
+    }
+
+    /// <summary>
+    /// Spawns a group and keeps it; false when the game refused the spawn.
+    /// </summary>
+    bool SpawnGroup(World world, CustomerType kind, BuildSite counter)
+    {
+        string tag = $"bathhouse.customers.{Serial}";
+        if (!Spawner.Spawn(world, data, kind, counter, tag)) return false;
+
+        Serial++;
+        _groups[tag] = new CustomerGroup { Tag = tag, Kind = kind.Key, Counter = counter.Id, SpawnedAt = world.GameHours };
+        world.Post($"{kind.Name} are on their way to the bathhouse.");
+        return true;
+    }
+
+    /// <summary>
+    /// Whether a building has a warm tub.
+    /// </summary>
+    bool Warm(IReadOnlyList<Tub> tubs, string? building) => tubs.Any(t => t.Building == building && heating.Of(building).Warm);
+
+    #endregion
+
+    #region Groups
+
+    /// <summary>
+    /// Each group: forgotten when its platoon is gone, let go when it is done, too old or its counter is gone, else kept held and on course until
+    /// it loads, when its members are enlisted.
+    /// </summary>
+    void StepGroups(World world)
+    {
+        foreach (var group in _groups.Values.ToList())
+        {
+            var platoon = world.Platoons.All.FirstOrDefault(p => p.ModTag == group.Tag);
+            if (platoon is null) Lost(world, group);
+            else if (Finished(world, group)) Release(world, group, platoon);
+            else Steer(world, group, platoon);
+        }
+    }
+
+    /// <summary>
+    /// Whether a group is done: too old, its counter gone, or enlisted with no visit still running.
+    /// </summary>
+    bool Finished(World world, CustomerGroup group)
+    {
+        if (world.GameHours - group.SpawnedAt > GroupHours || world.Buildings.Find(group.Counter) is not { } counter || !Spawner.IsCounter(counter))
+            return true;
+
+        return group.Enlisted && !_visits.Values.Any(v => v.Group == group.Tag && v.Phase != VisitPhase.Done);
+    }
+
+    /// <summary>
+    /// Keeps a group held (a load lets go of holds) and, until it is enlisted, its stand-in on its way; enlists its members once it loads.
+    /// </summary>
+    void Steer(World world, CustomerGroup group, Platoon platoon)
+    {
+        if (!platoon.Held) PopulationSystem.HoldPlatoon(world, platoon.Id, true);
+        if (group.Enlisted) return;
+
+        var counter = world.Buildings.Find(group.Counter)!;
+        PopulationSystem.SendPlatoon(world, platoon.Id, Spawner.Flat(Spawner.FrontOf(counter)));
+        if (platoon.SquadId >= 0 && world.Squads.Find(platoon.SquadId) is { } squad) Enlist(world, group, squad.Members);
+    }
+
+    /// <summary>
+    /// Gives each living person of a loaded group a visit.
+    /// </summary>
+    void Enlist(World world, CustomerGroup group, IEnumerable<CharacterId> members)
+    {
+        foreach (var who in members)
+        {
+            if (!world.Characters.TryResolveNext(who, out int slot) || world.Characters.Cold(slot) is not { Animal: null, DiedTick: < 0 }) continue;
+
+            var lasting = world.LastingIds.GetOrGive(who);
+            _visits[lasting.Value] = new Visit { Customer = lasting, Group = group.Tag, Kind = group.Kind };
+        }
+
+        group.Enlisted = true;
+    }
+
+    /// <summary>
+    /// Lets a group go: the game's travel takes its platoon back and may despawn it, and its visits end.
+    /// </summary>
+    void Release(World world, CustomerGroup group, Platoon platoon)
+    {
+        PopulationSystem.HoldPlatoon(world, platoon.Id, false);
+        platoon.ModSpawned = false;
+        platoon.ModTag = "";
+        foreach (var (who, visit) in _present.Where(p => p.Value.Group == group.Tag))
+        {
+            if (world.Characters.TryResolveNext(who, out int slot) && ModGoals.Holds(world, slot, Row)) ModGoals.Done(world, slot, Row);
+        }
+
+        Forget(group);
+    }
+
+    /// <summary>
+    /// A group whose platoon the game removed (killed, or taken out of the world): posted and forgotten.
+    /// </summary>
+    void Lost(World world, CustomerGroup group)
+    {
+        string name = CustomerTypes.Find(group.Kind)?.Name ?? group.Kind;
+        world.Post($"{name} on their way to the bathhouse are gone.");
+        Forget(group);
+    }
+
+    /// <summary>
+    /// Forgets a group and its visits.
+    /// </summary>
+    void Forget(CustomerGroup group)
+    {
+        _groups.Remove(group.Tag);
+        foreach (var visit in _visits.Values.Where(v => v.Group == group.Tag).ToList()) _visits.Remove(visit.Customer.Value);
+    }
+
+    /// <summary>
+    /// Rebuilds <see cref="_present"/>: each visit's customer found by lasting id, in lasting-id order.
+    /// </summary>
+    void Find(World world)
+    {
+        var present = new Dictionary<CharacterId, Visit>();
+        foreach (var visit in _visits.Values)
+        {
+            var who = world.LastingIds.Find(visit.Customer);
+            if (!who.IsNone) present[who] = visit;
+        }
+
+        _present = present;
+    }
+
+    #endregion
+
+    #region Goal
+
+    float IModGoal.Desire(in ModGoalAsk ask) => _present.TryGetValue(ask.Id, out var visit) && visit.Phase == VisitPhase.Arriving ? Want : 0;
+
+    /// <summary>
+    /// Walks the customer to its counter's front, or stands it there when it has arrived.
+    /// </summary>
+    bool IModGoal.Start(World world, in ModGoalStart ask)
+    {
+        if (!_present.TryGetValue(ask.Id, out var visit) || CounterOf(world, visit) is not { } counter) return false;
+        if (AtCounter(world, ask.Slot, counter))
+            return TaskStart.Become(world, ask.Slot, CharacterTask.Idle, Row, TaskSource.Goal) == StartResult.Started;
+
+        return TaskStart.Walk(world, ask.Slot, Spawner.FrontOf(counter), SpeedMode.Walk, Row, TaskSource.Goal) == StartResult.Started;
+    }
+
+    /// <summary>
+    /// Nothing to undo: the goal starts again while the visit is arriving.
+    /// </summary>
+    void IModGoal.End(World world, int slot, CharacterId id, TaskType type, ModGoalEnd why)
+    {
+    }
+
+    #endregion
+
+    #region Visits
+
+    /// <summary>
+    /// One customer: an arriving one checks in at the counter, waits or leaves; a soaking one says its line on getting in.
+    /// </summary>
+    void StepVisit(World world, int slot, Visit visit, IReadOnlyList<Tub> tubs)
+    {
+        if (visit.Phase == VisitPhase.Arriving) Arrive(world, slot, visit, tubs);
+        else if (visit.Phase == VisitPhase.Soaking) Soaking(world, slot, visit);
+    }
+
+    /// <summary>
+    /// An arriving customer: leaves when the bathhouse closed or its counter is gone; at the counter, checks in, or leaves complaining after
+    /// waiting too long.
+    /// </summary>
+    void Arrive(World world, int slot, Visit visit, IReadOnlyList<Tub> tubs)
+    {
+        if (!Open || CounterOf(world, visit) is not { } counter)
+        {
+            Leave(world, slot, visit);
+            return;
+        }
+
+        if (!AtCounter(world, slot, counter)) return;
+
+        if (double.IsNaN(visit.ArrivedAt)) visit.ArrivedAt = world.GameHours;
+        visit.Waited = world.GameHours - visit.ArrivedAt;
+        if (CheckIn(world, slot, visit, counter, tubs)) return;
+        if (visit.Waited > MostWait) Unhappy(world, slot, visit, "waited too long at the counter");
+    }
+
+    /// <summary>
+    /// A soaking customer says its line once it sits in the water; one whose soak is gone (a load, a fight) leaves.
+    /// </summary>
+    void Soaking(World world, int slot, Visit visit)
+    {
+        var who = world.Characters.IdOf(slot);
+        if (soaks.Of(who) is not { } soak)
+        {
+            Leave(world, slot, visit);
+            return;
+        }
+
+        if (!soak.Seated || visit.InTub) return;
+
+        visit.InTub = true;
+        Barks.Say(world, who, visit.Kind, BarkEvent.InTub, purpose);
+    }
+
+    /// <summary>
+    /// The check-in: a clerk at the counter, a towel and soap in its stock and a free warm tub in its building, then the price. True when the visit
+    /// moved on (sent to soak, or turned away by the price); false to keep waiting.
+    /// </summary>
+    bool CheckIn(World world, int slot, Visit visit, BuildSite counter, IReadOnlyList<Tub> tubs)
+    {
+        if (!Staffed(world, counter) || Stock.Of(world, counter) is not { } stock) return false;
+        if (FreeTub(counter, tubs) is not { } tub) return false;
+
+        var (price, suggested) = Prices.Visit(tub.Kind);
+        if (!Accepts(world, slot, visit, price / suggested))
+        {
+            TurnedAway(world, slot, visit, price);
+            return true;
+        }
+
+        if (!soaks.Send(world, slot, tub, player: false)) return false;
+
+        Stock.Hand(world, slot, stock);
+        visit.Price = price;
+        visit.Phase = VisitPhase.Soaking;
+        if (ModGoals.Holds(world, slot, Row)) ModGoals.Done(world, slot, Row);
+        return true;
+    }
+
+    /// <summary>
+    /// Whether the customer takes a price <paramref name="ratio"/> times the suggested one (<see cref="Pricing.AcceptChance"/>).
+    /// </summary>
+    bool Accepts(World world, int slot, Visit visit, double ratio)
+    {
+        double tolerance = CustomerTypes.Find(visit.Kind)?.Tolerance ?? 1;
+        ulong key = Rng.Key(world.Characters.IdOf(slot));
+        double roll = Rng.Float(Rng.Hash(world.Seed, key, purpose, PriceSalt ^ (ulong)world.Tick));
+        return roll < Pricing.AcceptChance(ratio, tolerance);
+    }
+
+    /// <summary>
+    /// The first tub with a free seat and warm water in the counter's building; null for none.
+    /// </summary>
+    Tub? FreeTub(BuildSite counter, IReadOnlyList<Tub> tubs) =>
+        tubs.FirstOrDefault(t => t.Building == counter.Parent && heating.Of(t.Building).Warm && soaks.FreeSeat(t) is not null);
+
+    /// <summary>
+    /// Whether one of the player's people, alive and on their feet, stands at the counter.
+    /// </summary>
+    static bool Staffed(World world, BuildSite counter)
+    {
+        var table = world.Characters;
+        for (int slot = 0; slot < table.HighWater; slot++)
+        {
+            if (!table.Next[slot].Alive || table.Cold(slot) is not { IsPlayer: true, Medical.Incapacitated: false }) continue;
+            if (Soaks.Flat(table.Next[slot].Position, counter.Position) <= StaffReach) return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// The visit's counter while it stands; null once it is gone.
+    /// </summary>
+    BuildSite? CounterOf(World world, Visit visit)
+    {
+        if (_groups.GetValueOrDefault(visit.Group) is not { } group || world.Buildings.Find(group.Counter) is not { } site) return null;
+
+        return Spawner.IsCounter(site) ? site : null;
+    }
+
+    /// <summary>
+    /// Whether the customer stands at the counter's front and has stopped walking.
+    /// </summary>
+    static bool AtCounter(World world, int slot, BuildSite counter)
+    {
+        ref readonly var hot = ref world.Characters.Next[slot];
+        return Soaks.Flat(hot.Position, Spawner.FrontOf(counter)) <= Reach && hot.Task != (byte)CharacterTask.GoTo;
+    }
+
+    #endregion
+
+    #region Payment
+
+    /// <summary>
+    /// A customer's soak ended (the system's callback for soaks of people not the player's): it pays for a visit good enough for its kind, else
+    /// complains; one that never soaked just leaves.
+    /// </summary>
+    public void Bathed(World world, int slot, Soak soak, SoakEnd end)
+    {
+        if (!_visits.TryGetValue(soak.Bather.Value, out var visit) || visit.Phase != VisitPhase.Soaking) return;
+        if (end == SoakEnd.Abandoned)
+        {
+            Leave(world, slot, visit);
+            return;
+        }
+
+        var kind = CustomerTypes.Find(visit.Kind);
+        var quality = Quality.Of(soak.Soaked, soak.Lukewarm, visit.Waited, end == SoakEnd.Cold);
+        if (end == SoakEnd.Cold) Barks.Say(world, world.Characters.IdOf(slot), visit.Kind, BarkEvent.Cold, purpose);
+
+        if (kind is null || quality.Total < kind.Demand) Unhappy(world, slot, visit, $"quality {quality}");
+        else Pay(world, slot, visit, kind, quality);
+    }
+
+    /// <summary>
+    /// The customer pays its price scaled by quality and leaves happy.
+    /// </summary>
+    void Pay(World world, int slot, Visit visit, CustomerType kind, Quality quality)
+    {
+        long paid = quality.Pay(visit.Price);
+        world.Player.Money += paid;
+        Latest = $"{world.Characters.NameOf(world.Characters.IdOf(slot))} ({kind.Name}) paid {paid} of {visit.Price} cats, quality {quality}.";
+        world.Post(Latest);
+
+        Barks.Say(world, world.Characters.IdOf(slot), visit.Kind, BarkEvent.Happy, purpose);
+        visit.Phase = VisitPhase.Done;
+    }
+
+    /// <summary>
+    /// The customer leaves without paying: a complaint, maybe a fight.
+    /// </summary>
+    void Unhappy(World world, int slot, Visit visit, string why)
+    {
+        var kind = CustomerTypes.Find(visit.Kind);
+        bool fight = kind is not null && Complaints.Complain(world, slot, kind, purpose, BathhouseSettings.Current);
+        Barks.Say(world, world.Characters.IdOf(slot), visit.Kind, fight ? BarkEvent.Fight : BarkEvent.Complaint, purpose);
+
+        string name = world.Characters.NameOf(world.Characters.IdOf(slot));
+        Latest = $"{name} ({kind?.Name ?? visit.Kind}) left without paying: {why}{(fight ? ", and picked a fight" : "")}.";
+        world.Post(Latest);
+        Leave(world, slot, visit);
+    }
+
+    /// <summary>
+    /// The customer leaves without a visit: the price was too high for it.
+    /// </summary>
+    void TurnedAway(World world, int slot, Visit visit, long price)
+    {
+        var who = world.Characters.IdOf(slot);
+        Barks.Say(world, who, visit.Kind, BarkEvent.Pricey, purpose);
+        Latest = $"{world.Characters.NameOf(who)} ({CustomerTypes.Find(visit.Kind)?.Name ?? visit.Kind}) would not pay {price} cats.";
+        world.Post(Latest);
+        Leave(world, slot, visit);
+    }
+
+    /// <summary>
+    /// The visit ends; the customer goes when its group does.
+    /// </summary>
+    void Leave(World world, int slot, Visit visit)
+    {
+        visit.Phase = VisitPhase.Done;
+        if (ModGoals.Holds(world, slot, Row)) ModGoals.Done(world, slot, Row);
+    }
+
+    #endregion
+
+    #region Views
+
+    /// <summary>
+    /// The debug row's lines: each group and each visit.
+    /// </summary>
+    public void Describe(World world, StringBuilder text)
+    {
+        text.AppendLine($"Customers: {(Open ? "open" : "closed")}, next group at hour {NextGroupAt:0.0}, prices "
+            + $"{Prices.Percent(Service.Bath)}/{Prices.Percent(Service.Towel)}/{Prices.Percent(Service.Soap)}%");
+        foreach (var group in _groups.Values)
+            text.AppendLine($"{group.Tag}: {group.Kind} to {group.Counter}, {(group.Enlisted ? "arrived" : "on the way")}");
+
+        foreach (var visit in _visits.Values)
+        {
+            string name = world.Characters.NameOf(world.LastingIds.Find(visit.Customer));
+            text.AppendLine($"{name}: {visit.Phase}, waited {visit.Waited:0.0} h, price {visit.Price}");
+        }
+    }
+
+    #endregion
+}

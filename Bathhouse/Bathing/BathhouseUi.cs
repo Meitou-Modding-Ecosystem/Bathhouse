@@ -1,11 +1,14 @@
+using Bathhouse.Customers;
 using Bathhouse.Records;
 using Meitou.Game.Ui;
+using Meitou.Simulation;
 
 namespace Bathhouse.Bathing;
 
 /// <summary>
-/// The bathhouse's panel lines (docs/bathhouse.md "Panels"): a tub shows its water and seats, a boiler what it heats and the switches for the bad
-/// effects soaks clear. The sources run on the host's thread and read only the system's published views.
+/// The bathhouse's panel lines (docs/bathhouse.md "Panels"): a tub shows its water and seats and the bath button, a boiler what it heats and the
+/// switches for the bad effects soaks clear, a counter the open switch and the prices. The sources run on the host's thread and read only the
+/// system's published views.
 /// </summary>
 public sealed class BathhouseUi(Func<BathhouseSystem?> system) : IUiExtension
 {
@@ -24,7 +27,9 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system) : IUiExtension
     IEnumerable<UiBuildingAction> Lines(UiBuildingContext context)
     {
         var building = context.Building;
-        if (!building.Owned || system() is not { } bathhouse || bathhouse.Piece(building.SiteId) is not { } view) return [];
+        if (!building.Owned || system() is not { } bathhouse) return [];
+        if (building.Record == Ids.Counter) return CounterLines(context, bathhouse.Counter);
+        if (bathhouse.Piece(building.SiteId) is not { } view) return [];
 
         if (building.Record == Ids.Boiler) return [BoilerLine(view), .. DebuffLines(context, bathhouse)];
         return [TubLine(view), BatheLine(context)];
@@ -83,6 +88,35 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system) : IUiExtension
     /// </summary>
     static Action Switch(UiBuildingContext context, string effect, bool keep) =>
         () => context.Enqueue(new KeepDebuffCommand(effect, keep) { Tick = context.Tick });
+
+    /// <summary>
+    /// A counter's lines: the open switch (its tooltip the customers under way and the latest payment), then one price line per service.
+    /// </summary>
+    static IEnumerable<UiBuildingAction> CounterLines(UiBuildingContext context, CounterView view)
+    {
+        string tooltip = $"{view.Groups} groups coming or visiting, {view.Visits} customers in. {view.Latest}";
+        var open = new OpenCommand(!view.Open) { Tick = 0 };
+        yield return new UiBuildingAction($"Customers: {(view.Open ? "open" : "closed")}", tooltip, Send(context, open));
+
+        string visit = $"A medium tub visit costs {view.VisitPrice} cats. Press for the next step.";
+        yield return PriceLine(context, Service.Bath, view.Bath, visit);
+        yield return PriceLine(context, Service.Towel, view.Towel, visit);
+        yield return PriceLine(context, Service.Soap, view.Soap, visit);
+    }
+
+    /// <summary>
+    /// A service's price line: its percent of the suggested price; a press steps it on.
+    /// </summary>
+    static UiBuildingAction PriceLine(UiBuildingContext context, Service service, int percent, string tooltip)
+    {
+        var next = new PriceCommand(service, Pricing.Next(percent)) { Tick = 0 };
+        return new UiBuildingAction($"{service} price: {percent}% of suggested", tooltip, Send(context, next));
+    }
+
+    /// <summary>
+    /// A press that queues a command, stamped with the tick it is pressed at (its own tick is a placeholder).
+    /// </summary>
+    static Action Send(UiBuildingContext context, SimCommand command) => () => context.Enqueue(command with { Tick = context.Tick });
 
     /// <summary>
     /// A press that does nothing: a line that only tells.

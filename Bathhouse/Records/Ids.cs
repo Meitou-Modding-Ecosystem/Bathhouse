@@ -110,6 +110,16 @@ public static class Ids
     /// </summary>
     public const int BathGoalType = 4401;
 
+    /// <summary>
+    /// The visit goal's <c>AI_TASK</c>: a customer walks to the check-in counter and waits there. Listed with the bath goal.
+    /// </summary>
+    public const string VisitGoal = "91-" + FileName;
+
+    /// <summary>
+    /// The visit goal's task type, also its walk's row.
+    /// </summary>
+    public const int VisitGoalType = 4402;
+
     #endregion
 
     #region Research
