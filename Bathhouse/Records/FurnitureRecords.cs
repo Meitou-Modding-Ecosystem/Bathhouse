@@ -52,9 +52,9 @@ static class FurnitureRecords
     }
 
     /// <summary>
-    /// One piece: its id and name, the game building it copies (string id, then name), what it does, its build-menu list and its text.
+    /// One piece: its id and name, the game building it copies (string id, then name), what it does and its text.
     /// </summary>
-    sealed record Spec(string Id, string Name, string ModelId, string ModelName, Use Use, string Category, string Text);
+    sealed record Spec(string Id, string Name, string ModelId, string ModelName, Use Use, string Text);
 
     /// <summary>
     /// The game's General storage functionality: any item, worked by nobody.
@@ -108,41 +108,41 @@ static class FurnitureRecords
     /// </summary>
     static readonly Spec[] Specs =
     [
-        new(Ids.WaterTank, "Bathhouse Water Tank", "12839-nodes_otto.mod", "Small Water Tank", Use.Water, "STORAGE",
+        new(Ids.WaterTank, "Bathhouse Water Tank", "12839-nodes_otto.mod", "Small Water Tank", Use.Water,
             "Holds the Water the steam boilers in this building turn into hot baths."),
-        new(Ids.SmallTub, "Small Tub", "5351-furniture_otto.mod", "Wooden Barrel", Use.None, "INTERIOR",
+        new(Ids.SmallTub, "Small Tub", "5351-furniture_otto.mod", "Wooden Barrel", Use.None,
             "A one-person soaking tub. Needs a lit steam boiler in the same building."),
-        new(Ids.MediumTub, "Medium Tub", "896-gamedata.base", "Large Barrels", Use.None, "INTERIOR",
+        new(Ids.MediumTub, "Medium Tub", "896-gamedata.base", "Large Barrels", Use.None,
             "A soaking tub for two. Needs a lit steam boiler in the same building."),
-        new(Ids.LargeTub, "Large Bath", "895-gamedata.base", "Booze Barrels", Use.None, "INTERIOR",
+        new(Ids.LargeTub, "Large Bath", "895-gamedata.base", "Booze Barrels", Use.None,
             "A communal bath for four. Needs a lit steam boiler in the same building."),
-        new(Ids.OilBath, "Oil Bath", "49382-rebirth.mod", "Booze Barrel", Use.None, "INTERIOR",
+        new(Ids.OilBath, "Oil Bath", "49382-rebirth.mod", "Booze Barrel", Use.None,
             "A vat of warm machine oil for skeletons. Needs a lit steam boiler in the same building."),
-        new(Ids.BloodBath, "Blood Bath", "2642-Cannibals.mod", "Cannibal Butcher Table", Use.None, "INTERIOR",
+        new(Ids.BloodBath, "Blood Bath", "2642-Cannibals.mod", "Cannibal Butcher Table", Use.None,
             "A grim soak for grim guests. Other bathers refuse a building that has one, and the Holy Nation and United Cities disapprove."),
-        new(Ids.MassageBed, "Massage Bed", "3460-otto.mod", "Bed", Use.Model, "INTERIOR",
+        new(Ids.MassageBed, "Massage Bed", "3460-otto.mod", "Bed", Use.Model,
             "A customer lies here for a massage while an attendant works the massage station beside it."),
-        new(Ids.MassageStation, "Massage Station", "3471-otto.mod", "Small Table", Use.Massage, "INTERIOR",
+        new(Ids.MassageStation, "Massage Station", "3471-otto.mod", "Small Table", Use.Massage,
             "Oils, stones and towels. The attendant works here while a customer lies on the nearest massage bed."),
-        new(Ids.Counter, "Check-in Counter", "3469-otto.mod", "Shop Counter", Use.Model, "STORAGE",
+        new(Ids.Counter, "Check-in Counter", "3469-otto.mod", "Shop Counter", Use.Model,
             "Bathers check in here and take a towel and soap from its stock."),
-        new(Ids.Lockers, "Lockers", "1532622-rebirth.mod", "Crossbow Locker", Use.LockedStorage, "STORAGE",
+        new(Ids.Lockers, "Lockers", "1532622-rebirth.mod", "Crossbow Locker", Use.LockedStorage,
             "Bathers lock their gear away while they soak."),
-        new(Ids.Hamper, "Laundry Hamper", "5355-furniture_otto.mod", "Small Barrel", Use.Limited, "STORAGE",
+        new(Ids.Hamper, "Laundry Hamper", "5355-furniture_otto.mod", "Small Barrel", Use.Limited,
             "Bathers drop their dirty towels here."),
-        new(Ids.TowelRack, "Towel Rack", "3470-otto.mod", "Shelf", Use.Limited, "STORAGE", "Holds clean towels for the counter and the tubs."),
-        new(Ids.TeaTable, "Tea Table", "3471-otto.mod", "Small Table", Use.Limited, "INTERIOR",
+        new(Ids.TowelRack, "Towel Rack", "3470-otto.mod", "Shelf", Use.Limited, "Holds clean towels for the counter and the tubs."),
+        new(Ids.TeaTable, "Tea Table", "3471-otto.mod", "Small Table", Use.Limited,
             "Keep tea sets here. Bathers nearby buy tea."),
-        new(Ids.TeaShelf, "Tea Shelf", "3470-otto.mod", "Shelf", Use.Limited, "STORAGE",
+        new(Ids.TeaShelf, "Tea Shelf", "3470-otto.mod", "Shelf", Use.Limited,
             "Stores greenfruit tea, teaware and tea sets for the tea service."),
-        new(Ids.ReviewBoard, "Review Board", "54552-Newwworld.mod", "banner_traders", Use.None, "INTERIOR",
+        new(Ids.ReviewBoard, "Review Board", "54552-Newwworld.mod", "banner_traders", Use.None,
             "Shows the bathhouse's rating and its latest reviews."),
-        new(Ids.ZenGarden, "Zen Garden", "50606-Newwworld.mod", "Carpet: Rusty Rug", Use.None, "INTERIOR", "Raked gravel and three stones."),
-        new(Ids.WallArt, "Wall Art", "43324-changes_otto.mod", "banner_empire", Use.None, "INTERIOR", "An ink painting of the desert."),
-        new(Ids.Tapestry, "Tapestry", "43322-changes_otto.mod", "banner_holy", Use.None, "INTERIOR", "A woven hanging of cranes in flight."),
-        new(Ids.Statue, "Statue", "42325-changes_otto.mod", "Emperor Statue", Use.None, "INTERIOR", "A weathered stone figure, seated in thought."),
-        new(Ids.TowelHanger, "Towel Hanger", "5360-furniture_otto.mod", "Wall Shelf 1", Use.None, "INTERIOR", "A peg rail with towels."),
-        new(Ids.TeaDisplay, "Tea Set Display", "12618-nodes_otto.mod", "Wall Shelf 2", Use.None, "INTERIOR", "A shelf of teaware on show."),
+        new(Ids.ZenGarden, "Zen Garden", "50606-Newwworld.mod", "Carpet: Rusty Rug", Use.None, "Raked gravel and three stones."),
+        new(Ids.WallArt, "Wall Art", "43324-changes_otto.mod", "banner_empire", Use.None, "An ink painting of the desert."),
+        new(Ids.Tapestry, "Tapestry", "43322-changes_otto.mod", "banner_holy", Use.None, "A woven hanging of cranes in flight."),
+        new(Ids.Statue, "Statue", "42325-changes_otto.mod", "Emperor Statue", Use.None, "A weathered stone figure, seated in thought."),
+        new(Ids.TowelHanger, "Towel Hanger", "5360-furniture_otto.mod", "Wall Shelf 1", Use.None, "A peg rail with towels."),
+        new(Ids.TeaDisplay, "Tea Set Display", "12618-nodes_otto.mod", "Wall Shelf 2", Use.None, "A shelf of teaware on show."),
     ];
 
     /// <summary>
@@ -166,7 +166,7 @@ static class FurnitureRecords
     }
 
     /// <summary>
-    /// One piece: the model's look and size, the functionality its use asks for, in its build-menu list with its text.
+    /// One piece: the model's look and size, the functionality its use asks for, in the bathhouse build-menu list with its text.
     /// </summary>
     static FcsRecord Piece(GameDatabase game, Spec spec)
     {
@@ -178,7 +178,7 @@ static class FurnitureRecords
         if (spec.Use == Use.Model && model != standIn) KeepWork(standIn, record);
 
         SetUse(record, spec);
-        record.Strings["building category"] = spec.Category;
+        record.Strings["building category"] = RecordKit.BuildCategory;
         record.Strings["Description"] = spec.Text;
         record.Bools["creates player town"] = true;
 
