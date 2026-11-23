@@ -110,7 +110,10 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   robe hamper with room, else on the floor. One already wearing a robe keeps it. The look is rebuilt from the worn kit as the engine does
   (`SavedKit.LoadoutOf`, `IAppearanceSource.Create`); the engine has no public re-dress call, so the fighter's armour cover catches up at its
   next refresh. Saved with the soak (sidecar version 5 on).
-- **Panels** (`BathhouseUi`): a tub shows its water and seats taken and the bath button; a boiler shows its building's heat (tooltip: boilers lit,
+- **Panels** (`BathhouseUi`): a tub shows the bath button, and under its Condition bar a Clean or Dirty bar (`TubCare`) and a Water bar (hot full,
+  lukewarm half, cold empty; seats taken over seats as its number). The bars come from a Harmony postfix on the engine's
+  `BuildingSelection.BuildingRows` (`ConditionBars`, reached by name; `ConditionBars.Supported` is tested); in a game without it the water
+  and seats stay a line among the buttons; a boiler shows its building's heat (tooltip: boilers lit,
   seats heated, Water) and one switch per Bad status effect of any mod (the first four) for whether soaks clear it. The switches are saved with
   the game.
 - **Debug row** "Bathhouse: tubs and bathers": each building's heat and each soak.

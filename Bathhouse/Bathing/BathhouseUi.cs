@@ -74,7 +74,7 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system, CounterLedger led
         if (bathhouse.Piece(building.SiteId) is not { } view) return [];
 
         if (building.Record == Ids.Boiler) return [BoilerLine(view), .. DebuffLines(context, bathhouse)];
-        return [TubLine(view), BatheLine(context)];
+        return ConditionBars.Active ? [BatheLine(context)] : [TubLine(view), BatheLine(context)];
     }
 
     /// <summary>
