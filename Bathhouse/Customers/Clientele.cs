@@ -771,7 +771,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     }
 
     /// <summary>
-    /// An hour of massage pays the massage price times the attendant's pay factor (Massage skill, robe) and trains the attendant; time with nobody
+    /// An hour of massage pays the massage price times the attendant's pay factor (Dexterity, robe) and trains the attendant; time with nobody
     /// at the station is waiting.
     /// </summary>
     void Rub(World world, Visit visit, BuildSite bed, double hours)

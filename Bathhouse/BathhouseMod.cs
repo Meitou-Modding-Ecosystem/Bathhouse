@@ -9,7 +9,7 @@ namespace Bathhouse;
 
 /// <summary>
 /// The mod's entry, named by "entry" in meitou.json (docs/bathhouse.md): adds the records in the data phase, then registers the settings, the bath
-/// and visit goals, the towel's use, the Soothed buff, the Massage skill, the system, the panels and the debug rows.
+/// and visit goals, the towel's use, the Soothed buff, the system, the panels and the debug rows.
 /// </summary>
 public sealed class BathhouseMod : IMod, IModDataPhase
 {
@@ -41,7 +41,6 @@ public sealed class BathhouseMod : IMod, IModDataPhase
         context.AddGoalType(Clientele.Row, "Bathhouse: visiting the bathhouse");
         foreach (var role in StaffRoles.All) context.AddJobType(StaffRoles.TypeOf(role), StaffRoles.Name(role));
         context.AddStatusEffect(Soothing.Soothed);
-        context.AddSkill(Massage.Skill);
 
         var purpose = context.RngPurpose;
         context.AddItemUse(Ids.Towel, use => Towels.Use(use, purpose));

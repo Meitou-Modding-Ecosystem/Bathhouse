@@ -87,7 +87,7 @@ public sealed class Pricing
     /// <summary>
     /// A service's base price in cats; a bath's by its tub. The towel, soap and tea are the trade worth of the item the customer takes (a Towel, a
     /// Soap, a Tea Set: ingredients plus 2% per hour worked, <c>ItemRecords</c>); the bath uses no goods and is 1.5 times what it was before the
-    /// goods were priced so. The massage's is an hour by a master (Massage 100): a less skilled attendant earns less (<c>Massage.Pay</c>).
+    /// goods were priced so. The massage's is an hour by an attendant with Dexterity 100: a less skilled attendant earns less (<c>Massage.Pay</c>).
     /// </summary>
     public static int Base(Service service, TubKind tub) => service switch
     {
