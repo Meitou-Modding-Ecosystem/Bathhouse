@@ -77,7 +77,7 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   locker, it soaks as it is. When the soak ends (any end) it puts that piece back on and drops the robe as a Dirty Robe in the building's first
   robe hamper with room, else on the floor. One already wearing a robe keeps it. The look is rebuilt from the worn kit as the engine does
   (`SavedKit.LoadoutOf`, `IAppearanceSource.Create`); the engine has no public re-dress call, so the fighter's armour cover catches up at its
-  next refresh. Saved with the soak (sidecar version 5).
+  next refresh. Saved with the soak (sidecar version 5 on).
 - **Panels** (`BathhouseUi`): a tub shows its water and seats taken and the bath button; a boiler shows its building's heat (tooltip: boilers lit,
   seats heated, Water) and one switch per Bad status effect of any mod (the first four) for whether soaks clear it. The switches are saved with
   the game.
@@ -135,10 +135,21 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
 - **Barks** (`Barks`): two lines per kind for getting into a tub, cold water, a complaint, leaving happy, the price and a fight. English only (the
   engine has no translation catalog for mods).
 - **Panels**: the counter has its clerk button, a check-in line ("ready" with the towel and soap it has, or the first of clerk, warm tub it lacks;
-  tooltip: the fix) and the ledger button; the tea table and the massage station have their price line. The building panel holds about six
-  lines, so the counter's details are in its **ledger** window (`CounterLedger`, the HUD overlay, 640 pixels wide, fits a 1280 x 720 screen):
-  check-in and its fix, the open switch with the groups and customers under way, each service's price (- and + step it through 50 to 200% of
-  suggested, with the price in cats) and the latest six payments and complaints (not saved). The button opens and closes it, as does its Close.
+  tooltip: the fix) and the ledger button; the tea table and the massage station have their price line; the review board shows guests of the
+  last three days (and their daily average), those ever, failed arrivals and the reviews button. The building panel holds about six lines, so
+  the details are in the **ledger** window (`CounterLedger`, the HUD overlay, 900 pixels wide, fits a 1280 x 720 screen) with three tabs. The
+  ledger button opens it on Counter, the reviews button on Reviews; either again, or Close, closes it.
+  - Counter: check-in and its fix, the open switch with the groups and customers under way, each service's price (- and + step it through 50
+    to 200% of suggested, with the price in cats) and the latest six payments and complaints (not saved).
+  - Guests (`GuestList`): each group on its way (hours since it set out, hours before it gives up), then up to 14 guests: name, kind, what it
+    does (walking to or waiting at the counter, going to or soaking in a tub, on a massage bed), hours left (of the wait, soak or massage),
+    quality so far by the payment rule and what costs it (lukewarm water, wait, dirty tub, no towel, soap or robe).
+  - Reviews: the last three days' totals and every finished visit, newest first, 16 at a time (Newer, Older).
+- **Guest book** (`GuestBook`): every finished visit of the last 72 game hours: time, name, kind, outcome (paid, complained, refused the
+  price, failed to arrive) with the cats, quality and reason. Failed: a group gave up on the way (24 h) or was lost, a guest was hurt on the
+  way in, gave up before reaching the counter, found the bathhouse closed or its counter gone, waited too long or never got into its tub. It
+  also counts guests who ever soaked (paid or complained). The daily average is over the days the record covers (one to three). Saved in the
+  sidecar (version 6), not hashed.
 - **Debug rows**: "Bathhouse: tubs and bathers" lists groups, visits, staff errands and dirty tubs; "Bathhouse: send customers (kind)" sends a
   group now.
 
@@ -171,13 +182,14 @@ and Oil Baths (level 2), and Blood Baths after Hot Baths (level 3).
 `BathhouseSettings`, on the Settings screen's Mods page: seats per boiler (4), Water per boiler a day (2), soak length by tub (small 2 h,
 medium 3, large 4, oil and blood 3), Soothed buff (3 days), soaks clear debuffs (on), towels kept (80%), hours between customers (6),
 relation lost per complaint (1), most relation lost a day (5), fight chance (5%). Prices and the open switch are on the counter, saved with the
-game (sidecar version 5; version 2 reads with tea and massage at 100%, before 4 visits had a towel and soap).
+game (sidecar version 6, which adds the guest book; version 2 reads with tea and massage at 100%, before 4 visits had a towel and soap).
 
 ## Tests
 
 `Bathhouse.Tests/RecordTests` applies the records to the installed game (`KENSHI_PATH`; skipped without one) and checks links, machine data,
 research, the goals' lists and the customer kinds' squads and factions.
 `BathingTests` checks the heat rule, seats, the towel roll's split, which effects a soak clears, soak lengths and the sidecar round trip.
+`GuestBookTests` checks the record's pruning, summary and round trip; `LedgerTests` the ledger's tabs, pages and fit.
 `CustomerTests` checks price acceptance, the price steps, quality and pay, the complaints' cap, demand and the barks.
 `StaffTests` checks dirty tubs, the massage skill, the dirty tub's quality part, tea and massage prices and the staff roles. `BathingTests`
 also reads a version 2 sidecar.

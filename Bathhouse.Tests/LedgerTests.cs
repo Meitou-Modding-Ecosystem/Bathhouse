@@ -25,9 +25,9 @@ public sealed class LedgerTests
         var (host, ledger, _) = Host();
 
         Assert.Empty(Arrange(host));
-        ledger.Toggle("counter");
+        ledger.Toggle(LedgerPage.Counter, "counter");
         Assert.NotEmpty(Arrange(host));
-        ledger.Toggle("counter");
+        ledger.Toggle(LedgerPage.Counter, "counter");
         Assert.Empty(Arrange(host));
     }
 
@@ -35,7 +35,7 @@ public sealed class LedgerTests
     public void Every_line_fits_inside_the_window_on_a_small_screen()
     {
         var (host, ledger, _) = Host();
-        ledger.Toggle("counter");
+        ledger.Toggle(LedgerPage.Counter, "counter");
 
         var controls = Arrange(host);
         var window = controls.Single(c => c.Type == "Widget");
@@ -48,7 +48,7 @@ public sealed class LedgerTests
     public void The_buttons_queue_the_open_switch_and_the_price_steps()
     {
         var (host, ledger, sent) = Host();
-        ledger.Toggle("counter");
+        ledger.Toggle(LedgerPage.Counter, "counter");
         var controls = Arrange(host);
 
         host.Dispatch(controls.Single(c => c.Caption == "Close" && c.Argument == "0"));
@@ -64,12 +64,72 @@ public sealed class LedgerTests
     public void The_close_button_hides_the_window()
     {
         var (host, ledger, _) = Host();
-        ledger.Toggle("counter");
+        ledger.Toggle(LedgerPage.Counter, "counter");
 
         host.Dispatch(Arrange(host).Single(c => c.Caption == "Close" && c.Argument.Length == 0));
 
         Assert.Empty(Arrange(host));
     }
+
+    [Theory]
+    [InlineData(LedgerPage.Guests)]
+    [InlineData(LedgerPage.Reviews)]
+    public void A_tab_shows_its_page(LedgerPage page)
+    {
+        var (host, ledger, _) = Host();
+        ledger.Toggle(LedgerPage.Counter, "counter");
+
+        host.Dispatch(Arrange(host).Single(c => c.Argument == page.ToString()));
+
+        Assert.True(ledger.Shows(page));
+        Assert.Contains(Arrange(host), c => c.Caption == (page == LedgerPage.Guests ? "On the way" : "Last three days"));
+    }
+
+    [Fact]
+    public void The_guests_page_fits_a_small_screen_when_full()
+    {
+        var guest = new GuestView("Trader Boss Kinnersley the Third", "Traders", "soaking in the medium tub", "1.4 h", 0.75f,
+            "lukewarm water, waited, dirty tub, no towel, no soap, no robe");
+        var now = new GuestsNow(["Traders on their way: set out 1.0 h ago, give up after 23.0 h more."] , [.. Enumerable.Repeat(guest, 20)]);
+        var rows = new LedgerRows(Keys());
+        rows.Title("Bathhouse ledger", [("Counter", "Counter", false), ("Guests", "Guests", true), ("Reviews", "Reviews", false)]);
+
+        GuestPages.Guests(rows, now);
+
+        Assert.True(Fits(rows.Build()));
+    }
+
+    [Fact]
+    public void The_reviews_page_fits_a_small_screen_and_pages_through_three_days()
+    {
+        var record = new GuestRecord(50, "Guild Private", "Traders", GuestOutcome.Paid, 52, 0.9f, "quality 90% (heat -0%, wait -10%)");
+        var now = new ReviewsNow(new GuestSummary(40, 40, 13.3, 2, 1, 2000), [.. Enumerable.Repeat(record, 40)]);
+        var rows = new LedgerRows(Keys());
+        rows.Title("Bathhouse ledger", [("Counter", "Counter", false), ("Guests", "Guests", false), ("Reviews", "Reviews", true)]);
+
+        GuestPages.Reviews(rows, now, from: 16, page: "page");
+        var window = rows.Build();
+
+        Assert.True(Fits(window));
+        Assert.Contains(window.Children, n => n.Text == "Showing 17 to 32 of 40, newest first.");
+        Assert.Contains(window.Children, n => n.Text == "Newer" && n.Argument == "0" && n.Enabled);
+        Assert.Contains(window.Children, n => n.Text == "Older" && n.Argument == "32" && n.Enabled);
+    }
+
+    [Theory]
+    [InlineData(0, "Day 0 00:00")]
+    [InlineData(51.5, "Day 2 03:30")]
+    public void A_review_shows_its_day_and_time(double hour, string text) => Assert.Equal(text, GuestPages.When(hour));
+
+    /// <summary>
+    /// Keys for laying pages without a host.
+    /// </summary>
+    static LedgerKeys Keys() => new("w", "t", "h", "x", "i", "b", "tab", "close", "open", "price", "tab", "page", "ledger");
+
+    /// <summary>
+    /// Whether a window fits below its top on the small screen.
+    /// </summary>
+    static bool Fits(UiNode window) => LedgerRows.Top + window.Placement.Height.Pixels <= ScreenHeight;
 
     /// <summary>
     /// A host with the bathhouse's interface over a fresh system, and the commands its ledger queues.

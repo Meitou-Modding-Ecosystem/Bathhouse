@@ -154,6 +154,11 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     public IReadOnlyList<string> Recent => _recent;
 
     /// <summary>
+    /// The review board's record of finished visits. Saved, not hashed.
+    /// </summary>
+    public GuestBook Book { get; } = new();
+
+    /// <summary>
     /// The groups, for saving, hashing and the views.
     /// </summary>
     public IReadOnlyCollection<CustomerGroup> Groups => _groups.Values;
@@ -193,12 +198,18 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     /// </summary>
     public void Step(World world, IReadOnlyList<Tub> tubs, BathhouseSettings settings, double hours)
     {
+        Book.Prune(world.GameHours);
         Schedule(world, tubs, settings);
         StepGroups(world);
         Find(world);
         foreach (var (who, visit) in _present.ToList())
         {
             if (!world.Characters.TryResolveNext(who, out int slot)) continue;
+            if (visit.Phase == VisitPhase.Arriving && Hurt(world, slot))
+            {
+                Fail(world, slot, visit, "was hurt on the way in");
+                continue;
+            }
 
             StepVisit(world, slot, visit, tubs, hours);
         }
@@ -312,12 +323,32 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
         PopulationSystem.HoldPlatoon(world, platoon.Id, false);
         platoon.ModSpawned = false;
         platoon.ModTag = "";
+        GaveUp(world, group);
         foreach (var (who, visit) in _present.Where(p => p.Value.Group == group.Tag))
         {
             if (world.Characters.TryResolveNext(who, out int slot) && ModGoals.Holds(world, slot, Row)) ModGoals.Done(world, slot, Row);
         }
 
         Forget(group);
+    }
+
+    /// <summary>
+    /// Writes down a let-go group's guests who never got a soak: the group when it never arrived, else each visit still arriving.
+    /// </summary>
+    void GaveUp(World world, CustomerGroup group)
+    {
+        string kind = CustomerTypes.Find(group.Kind)?.Name ?? group.Kind;
+        if (!group.Enlisted)
+        {
+            Book.Add(new GuestRecord(world.GameHours, $"{kind} group", kind, GuestOutcome.Failed, 0, float.NaN, "gave up on the way"));
+            return;
+        }
+
+        foreach (var visit in _visits.Values.Where(v => v.Group == group.Tag && v.Phase == VisitPhase.Arriving))
+        {
+            string name = world.Characters.NameOf(world.LastingIds.Find(visit.Customer));
+            Book.Add(new GuestRecord(world.GameHours, name, kind, GuestOutcome.Failed, 0, float.NaN, "gave up before reaching the counter"));
+        }
     }
 
     /// <summary>
@@ -329,6 +360,8 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
         string name = CustomerTypes.Find(group.Kind)?.Name ?? group.Kind;
         string what = group.Enlisted ? "left the world" : "never made it, likely attacked on the road";
         world.Post($"{name} on their way to the bathhouse {what}.");
+        if (!group.Enlisted) Book.Add(new GuestRecord(world.GameHours, $"{name} group", name, GuestOutcome.Failed, 0, float.NaN, what));
+
         NextGroupAt = Math.Min(NextGroupAt, world.GameHours);
         Forget(group);
     }
@@ -408,7 +441,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     {
         if (!Open || CounterOf(world, visit) is not { } counter)
         {
-            Leave(world, slot, visit);
+            Fail(world, slot, visit, Open ? "its check-in counter was gone" : "found the bathhouse closed");
             return;
         }
 
@@ -417,7 +450,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
         if (double.IsNaN(visit.ArrivedAt)) visit.ArrivedAt = world.GameHours;
         visit.Waited = world.GameHours - visit.ArrivedAt;
         if (CheckIn(world, slot, visit, counter, tubs)) return;
-        if (visit.Waited > MostWait) Unhappy(world, slot, visit, "waited too long at the counter");
+        if (visit.Waited > MostWait) Unhappy(world, slot, visit, "waited too long at the counter", GuestOutcome.Failed);
     }
 
     /// <summary>
@@ -428,7 +461,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
         var who = world.Characters.IdOf(slot);
         if (soaks.Of(who) is not { } soak)
         {
-            Leave(world, slot, visit);
+            Fail(world, slot, visit, "never got into the tub");
             return;
         }
 
@@ -535,13 +568,14 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
         if (!_visits.TryGetValue(soak.Bather.Value, out var visit) || visit.Phase != VisitPhase.Soaking) return;
         if (end == SoakEnd.Abandoned)
         {
-            Leave(world, slot, visit);
+            Fail(world, slot, visit, "never got into the tub");
             return;
         }
 
         var kind = CustomerTypes.Find(visit.Kind);
         var quality = Quality.Of(soak.Soaked, soak.Lukewarm, visit.Waited, end == SoakEnd.Cold, visit.DirtyTub, visit.Towel, visit.Soap,
             soak.Robed == true);
+        visit.Quality = quality.Total;
         if (end == SoakEnd.Cold) Barks.Say(world, world.Characters.IdOf(slot), visit.Kind, BarkEvent.Cold, purpose);
         if (kind is null || quality.Total < kind.Demand)
         {
@@ -560,7 +594,9 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     void Pay(World world, int slot, Visit visit, CustomerType kind, string why)
     {
         world.Player.Money += visit.Owed;
-        Note(world, $"{world.Characters.NameOf(world.Characters.IdOf(slot))} ({kind.Name}) paid {visit.Owed} cats, {why}.");
+        string name = world.Characters.NameOf(world.Characters.IdOf(slot));
+        Note(world, $"{name} ({kind.Name}) paid {visit.Owed} cats, {why}.");
+        Book.Add(new GuestRecord(world.GameHours, name, kind.Name, GuestOutcome.Paid, visit.Owed, visit.Quality, why));
 
         Barks.Say(world, world.Characters.IdOf(slot), visit.Kind, BarkEvent.Happy, purpose);
         visit.Phase = VisitPhase.Done;
@@ -581,16 +617,18 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     }
 
     /// <summary>
-    /// The customer leaves without paying: a complaint, maybe a fight.
+    /// The customer leaves without paying: a complaint, maybe a fight; the board lists it as <paramref name="outcome"/>.
     /// </summary>
-    void Unhappy(World world, int slot, Visit visit, string why)
+    void Unhappy(World world, int slot, Visit visit, string why, GuestOutcome outcome = GuestOutcome.Complained)
     {
         var kind = CustomerTypes.Find(visit.Kind);
         bool fight = kind is not null && Complaints.Complain(world, slot, kind, purpose, BathhouseSettings.Current);
         Barks.Say(world, world.Characters.IdOf(slot), visit.Kind, fight ? BarkEvent.Fight : BarkEvent.Complaint, purpose);
 
         string name = world.Characters.NameOf(world.Characters.IdOf(slot));
-        Note(world, $"{name} ({kind?.Name ?? visit.Kind}) left without paying: {why}{(fight ? ", and picked a fight" : "")}.");
+        string reason = $"{why}{(fight ? ", and picked a fight" : "")}";
+        Note(world, $"{name} ({kind?.Name ?? visit.Kind}) left without paying: {reason}.");
+        Book.Add(new GuestRecord(world.GameHours, name, KindName(visit), outcome, 0, visit.Quality, reason));
         Leave(world, slot, visit);
     }
 
@@ -601,7 +639,9 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     {
         var who = world.Characters.IdOf(slot);
         Barks.Say(world, who, visit.Kind, BarkEvent.Pricey, purpose);
-        Note(world, $"{world.Characters.NameOf(who)} ({CustomerTypes.Find(visit.Kind)?.Name ?? visit.Kind}) would not pay {price} cats.");
+        string name = world.Characters.NameOf(who);
+        Note(world, $"{name} ({KindName(visit)}) would not pay {price} cats.");
+        Book.Add(new GuestRecord(world.GameHours, name, KindName(visit), GuestOutcome.TurnedAway, 0, float.NaN, $"would not pay {price} cats"));
         Leave(world, slot, visit);
     }
 
@@ -616,6 +656,27 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
 
         world.Post(text);
     }
+
+    /// <summary>
+    /// The visit ends without a soak, written down as a failed arrival.
+    /// </summary>
+    void Fail(World world, int slot, Visit visit, string why)
+    {
+        string name = world.Characters.NameOf(world.Characters.IdOf(slot));
+        Book.Add(new GuestRecord(world.GameHours, name, KindName(visit), GuestOutcome.Failed, 0, float.NaN, why));
+        Leave(world, slot, visit);
+    }
+
+    /// <summary>
+    /// Whether the customer is dead or down.
+    /// </summary>
+    static bool Hurt(World world, int slot) =>
+        !world.Characters.Next[slot].Alive || world.Characters.Cold(slot) is not { Medical.Incapacitated: false };
+
+    /// <summary>
+    /// The name of a visit's kind.
+    /// </summary>
+    static string KindName(Visit visit) => CustomerTypes.Find(visit.Kind)?.Name ?? visit.Kind;
 
     /// <summary>
     /// The visit ends; the customer goes when its group does.
