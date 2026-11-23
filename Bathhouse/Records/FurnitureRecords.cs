@@ -78,7 +78,7 @@ static class FurnitureRecords
     public const string Water = "1914-gamedata.base";
 
     /// <summary>
-    /// The storage grid of the hamper, towel rack, tea table and lockers, in inventory cells.
+    /// The storage grid of the hamper, towel rack, soap shelf, tea table and lockers, in inventory cells.
     /// </summary>
     const int StorageWidth = 8, StorageHeight = 8;
 
@@ -92,6 +92,7 @@ static class FurnitureRecords
         // Two items, so the grid is the storage size rather than one robe's footprint; haulers store only the robe (itemtype limit ARMOUR).
         [Ids.Lockers] = [Ids.Robe, Ids.DirtyRobe],
         [Ids.TowelRack] = [Ids.Towel],
+        [Ids.SoapShelf] = [Ids.Soap],
         [Ids.TeaTable] = [Ids.TeaSet, Ids.UsedTeaSet],
         [Ids.TeaShelf] = [Ids.GreenfruitTea, Ids.Teaware, Ids.TeaSet, Ids.UsedTeaSet],
     };
@@ -168,6 +169,8 @@ static class FurnitureRecords
         new(Ids.Statue, "Statue", "42325-changes_otto.mod", "Emperor Statue", Use.None, "Decoration: a weathered stone figure, seated in thought."),
         new(Ids.TowelHanger, "Towel Hanger", "5360-furniture_otto.mod", "Wall Shelf 1", Use.None, "Decoration: a peg rail with towels."),
         new(Ids.TeaDisplay, "Tea Set Display", "12618-nodes_otto.mod", "Wall Shelf 2", Use.None, "Decoration: a shelf of teaware on show."),
+        new(Ids.SoapShelf, "Soap Shelf", "3470-otto.mod", "Shelf", Use.Limited,
+            "Holds only soap, up to 100 bars. Haulers bring it from the soap press; check-ins and the Laundry runner take soap from it."),
     ];
 
     /// <summary>

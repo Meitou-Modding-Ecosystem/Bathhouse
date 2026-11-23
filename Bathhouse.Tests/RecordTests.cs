@@ -93,6 +93,16 @@ public sealed class RecordTests
         Assert.Equal(["1914-gamedata.base"], game.Find(Ids.WaterTank)!.GetReferences("limit inventory").Select(l => l.TargetStringId));
     }
 
+    [Fact]
+    public void The_soap_shelf_stores_only_soap_and_is_researched_with_the_basics()
+    {
+        var game = Game();
+
+        Assert.True(Machine(Ids.SoapShelf).IsStorage);
+        Assert.Equal([Ids.Soap], game.Find(Ids.SoapShelf)!.GetReferences("limit inventory").Select(l => l.TargetStringId));
+        Assert.Contains(Ids.SoapShelf, game.Find(Ids.BasicsResearch)!.GetReferences("enable buildings").Select(l => l.TargetStringId));
+    }
+
     [Theory]
     [InlineData(Ids.BathGoal, Ids.BathGoalType)]
     [InlineData(Ids.VisitGoal, Ids.VisitGoalType)]
