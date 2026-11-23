@@ -14,6 +14,32 @@ using Meitou.Simulation.Population;
 namespace Bathhouse.Customers;
 
 /// <summary>
+/// What a counter's check-in still lacks (<see cref="Clientele.Waiting"/>).
+/// </summary>
+public enum CheckInNeed
+{
+    /// <summary>
+    /// One of the player's people within <see cref="Clientele.StaffReach"/> of the counter.
+    /// </summary>
+    Clerk,
+
+    /// <summary>
+    /// A Towel in the counter or a store in its building.
+    /// </summary>
+    Towel,
+
+    /// <summary>
+    /// A Soap in the counter or a store in its building.
+    /// </summary>
+    Soap,
+
+    /// <summary>
+    /// A warm tub with a free seat in the counter's building.
+    /// </summary>
+    WarmTub,
+}
+
+/// <summary>
 /// The bathhouse's customers (docs/bathhouse.md "Customers"): groups sent on a schedule while a counter is open, their members' visits (the visit
 /// goal walks each to the counter, where it checks in, takes a towel and soap, agrees to the price and is sent to soak), and the payment or
 /// complaint after the soak. Steps in the system's serial check; the goal's desire reads only what that step wrote.
@@ -705,6 +731,18 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     #endregion
 
     #region Views
+
+    /// <summary>
+    /// What a counter's check-in waits for, by <see cref="CheckIn"/>'s order: a clerk, a Towel, a Soap, then a warm tub with a free seat in its
+    /// building; null when a customer at it would check in now.
+    /// </summary>
+    public CheckInNeed? Waiting(World world, BuildSite counter, IReadOnlyList<Tub> tubs)
+    {
+        if (!Staffed(world, counter)) return CheckInNeed.Clerk;
+        if (Stock.Missing(world, counter) is { } item) return item == Ids.Towel ? CheckInNeed.Towel : CheckInNeed.Soap;
+
+        return FreeTub(counter, tubs) is null ? CheckInNeed.WarmTub : null;
+    }
 
     /// <summary>
     /// The debug row's lines: each group and each visit.
