@@ -205,6 +205,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
         SendCustomers(world, tubs);
         _soaks.Step(world, hours, tub => Length(tub.Kind, settings));
         _clientele.Step(world, tubs, settings, hours);
+        StaffRoles.TakeClickedJobs(world);
         _staff.Step(world);
         _privateBeds.Step(world);
         _bedHealing.Step(world);

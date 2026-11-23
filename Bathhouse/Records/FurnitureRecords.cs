@@ -6,7 +6,8 @@ namespace Bathhouse.Records;
 
 /// <summary>
 /// The tubs, service furniture and decorations (docs/bathhouse.md "Furniture"). Each is a copy of a game building for its look until the
-/// mod's own models land. Tubs have no functionality, so no game or mod AI (a town bar's, Fiefdom's) sits in them: bathing is the mod's code.
+/// mod's own models land. Tubs are storages that take nothing (<see cref="Use.JobPost"/>), so no game or mod AI (a town bar's, Fiefdom's) sits in
+/// them and haulers never fill them: bathing is the mod's code.
 /// </summary>
 static class FurnitureRecords
 {
@@ -52,6 +53,12 @@ static class FurnitureRecords
         Massage,
 
         /// <summary>
+        /// A storage that takes nothing (the game's Resource storage with an <c>itemtype limit</c> no item has): only so that a Shift + right click
+        /// gives the selection a job there, which the mod turns into its own (a tub's Tub scrubber).
+        /// </summary>
+        JobPost,
+
+        /// <summary>
         /// Storage for Water only (the game's Resource storage, limited as the Water Tower is): the boilers' supply.
         /// </summary>
         Water,
@@ -94,6 +101,7 @@ static class FurnitureRecords
     static readonly Dictionary<string, string[]> Limits = new()
     {
         [Ids.Hamper] = [Ids.DirtyTowel],
+        [Ids.Counter] = [Ids.Towel, Ids.Soap],
         [Ids.RobeHamper] = [Ids.DirtyRobe],
         // Two items, so the grid is the storage size rather than one robe's footprint; haulers store only the robe (itemtype limit ARMOUR).
         [Ids.Lockers] = [Ids.Robe, Ids.DirtyRobe],
@@ -132,26 +140,27 @@ static class FurnitureRecords
     [
         new(Ids.WaterTank, "Bathhouse Water Tank", "12839-nodes_otto.mod", "Small Water Tank", Use.Water,
             "Holds only Water, which the steam boilers in the same building drink every day. Without Water the tubs stay cold."),
-        new(Ids.SmallTub, "Small Tub", "5351-furniture_otto.mod", "Wooden Barrel", Use.None,
+        new(Ids.SmallTub, "Small Tub", "5351-furniture_otto.mod", "Wooden Barrel", Use.JobPost,
             "A soaking tub for one. " + TubUse),
-        new(Ids.MediumTub, "Medium Tub", "896-gamedata.base", "Large Barrels", Use.None,
+        new(Ids.MediumTub, "Medium Tub", "896-gamedata.base", "Large Barrels", Use.JobPost,
             "A soaking tub for two. " + TubUse),
-        new(Ids.LargeTub, "Large Bath", "895-gamedata.base", "Booze Barrels", Use.None,
+        new(Ids.LargeTub, "Large Bath", "895-gamedata.base", "Booze Barrels", Use.JobPost,
             "A communal bath for four. " + TubUse),
-        new(Ids.OilBath, "Oil Bath", "49382-rebirth.mod", "Booze Barrel", Use.None,
+        new(Ids.OilBath, "Oil Bath", "49382-rebirth.mod", "Booze Barrel", Use.JobPost,
             "A vat of warm machine oil for skeleton guests. " + TubUse),
-        new(Ids.BloodBath, "Blood Bath", "2642-Cannibals.mod", "Cannibal Butcher Table", Use.None,
+        new(Ids.BloodBath, "Blood Bath", "2642-Cannibals.mod", "Cannibal Butcher Table", Use.JobPost,
             "A grim soak for grim guests. Other bathers refuse a building that has one, and the Holy Nation and United Cities disapprove. " + TubUse),
         new(Ids.MassageBed, "Massage Bed", "3460-otto.mod", "Bed", Use.Model,
             "Customers lie here for a massage. Build a massage station in the same building: each bed pairs with the nearest one. Heals bandaged"
             + " wounds four times as fast while someone works the station. Your own people only use it when ordered to."),
         new(Ids.MassageStation, "Massage Station", "3471-otto.mod", "Small Table", Use.Massage,
             "Give one of your people its operate job and keep towels in it: the attendant only works while it has some, using one an hour."
-            + " While a customer lies on the nearest massage bed in the same building, each hour pays by the worker's Dexterity. Set the massage"
+            + " While a customer lies on the nearest massage bed in the same building, each hour pays by the worker's Massage skill (up to 300"
+            + " an hour), which the work slowly trains. Set the massage"
             + " price on its panel."),
-        new(Ids.Counter, "Check-in Counter", "3469-otto.mod", "Shop Counter", Use.Model,
+        new(Ids.Counter, "Check-in Counter", "3469-otto.mod", "Shop Counter", Use.Limited,
             "The heart of the bathhouse: customers come to it from 6:00 to 22:00 while it stands in a building with a warm tub. Keep towels"
-            + " and soap in it or in the building's stores, have someone stand by it (Bathhouse clerk, panel button), and set prices and open it"
+            + " and soap in it or in the building's stores, have someone stand by it (Bathhouse clerk: panel button, or Shift + right click the counter), and set prices and open it"
             + " on its panel."),
         new(Ids.Lockers, "Lockers", "1532622-rebirth.mod", "Crossbow Locker", Use.LockedLimited,
             "Holds only bathhouse robes, and locks. Bathers in the same building take a robe here and keep the armour it replaces in their"
@@ -185,11 +194,6 @@ static class FurnitureRecords
     public static IEnumerable<FcsRecord> Build(GameDatabase game) => [MassageWork(game), .. Specs.Select(s => Piece(game, s))];
 
     /// <summary>
-    /// How near its operator spot the attendant works (<c>use range</c>, the game's Textiles 40): close, so it stands at the station.
-    /// </summary>
-    const float StationReach = 10;
-
-    /// <summary>
     /// The massage station's functionality: a production machine for one attendant that turns towels into dirty towels (one an hour's work), so
     /// characters and Fiefdom residents work it. What it earns is the mod's code.
     /// </summary>
@@ -199,7 +203,7 @@ static class FurnitureRecords
         var record = RecordKit.Copy(model, Ids.MassageWork, "massage", "consumes", "produces");
 
         record.Ints["max operators"] = 1;
-        record.Floats["use range"] = StationReach;
+        record.Floats["use range"] = WorkSpots.OperatorReach;
         RecordKit.Links(record, "consumes", (Ids.Towel, 5, 100));
         RecordKit.Links(record, "produces", (Ids.DirtyTowel, 5, 0));
         return record;
@@ -217,7 +221,7 @@ static class FurnitureRecords
 
         if (spec.Use == Use.Model && model != standIn) KeepWork(standIn, record);
         if (spec.Id == Ids.MassageBed && model != standIn) KeepUseNodes(standIn, record);
-        if (spec.Id == Ids.MassageStation && model != standIn) AddUseNode(record, StationFront, 0);
+        if (model != standIn && WorkSpots.Measured(spec.Id)) AddUseNode(record, WorkSpots.Local(spec.Id), WorkSpots.NodeYaw);
 
         SetUse(record, spec);
         record.Strings["building category"] = RecordKit.BuildCategory;
@@ -293,12 +297,6 @@ static class FurnitureRecords
     const string UseNodeRecord = "1183-gamedata.base";
 
     /// <summary>
-    /// The massage station's operator spot on its own model: in front of it (local +Z), clear of its 0.67 m depth, so the attendant walks up to it
-    /// instead of stopping anywhere within reach of the station's centre.
-    /// </summary>
-    static readonly Vector3 StationFront = new(0, 0, 7);
-
-    /// <summary>
     /// Gives the massage bed on its own model one of the game Bed's use nodes, scaled as the Bed scales it. The Bed lies along local X with a node
     /// beside each long side (z +11.18 and -11.05, the second turned 180 degrees, so they face opposite ways), and the side a sleeper comes from
     /// decides where its head goes. The model lies along X (its .json <c>yaw</c> 0) with its head rest at -X and keeps only the -Z node, so every
@@ -319,7 +317,7 @@ static class FurnitureRecords
     /// <summary>
     /// Adds a use node at <paramref name="at"/> (building units), turned <paramref name="yaw"/> radians about Y.
     /// </summary>
-    static void AddUseNode(FcsRecord record, Vector3 at, float yaw)
+    internal static void AddUseNode(FcsRecord record, Vector3 at, float yaw)
     {
         var turn = Quaternion.CreateFromAxisAngle(Vector3.UnitY, yaw);
         record.Instances.Add(new FcsInstance { Id = $"usenode{record.Instances.Count + 1}", Target = UseNodeRecord, Position = at, Rotation = turn });
@@ -353,6 +351,7 @@ static class FurnitureRecords
 
         if (use == Use.Massage) RecordKit.Links(record, "functionality", (Ids.MassageWork, 0, 0));
         if (use == Use.Water) SetWater(record);
+        if (use == Use.JobPost) SetJobPost(record);
         if (use is Use.Limited or Use.LockedLimited) SetLimited(record, Limits[spec.Id]);
         if (spec.Id == Ids.Lockers) record.Ints["itemtype limit"] = (int)FcsRecordType.Armour;
     }
@@ -368,6 +367,19 @@ static class FurnitureRecords
         record.Ints["storage size width"] = StorageWidth;
         record.Ints["storage size height"] = StorageHeight;
         if (items.Length == 1) record.Floats["stackable bonus mult"] = OneItemStacks;
+    }
+
+    /// <summary>
+    /// Makes the piece a store that takes nothing: a Resource storage whose <c>itemtype limit</c> is BUILDING, a type no item has, so the hauling AI
+    /// finds nothing to put there (<c>MachineData.Accepts</c>). A one-cell grid.
+    /// </summary>
+    static void SetJobPost(FcsRecord record)
+    {
+        record.Bools["has inventory"] = true;
+        RecordKit.Links(record, "functionality", (ResourceStorage, 0, 0));
+        record.References.Remove("limit inventory");
+        record.Ints["itemtype limit"] = (int)FcsRecordType.Building;
+        SetGrid(record, 1, 1);
     }
 
     /// <summary>

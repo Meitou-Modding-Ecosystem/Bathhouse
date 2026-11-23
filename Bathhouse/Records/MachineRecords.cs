@@ -72,13 +72,15 @@ static class MachineRecords
         record.Ints["function"] = RefineryFunction;
         record.Bools["is production building"] = true;
         record.Bools["output per day"] = true;
+        record.Floats["use range"] = WorkSpots.OperatorReach;
         RecordKit.Links(record, "consumes", [.. spec.Consumes.Select(f => (f.Item, f.Holds, f.Rate))]);
         RecordKit.Links(record, "produces", [.. spec.Produces.Select(f => (f.Item, f.Holds, 0))]);
         return record;
     }
 
     /// <summary>
-    /// A machine: the model building's look, size and build cost with the given functionality, in the given build-menu list.
+    /// A machine: the model building's look, size and build cost with the given functionality, in the given build-menu list. On its own look its
+    /// operator stands at a use node in front of it (<see cref="WorkSpots"/>), not wherever the walk to its centre ends.
     /// </summary>
     static FcsRecord Building(GameDatabase game, Spec spec, string work)
     {
@@ -87,6 +89,7 @@ static class MachineRecords
         var record = RecordKit.Copy(model, spec.Id, spec.Name, "functionality", "upgrades to");
 
         if (model != standIn) KeepCost(standIn, record);
+        if (model != standIn) FurnitureRecords.AddUseNode(record, WorkSpots.Local(spec.Id), WorkSpots.NodeYaw);
 
         RecordKit.Links(record, "functionality", (work, 0, 0));
         record.Strings["building category"] = RecordKit.BuildCategory;
@@ -133,6 +136,7 @@ static class MachineRecords
         var record = RecordKit.Copy(model, Ids.TeaBenchWork, "tea bench", "item crafts");
 
         RecordKit.Links(record, "item crafts", (Ids.TeaSet, 5, 0));
+        record.Floats["use range"] = WorkSpots.OperatorReach;
         return record;
     }
 
@@ -147,6 +151,7 @@ static class MachineRecords
 
         RecordKit.Links(record, "item crafts", (Ids.Towel, 10, 0), (Ids.Robe, 1, 0));
         record.Floats["production mult"] = WashSpeed;
+        record.Floats["use range"] = WorkSpots.OperatorReach;
         return record;
     }
 
