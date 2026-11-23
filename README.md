@@ -19,6 +19,23 @@ them meet hostile squads and fight it out off screen, and a group that loses nev
 the next group may set out at once). A bathhouse in dangerous country gets fewer customers. To turn it off: **Settings > Advanced > Fights
 far away** (it affects every squad in the world, not only customers).
 
+## Numbers
+
+Task types and dialogue codes are shared by every loaded mod; Bathhouse claims only these, inside its block
+([mod number blocks](https://github.com/TheIvoryDisaster/GutenStructure/blob/beta/docs/numbers.md)). `NumbersTests` checks the list.
+
+Block 4400-4499
+
+| Number | Pool | Use |
+| --- | --- | --- |
+| 4401 | Task type | Goal: taking a bath |
+| 4402 | Task type | Goal: visiting the bathhouse |
+| 4403 | Task type | Job: Bathhouse clerk (offered on the Check-in Counter) |
+| 4404 | Task type | Job: Tub scrubber (offered on the tubs) |
+| 4405 | Task type | Job: Laundry runner (offered on the Washing Machine) |
+| 4406 | Task type | Job: Tea server (offered on the Tea Table) |
+| 4407 | Task type | Job: Massage attendant (offered on the Massage Station) |
+
 ## Layout
 
 - `engine/`: MeitouClient as a git submodule, pinned to the engine commit the mod builds against. `git pull` does not move it: after

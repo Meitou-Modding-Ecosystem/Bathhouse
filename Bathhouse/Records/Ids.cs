@@ -155,7 +155,7 @@ public static class Ids
     public const string BathGoal = "90-" + FileName;
 
     /// <summary>
-    /// The bath goal's task type (its <c>enum</c>), also the row its walk and soak run on. Claimed by the mod; Bathhouse keeps 4401 to 4409.
+    /// The bath goal's task type (its <c>enum</c>), also the row its walk and soak run on. Claimed by the mod inside its number block 4400 to 4499 (README "Numbers").
     /// </summary>
     public const int BathGoalType = 4401;
 

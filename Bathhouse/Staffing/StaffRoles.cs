@@ -50,6 +50,12 @@ public static class StaffRoles
     public static readonly StaffRole[] All = Enum.GetValues<StaffRole>();
 
     /// <summary>
+    /// Every piece that offers a role.
+    /// </summary>
+    static readonly string[] Pieces =
+        [Ids.Counter, Ids.SmallTub, Ids.MediumTub, Ids.LargeTub, Ids.OilBath, Ids.BloodBath, Ids.WashingMachine, Ids.TeaTable, Ids.MassageStation];
+
+    /// <summary>
     /// A role's task type.
     /// </summary>
     public static TaskType TypeOf(StaffRole role) => (TaskType)(role switch
@@ -90,6 +96,18 @@ public static class StaffRoles
         Ids.MassageStation => StaffRole.Massage,
         _ => null,
     };
+
+    /// <summary>
+    /// The pieces that offer a role: the records <see cref="OfferedBy"/> maps to it.
+    /// </summary>
+    public static IReadOnlyList<string> PiecesOf(StaffRole role) =>
+        Pieces.Where(record => OfferedBy(record) == role).ToList();
+
+    /// <summary>
+    /// A role's job offer (engine <c>AddJobOffer</c>): its pieces' right-click menu shows "Work as: name" to selected people, and other mods (such as
+    /// Fiefdom's Work tab) read the offers to staff the job.
+    /// </summary>
+    public static ModJobOffer Offer(StaffRole role) => new(TypeOf(role), PiecesOf(role), "Work as: " + Name(role), ModJobTakers.People);
 
     /// <summary>
     /// Whether one of the player's characters holds the role's job at a piece in the building (its jobs switch on or off).

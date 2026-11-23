@@ -212,7 +212,8 @@ following the water's heat needs an engine hook.
 
 `Staffing/`. Five mod job types (`AddJobType`, 4403 to 4407), each in the character's job list on the piece it was given at: the piece's panel
 button "Assign selected: <job>" (the panel's first mod line, as lines past the panel's edge are clipped) gives it to the selected characters (one job of a type each); the jobs panel shows and removes it and the game
-saves it. A Shift + right click on the counter, a tub or the massage station works too, with no engine hook: all are storages, so the game gives its Hauling to job
+saves it. Each job is also offered (`AddJobOffer`, `StaffRoles.Offer`): the piece's right-click menu shows "Work as: <job>" to selected people, and
+other mods read the offers, so Fiefdom's Work tab can staff them. A Shift + right click on the counter, a tub or the massage station works too, with no engine hook: all are storages, so the game gives its Hauling to job
 (124) there, and the system's serial step (`StaffRoles.TakeClickedJobs`) puts the clerk's or scrubber's job in its place in the list. `Staff` is the jobs' `IJobSource`: when the chooser asks, the job's plan (`Plans`) gives an errand of stops (walk there, work for a
 time, then move goods, re-checking they are there); the errand runs on the job's row until done, then the chooser picks again. Errands are not
 saved: a loaded staff member plans again.
