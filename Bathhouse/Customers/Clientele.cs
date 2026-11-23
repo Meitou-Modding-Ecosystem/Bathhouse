@@ -772,11 +772,12 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
 
     /// <summary>
     /// An hour of massage pays the massage price times the attendant's pay factor (Dexterity, robe) and trains the attendant; time with nobody
-    /// at the station is waiting.
+    /// at the station, or no towel in it, is waiting.
     /// </summary>
     void Rub(World world, Visit visit, BuildSite bed, double hours)
     {
-        var attendant = Massage.Station(world, bed) is { } station ? Massage.Attendant(world, station) : null;
+        var station = Massage.Station(world, bed);
+        var attendant = station is not null && Massage.TowelsIn(world, station) > 0 ? Massage.Attendant(world, station) : null;
         if (attendant is not { } at)
         {
             visit.BedWait += hours;
@@ -789,10 +790,14 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     }
 
     /// <summary>
-    /// The massage is over: the customer gets up and pays for the soak, the tea and the massage so far.
+    /// The massage is over: one that was worked at all uses a towel from the station; the customer gets up and pays for the soak, the tea and the
+    /// massage so far.
     /// </summary>
     void Settle(World world, int slot, Visit visit, string why)
     {
+        var station = BedOf(world, visit) is { } bed ? Massage.Station(world, bed.Site) : null;
+        if (visit.Massaged > 0 && station is not null) Massage.UseTowel(world, slot, station);
+
         if (visit.Lying) world.Fixtures.LeaveBed(world, world.Characters.IdOf(slot));
         visit.Lying = false;
         visit.Owed += (long)Math.Round(visit.MassagePay);

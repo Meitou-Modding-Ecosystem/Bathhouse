@@ -31,6 +31,11 @@ public enum StaffRole
     /// Stocks the tea tables with Tea Sets and clears their Used Tea Sets.
     /// </summary>
     Tea,
+
+    /// <summary>
+    /// Works a massage station while a customer (or anyone) lies on a massage bed paired with it.
+    /// </summary>
+    Massage,
 }
 
 /// <summary>
@@ -52,7 +57,8 @@ public static class StaffRoles
         StaffRole.Clerk => Ids.ClerkJob,
         StaffRole.Scrubber => Ids.ScrubberJob,
         StaffRole.Laundry => Ids.LaundryJob,
-        _ => Ids.TeaJob,
+        StaffRole.Tea => Ids.TeaJob,
+        _ => Ids.MassageJob,
     });
 
     /// <summary>
@@ -68,7 +74,8 @@ public static class StaffRoles
         StaffRole.Clerk => "Bathhouse clerk",
         StaffRole.Scrubber => "Tub scrubber",
         StaffRole.Laundry => "Laundry runner",
-        _ => "Tea server",
+        StaffRole.Tea => "Tea server",
+        _ => "Massage attendant",
     };
 
     /// <summary>
@@ -80,6 +87,7 @@ public static class StaffRoles
         Ids.SmallTub or Ids.MediumTub or Ids.LargeTub or Ids.OilBath or Ids.BloodBath => StaffRole.Scrubber,
         Ids.WashingMachine => StaffRole.Laundry,
         Ids.TeaTable => StaffRole.Tea,
+        Ids.MassageStation => StaffRole.Massage,
         _ => null,
     };
 
@@ -103,8 +111,8 @@ public static class StaffRoles
 
     /// <summary>
     /// Turns the game's Hauling to job (124, what a Shift + right click on a storage gives) at a piece that offers a role into that role's job, in
-    /// its place in the list: the counter and the tubs are storages only so that the click gives a job (docs/bathhouse.md "Staff"). A haul it
-    /// started stops.
+    /// its place in the list: the counter, the tubs and the massage station are storages so that the click gives a job (docs/bathhouse.md
+    /// "Staff"). A haul it started stops.
     /// </summary>
     public static void TakeClickedJobs(World world)
     {

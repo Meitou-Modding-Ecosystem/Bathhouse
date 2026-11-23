@@ -17,7 +17,7 @@ for its look (a stand-in until the mod's models land) and links game items by id
 | Power | Steam Boiler: draws 10, functionality the game's Lights (a consumer with no operator, so the Power switch shows) | Boiler Tank |
 | Water | Bathhouse Water Tank: Resource storage limited to Water, as the game's Water Tower | Small Water Tank |
 | Tubs (Resource storage that takes nothing: `itemtype limit` BUILDING, so only a Shift + right click uses it) | Small Tub (1 seat), Medium Tub (2), Large Bath (4), Oil Bath, Blood Bath (+10 Raw Meat to build) | own model (below), Large Barrels, Booze Barrels, Booze Barrel, Cannibal Butcher Table |
-| Service | Massage Bed (bed), Massage Station (production: Towel to Dirty Towel, 1 operator), Check-in Counter (Towels and Soap only, so haulers stock it; grid 12 x 10), Lockers (locks; haulers store only Robes: `itemtype limit` ARMOUR and `limit inventory` Robe and Dirty Robe, two items so the grid stays 8 x 8 instead of one robe's footprint), Laundry Hamper (Dirty Towels only), Robe Hamper (Dirty Robes only), Towel Rack (Towels only), Soap Shelf (Soap only), Tea Table (one Tea Set or Used Tea Set: both listed, grid 2 x 2, one set's footprint), Tea Shelf (Greenfruit Tea only), Teaware Shelf (Teaware only), Tea Set Cabinet (Tea Sets only), Used Tea Rack (Used Tea Sets only), Review Board | Bed, Small Table, Shop Counter, Crossbow Locker, Small Barrel, Small Barrel, Shelf, Shelf, Small Table, Shelf, Shelf, Shelf, Shelf, banner_traders |
+| Service | Massage Bed (bed), Massage Station (Towels only, 5), Check-in Counter (Towels and Soap only, so haulers stock it; grid 12 x 10), Lockers (locks; haulers store only Robes: `itemtype limit` ARMOUR and `limit inventory` Robe and Dirty Robe, two items so the grid stays 8 x 8 instead of one robe's footprint), Laundry Hamper (Dirty Towels only), Robe Hamper (Dirty Robes only), Towel Rack (Towels only), Soap Shelf (Soap only), Tea Table (one Tea Set or Used Tea Set: both listed, grid 2 x 2, one set's footprint), Tea Shelf (Greenfruit Tea only), Teaware Shelf (Teaware only), Tea Set Cabinet (Tea Sets only), Used Tea Rack (Used Tea Sets only), Review Board | Bed, Small Table, Shop Counter, Crossbow Locker, Small Barrel, Small Barrel, Shelf, Shelf, Small Table, Shelf, Shelf, Shelf, Shelf, banner_traders |
 | Decorations | Zen Garden, Wall Art, Tapestry, Statue, Towel Hanger, Tea Set Display | Carpet: Rusty Rug, banner_empire, banner_holy, Emperor Statue, Wall Shelf 1, Wall Shelf 2 |
 
 ### Values
@@ -146,12 +146,14 @@ following the water's heat needs an engine hook.
   clean tub. After a good enough soak it buys tea, may take a massage, then pays what it owes (added to the player's money and posted).
 - **Tea**: when a tea table in the tub's building holds a Tea Set and the customer takes the tea price (the same chance rule, ratio = percent /
   100), the set becomes a Used Tea Set on the table and the tea's price (69 cats suggested, the Tea Set's worth) is owed.
-- **Massage** (`Massage`): each massage bed is paired with the nearest massage station in its building. With a free bed (one whose bed fixture
-  no other visit holds) and the massage price taken, the customer walks to the bed (visit goal) and lies in it (`EnterBed`). While one of the
-  player's people operates the station (it needs Towels in it to be worked) (a vanilla operate-machinery job, within 40 units), each hour pays 300 cats suggested x the attendant's pay
+- **Massage** (`Massage`): each massage bed is paired with the nearest massage station in its building within 50 units (5 m) of it. With a free
+  bed (one whose bed fixture no other visit holds) and the massage price taken, the customer walks to the bed (visit goal) and lies in it
+  (`EnterBed`). While the station's Massage attendant (Staff) stands within 40 units of it and it holds a Towel, each hour pays 300 cats suggested x the attendant's pay
   factor: 0.1 at Dexterity 0 rising evenly to 1 at 100, x 1.2 in a Bathhouse Robe, never past 1. Each hour worked with a customer
   on the bed trains the attendant's Dexterity by 0.5 on the game's curve (about a third of a level an hour at 20). After 1 hour massaged, or 1 hour lying with nobody at the station (or waiting for the bed), it gets up and pays
-  the soak, the tea and the massage so far.
+  the soak, the tea and the massage so far; a massage worked at all uses one Towel from the station, which goes to a hamper as a Dirty Towel.
+  The station is a towel store of 5, not a machine: the game's operate job ran any machine with towels in it, and nothing lets a mod hold a
+  machine idle (`ProductionSystem.HasWork` asks power, health and supply only).
 - **Limited storage** (`FurnitureRecords.Limits`): the hampers, racks, shelves, cabinet and tea table are the game's Resource storage with a
   `limit inventory`, so haulers (who fill the nearest store that `Accepts` an item) never put other goods in them. The game makes a store limited to
   one item one cell of that item's footprint (engine `MachineData.StorageGrid`), and a limited store's stack starts from 1 times its `stackable
@@ -191,14 +193,16 @@ following the water's heat needs an engine hook.
 
 ## Staff
 
-`Staffing/`. Four mod job types (`AddJobType`, 4403 to 4406), each in the character's job list on the piece it was given at: the piece's panel
+`Staffing/`. Five mod job types (`AddJobType`, 4403 to 4407), each in the character's job list on the piece it was given at: the piece's panel
 button "Assign selected: <job>" (the panel's first mod line, as lines past the panel's edge are clipped) gives it to the selected characters (one job of a type each); the jobs panel shows and removes it and the game
-saves it. A Shift + right click on the counter or a tub works too, with no engine hook: both are storages, so the game gives its Hauling to job
+saves it. A Shift + right click on the counter, a tub or the massage station works too, with no engine hook: all are storages, so the game gives its Hauling to job
 (124) there, and the system's serial step (`StaffRoles.TakeClickedJobs`) puts the clerk's or scrubber's job in its place in the list. `Staff` is the jobs' `IJobSource`: when the chooser asks, the job's plan (`Plans`) gives an errand of stops (walk there, work for a
 time, then move goods, re-checking they are there); the errand runs on the job's row until done, then the chooser picks again. Errands are not
 saved: a loaded staff member plans again.
 
 - **Clerk** (counter): stands 15 units behind the counter for an hour at a time, so it is staffed.
+- **Massage attendant** (massage station): stands at the station's work spot, 0.1 h at a time, while someone lies on a bed paired with it and it
+  holds a Towel; otherwise it has no work and the next job in the list runs.
 - **Tub scrubber** (any tub): scrubs the building's first dirty tub nobody soaks in, 0.5 h (the blood bath 1.5 h). A tub gets dirty when a soak
   in it ends (`TubCare`, saved). While anyone holds the scrubber job in the building, check-in seats customers only in clean tubs (they wait at
   the counter), so a dirty tub empties and gets scrubbed; with nobody, a dirty tub is used and the visit is worse. Like any job, it runs only

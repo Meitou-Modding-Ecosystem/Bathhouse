@@ -1,5 +1,6 @@
 using Bathhouse.Bathing;
 using Bathhouse.Records;
+using Bathhouse.Staffing;
 using Meitou.Data.Gameplay.Ai;
 using Meitou.Simulation;
 using Meitou.Data.Gameplay.Bodies;
@@ -10,9 +11,9 @@ using Meitou.Simulation.Locks;
 namespace Bathhouse.Customers;
 
 /// <summary>
-/// Massage (docs/bathhouse.md "Massage"): each massage bed is paired with the nearest massage station in its building. A customer lies in the bed;
-/// while someone works the station (operating it, as any production machine), the massage counts, pays by time and the attendant's Dexterity,
-/// and trains it a little.
+/// Massage (docs/bathhouse.md "Massage"): each massage bed is paired with the nearest massage station in its building within 5 m. A customer lies
+/// in the bed; while the station's Massage attendant stands at it and it holds a towel, the massage counts, pays by time and the attendant's
+/// Dexterity, and trains it a little. The massage uses one towel from the station.
 /// </summary>
 public static class Massage
 {
@@ -27,9 +28,14 @@ public static class Massage
     public const double MostWait = 1;
 
     /// <summary>
-    /// How near the station its operator stands.
+    /// How near the station its attendant stands.
     /// </summary>
     public const float AttendantReach = 40;
+
+    /// <summary>
+    /// How far from a bed (origin to origin) its station may stand: 5 m.
+    /// </summary>
+    public const float PairReach = 50;
 
     /// <summary>
     /// What an attendant in a bathhouse robe earns more, as a factor (the pay still tops out at the price).
@@ -48,6 +54,11 @@ public static class Massage
     public const float TrainingPerHour = 0.5f;
 
     /// <summary>
+    /// The Massage attendant job's row: the row its errands run on.
+    /// </summary>
+    static readonly TaskType Job = (TaskType)Ids.MassageJob;
+
+    /// <summary>
     /// A free massage bed with a station in the building; null for none. Beds other visits hold are taken, and so is one somebody lies in (one of
     /// the player's people the player ordered into it, <see cref="PrivateBeds"/>).
     /// </summary>
@@ -61,28 +72,26 @@ public static class Massage
     }
 
     /// <summary>
-    /// The bed's station: the nearest finished massage station in its building; null for none.
+    /// The bed's station: the nearest finished massage station in its building within <see cref="PairReach"/>; null for none.
     /// </summary>
     public static BuildSite? Station(World world, BuildSite bed) =>
         world.Buildings.All
-            .Where(s => IsPiece(s, Ids.MassageStation) && s.Parent == bed.Parent)
+            .Where(s => IsPiece(s, Ids.MassageStation) && s.Parent == bed.Parent && Soaks.Flat(s.Position, bed.Position) <= PairReach)
             .OrderBy(s => System.Numerics.Vector3.DistanceSquared(s.Position, bed.Position))
             .ThenBy(s => s.Id, StringComparer.Ordinal)
             .FirstOrDefault();
 
     /// <summary>
-    /// Whoever works the station now and their pay factor (the best of the player's people operating a machine there, <see cref="Pay"/>); null with
-    /// no attendant.
+    /// Whoever works the station now and their pay factor: the best of the player's people on the station's Massage attendant job within
+    /// <see cref="AttendantReach"/> of it (<see cref="Pay"/>); null with no attendant.
     /// </summary>
     public static (int Slot, double Pay)? Attendant(World world, BuildSite station)
     {
-        if (world.Machines.Find(station.Id) is not { Operators: > 0 }) return null;
-
         var table = world.Characters;
         (int Slot, double Pay)? best = null;
         for (int slot = 0; slot < table.HighWater; slot++)
         {
-            if (!table.Next[slot].Alive || table.Cold(slot) is not { IsPlayer: true, Running.Row: TaskType.OperateMachinery } cold) continue;
+            if (!table.Next[slot].Alive || table.Cold(slot) is not { IsPlayer: true, Running.Row: var row } cold || row != Job) continue;
             if (Soaks.Flat(table.Next[slot].Position, station.Position) > AttendantReach) continue;
 
             bool robed = cold.Inventory?.Items.Any(i => i.Record == Ids.Robe && InventoryCommands.IsEquipmentSection(i.Section)) ?? false;
@@ -91,6 +100,35 @@ public static class Massage
         }
 
         return best;
+    }
+
+    /// <summary>
+    /// Whether the station has massage work: someone lies on a bed paired with it and it holds a towel.
+    /// </summary>
+    public static bool Busy(World world, BuildSite station) => TowelsIn(world, station) > 0 && Occupied(world, station);
+
+    /// <summary>
+    /// Whether someone lies on a massage bed paired with the station.
+    /// </summary>
+    public static bool Occupied(World world, BuildSite station) =>
+        world.Buildings.All.Any(s => IsPiece(s, Ids.MassageBed) && s.Parent == station.Parent && BedOf(world, s) is { } bed
+            && !FixtureRegistry.IsFree(world.Characters, bed) && Station(world, s)?.Id == station.Id);
+
+    /// <summary>
+    /// The towels in the station.
+    /// </summary>
+    public static int TowelsIn(World world, BuildSite station) => Goods.Count(Goods.StoreOf(world, station), Ids.Towel);
+
+    /// <summary>
+    /// A finished massage uses a towel from the station: it goes to the building's first hamper with room as a Dirty Towel, else on the floor at the
+    /// customer's feet. False when the station had none.
+    /// </summary>
+    public static bool UseTowel(World world, int slot, BuildSite station)
+    {
+        if (Goods.StoreOf(world, station) is not { } store || !Goods.Take(store, Ids.Towel)) return false;
+
+        Towels.Soil(world, slot, station.Parent);
+        return true;
     }
 
     /// <summary>
