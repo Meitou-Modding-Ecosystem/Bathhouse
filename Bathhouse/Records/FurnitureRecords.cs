@@ -292,22 +292,21 @@ static class FurnitureRecords
     static readonly Vector3 StationFront = new(0, 0, 7);
 
     /// <summary>
-    /// Gives a piece on its own model the stand-in's use nodes, scaled as the stand-in scales them. The massage bed's model is turned to lie along
-    /// local Z as the game's Bed does (its .json <c>yaw</c>) and is as long, so a sleeper lies on it from either end as on the Bed instead of at its
-    /// centre facing across it.
+    /// Gives the massage bed on its own model one of the game Bed's use nodes, scaled as the Bed scales it. The Bed lies along local X with a node
+    /// beside each long side (z +11.18 and -11.05, the second turned 180 degrees, so they face opposite ways), and the side a sleeper comes from
+    /// decides where its head goes. The model lies along X (its .json <c>yaw</c> 0) with its head rest at -X and keeps only the -Z node, so every
+    /// sleeper lies the same way (Forgotten Buildings' Bed with Pillow keeps the same one).
     /// </summary>
     static void KeepUseNodes(GameRecord standIn, FcsRecord record)
     {
         float scale = standIn.GetFloat("scale", 1) / record.Floats.GetValueOrDefault("scale", 1);
-        var nodes = standIn.Instances.Values
+        var node = standIn.Instances.Values
             .Where(i => i.Target == UseNodeRecord)
-            .OrderBy(i => i.Id, StringComparer.Ordinal);
+            .OrderBy(i => i.Position.Z)
+            .FirstOrDefault();
+        if (node is null) return;
 
-        foreach (var node in nodes)
-        {
-            var copy = new FcsInstance { Id = node.Id, Target = UseNodeRecord, Position = node.Position * scale, Rotation = node.Rotation };
-            record.Instances.Add(copy);
-        }
+        record.Instances.Add(new FcsInstance { Id = node.Id, Target = UseNodeRecord, Position = node.Position * scale, Rotation = node.Rotation });
     }
 
     /// <summary>
