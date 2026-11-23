@@ -48,7 +48,7 @@ jobs:
           done
   engine-references:
     # Each mod as built only calls engine members the Meitou build it targets still has (tools/refcheck.sh, docs/refcheck.md): a signature
-    # changed in a release compiles fine but fails at run time. Bathhouse targets the 0.22.2 nightly (status effects arrive there).
+    # changed in a release compiles fine but fails at run time. Bathhouse targets the 0.22.2 nightly (status effects arrive there; job offers in 20261123).
     name: Engine references
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -61,7 +61,7 @@ jobs:
         with:
           dotnet-version: 11.0.x
       - name: Check engine references against the newest Meitou release
-        run: tools/refcheck.sh v0.22.2-nightly.20261121.2
+        run: tools/refcheck.sh v0.22.2-nightly.20261123
   release-readiness:
     name: Release readiness
     if: always()
