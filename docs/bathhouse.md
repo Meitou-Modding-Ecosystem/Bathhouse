@@ -67,9 +67,10 @@ local X (`yaw` 0, head rest at -X) and keeps only the Bed's -Z node (`KeepUseNod
   stood inside it). Staff take and put goods, and bathers step in and out of a tub, at the same spot.
 Model textures are kept at 2048 (base colour and metal/roughness as JPEG quality 92, normal map as lossless PNG): the import bakes 2048 DDS
 by default (`textureSize`), so a 4096 source only grows the repo.
-The Teaware Shelf, Tea Set Cabinet and Used Tea Rack models came from 1.6 to 2.3 million triangle exports. They were cut to 21,000 to 55,000
-triangles keeping their UV seams (meshoptimizer's `gltfpack -si 0.003 -noq`; collapsing across seams smears the textures), then their
-textures were shrunk to 2048. The Used Tea Rack is sized by its width (art prompt 1.2 m x 1.2), so its height is 0.73 m.
+The Tea Set Cabinet and Used Tea Rack models came from 1.6 to 2.3 million triangle exports. They were cut to 31,000 and 55,000 triangles
+keeping their UV seams (meshoptimizer's `gltfpack -si 0.003 -noq`; collapsing across seams smears the textures), then their textures were
+shrunk to 2048. The Teaware Shelf is the generator's own remesh (29,000 triangles), textures shrunk to 2048; cutting it ourselves melted its
+small pots. The Used Tea Rack is sized by its width (art prompt 1.2 m x 1.2), so its height is 0.73 m.
 
 Tubs have no functionality so that no game or mod AI (a town bar's, Fiefdom's residents) sits in them; bathing is the mod's code.
 
