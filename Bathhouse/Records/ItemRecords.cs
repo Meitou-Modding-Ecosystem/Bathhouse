@@ -74,9 +74,9 @@ static class ItemRecords
     [
         new(Ids.Towel, "Towel", "584-gamedata.base", "Fabrics", 47, 10,
             "A thick cotton towel. Bathers dry off with one; most come back dirty, some are ruined.", "towel"),
-        new(Ids.DirtyTowel, "Dirty Towel", "584-gamedata.base", "Fabrics", 30, 10,
+        new(Ids.DirtyTowel, "Dirty Towel", "584-gamedata.base", "Fabrics", 37, 10,
             "A used towel. A washing machine and a little soap make it clean again.", "dirtytowel"),
-        new(Ids.Soap, "Soap", "43959-rebirth.mod", "Foodcube", 61, 20, "A rough bar of hemp soap, for bathers and for the laundry.", "soap"),
+        new(Ids.Soap, "Soap", "43959-rebirth.mod", "Foodcube", 30, 20, "A rough bar of hemp soap, for bathers and for the laundry.", "soap"),
         new(Ids.GreenfruitTea, "Greenfruit Tea", "42309-changes_otto.mod", "Greenfruit", 61, 20,
             "Sliced and dried greenfruit. Brewed in teaware it makes a sweet, pale tea.", "greenfruittea"),
         new(Ids.Teaware, "Teaware", "42319-changes_otto.mod", "Cup", 61, 5,
@@ -85,7 +85,7 @@ static class ItemRecords
             "A tray of hot greenfruit tea, ready to serve. Drunk, it leaves a used tea set behind.", "teaset"),
         new(Ids.UsedTeaSet, "Used Tea Set", "42316-changes_otto.mod", "Ceramic Bowl", 60, 5,
             "A tray of empty, stained cups. The tea server rinses it back into teaware.", "usedteaset"),
-        new(Ids.DirtyRobe, "Dirty Robe", "584-gamedata.base", "Fabrics", 82, 5,
+        new(Ids.DirtyRobe, "Dirty Robe", "584-gamedata.base", "Fabrics", 90, 5,
             "A robe a bather has worn. A washing machine and a little soap make it clean again.", "dirtyrobe"),
     ];
 

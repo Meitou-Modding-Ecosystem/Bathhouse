@@ -12,7 +12,7 @@ for its look (a stand-in until the mod's models land) and links game items by id
 | --- | --- | --- |
 | Items | Towel, Dirty Towel, Soap, Greenfruit Tea, Teaware, Tea Set, Used Tea Set, Dirty Robe | Fabrics, Fabrics, Foodcube, Greenfruit, Cup, Ceramic Bowl, Ceramic Bowl, Fabrics |
 | Armour | Bathhouse Robe (`slot` 5, body: it replaces body armour; the Monk Robe sits in the belt slot, 14, under body armour; `part coverage` 20 on each arm and the stomach, 27 on the chest, so its total coverage is 100 and the clothing bench makes it from one Fabrics) | Monk Robe |
-| Production (function 4) | Towel Loom (Fabrics to 2 Towels), Soap Press (2 Hemp to Soap), Tea Dryer (Greenfruit to Greenfruit Tea), Pottery Kiln (Raw Stone to Teaware) | Fabric Loom (hemp), Hemp Processor, Biofuel Distillery (Hemp), Cooking Stove |
+| Production (function 4) | Towel Loom (Fabrics to 2 Towels), Soap Press (Hemp to Soap), Tea Dryer (Greenfruit to Greenfruit Tea), Pottery Kiln (Raw Stone to Teaware) | Fabric Loom (hemp), Hemp Processor, Biofuel Distillery (Hemp), Cooking Stove |
 | Crafting (function 10) | Tea Bench: Tea Set from Teaware + Greenfruit Tea (the Tea Set's `ingredients`); Washing Machine: a queue of Towel (Dirty Towel + 1/4 Soap) and Bathhouse Robe (Dirty Robe + 1/4 Soap) washes, 1 h each (the items' `ingredients` and `production time`; output holds 10 towels or 1 robe) | Cooking Stove, Sake Still |
 | Power | Steam Boiler: draws 10, functionality the game's Lights (a consumer with no operator, so the Power switch shows) | Boiler Tank |
 | Water | Bathhouse Water Tank: Resource storage limited to Water, as the game's Water Tower | Small Water Tank |
@@ -29,15 +29,15 @@ Machine hours an item: 24 / (`output rate` x `production mult`).
 
 | Item | From | Hours | Worth |
 | --- | --- | --- | --- |
-| Soap | 2 Hemp (soap press) | 4 | 37 |
+| Soap | 1 Hemp (soap press) | 4 | 18 |
 | Towel | 1/2 Fabrics (towel loom) | 0.5 | 27 (as washed: Dirty Towel + 1/4 Soap, 1 h) |
-| Dirty Towel | a Towel less its wash | | 18 |
+| Dirty Towel | a Towel less its wash | | 22 |
 | Greenfruit Tea | 1 Greenfruit (tea dryer) | 0.4 | 27 |
 | Teaware | 1 Raw Stone (kiln) | 0.5 | 37 |
 | Tea Set | Teaware + Greenfruit Tea (tea bench) | 4 | 69 |
 | Used Tea Set | Teaware to rinse | | 36 |
 | Bathhouse Robe | 1 Fabrics (clothing bench) | 3 at quality 50 | 60 at quality 50 (`relative price mult` 0.11; 5 to 237 by quality) |
-| Dirty Robe | a robe less its wash | | 49 |
+| Dirty Robe | a robe less its wash | | 54 |
 
 The items and the robe show the mod's own icons, not the copied item's: `tools/make-icons.py` fits each `concept-art/<name>-inventory.png`
 (transparent background) into the item's inventory footprint at 50 px a cell as `Bathhouse/items/icons/bathhouse-<name>.png`, and the
@@ -138,7 +138,7 @@ following the water's heat needs an engine hook.
   in the counter, else in a store in its building (`Stock`; they may come from different stores), and bathes without one that is not. It takes
   the price (below: the bath plus the towel and soap it gets), a Soap is used up and a Towel goes into its inventory (it dries with it), and it
   is sent to soak. After waiting 2 hours it leaves with a complaint; closing the bathhouse sends arriving customers away.
-- **Prices** (`Pricing`): bath (small 45, medium 60, large 75, oil 90, blood 120 cats), towel 27, soap 37 (the items' worth, [Values](#values)), times the reputation factor (1 until
+- **Prices** (`Pricing`): bath (small 45, medium 60, large 75, oil 90, blood 120 cats), towel 27, soap 18 (the items' worth, [Values](#values)), times the reputation factor (1 until
   milestone 5) for the suggested price. The counter's panel sets each service to 50, 75, 100, 125, 150 or 200% of it. A customer takes a visit
   price at or under tolerance x suggested; above it with chance e^(-8 (ratio / tolerance - 1)), 13% at a quarter over, else it leaves.
 - **Quality and payment** (`Quality`): 1 less 0.5 x the lukewarm share of the soak, 0.15 a game hour waited (at most 0.3), 0.3 for a soak cut
