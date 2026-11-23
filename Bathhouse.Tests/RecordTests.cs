@@ -102,6 +102,51 @@ public sealed class RecordTests
         Assert.False(data.Accepts(Ids.DirtyTowel, FcsRecordType.Item));
     }
 
+    [Theory]
+    [InlineData(Ids.SmallTub)]
+    [InlineData(Ids.MediumTub)]
+    [InlineData(Ids.LargeTub)]
+    [InlineData(Ids.OilBath)]
+    [InlineData(Ids.BloodBath)]
+    [InlineData(Ids.Boiler)]
+    public void Tubs_and_the_boiler_steam_with_a_system_the_mod_ships(string piece)
+    {
+        var game = Game();
+        var effects = game.Find(piece)!.Instances.Values
+            .Select(i => game.Find(i.Target))
+            .Where(r => r?.Type == FcsRecordType.Effect)
+            .ToList();
+        var library = new Meitou.Data.Particles.ParticleLibrary();
+        library.AddScript(File.ReadAllText(SteamScript()), "bathhouse_steam.pu");
+
+        var steam = Assert.Single(effects);
+        Assert.Empty(library.Errors);
+        Assert.NotNull(library.FindSystem(steam!.GetString("particle system")));
+    }
+
+    [Fact]
+    public void The_steam_uses_a_particle_material_of_the_base_game()
+    {
+        var install = GameInstall.Locate();
+        Assert.SkipWhen(install is null, "No game install (KENSHI_PATH).");
+        var library = new Meitou.Data.Particles.ParticleLibrary();
+        library.AddScript(File.ReadAllText(SteamScript()), "bathhouse_steam.pu");
+        var materials = Directory.EnumerateFiles(Path.Combine(install!.DataDirectory, "particles", "materials"), "*.material")
+            .Select(File.ReadAllText);
+
+        Assert.All(library.AllSystems, s => Assert.Contains(materials, m => s.Techniques.All(t => m.Contains("material " + t.Material))));
+    }
+
+    /// <summary>
+    /// The mod's steam script in the repo.
+    /// </summary>
+    static string SteamScript()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Bathhouse", "items", "particles", "bathhouse_steam.pu"))) dir = dir.Parent;
+        return Path.Combine(dir!.FullName, "Bathhouse", "items", "particles", "bathhouse_steam.pu");
+    }
+
     [Fact]
     public void The_water_tank_stores_only_water()
     {

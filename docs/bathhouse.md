@@ -108,6 +108,15 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   the game.
 - **Debug row** "Bathhouse: tubs and bathers": each building's heat and each soak.
 
+## Steam
+
+`EffectRecords`, `items/particles/bathhouse_steam.pu`. Each tub and the boiler carry an EFFECT instance (type NONE, copied from the game's
+`small- smoke3_small`) naming one of the mod's ParticleUniverse systems: a faint steam rising from a box the size of the tub's water, just under
+its rim, and a plume from the boiler's top. The game reads every `.pu` in a mod's folders, so the script ships in `items/particles` (deployed
+with the item icons). The systems use the base game's `kenshi_smoke1` material (alpha-blended, not cut inside buildings) tinted white. Meitou
+runs a player building's effects whenever it is complete (engine `docs/formats/lights.md` "Effects on buildings"), so a cold tub steams too:
+following the water's heat needs an engine hook.
+
 ## Customers
 
 `Customers/Clientele`, stepped in the same check after the soaks.

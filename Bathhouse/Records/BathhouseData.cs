@@ -21,7 +21,7 @@ public static class BathhouseData
     public static IReadOnlyList<FcsRecord> Records(GameDatabase game) =>
     [
         .. ItemRecords.Build(game), .. MachineRecords.Build(game), .. FurnitureRecords.Build(game), .. ResearchRecords.Build(),
-        .. GoalRecords.Build(game)
+        .. GoalRecords.Build(game), .. EffectRecords.Build(game)
     ];
 
     /// <summary>
