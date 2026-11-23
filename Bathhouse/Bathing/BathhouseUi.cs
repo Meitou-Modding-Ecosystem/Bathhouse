@@ -8,11 +8,12 @@ namespace Bathhouse.Bathing;
 
 /// <summary>
 /// The bathhouse's panel lines (docs/bathhouse.md "Panels"): a tub shows its water and seats and the bath button, a boiler what it heats and the
-/// switches for the bad effects soaks clear, a counter the open switch and the prices, a tea table and a massage station their price; a piece with
+/// switches for the bad effects soaks clear, a counter its check-in line and the button of its ledger window (<see cref="CounterLedger"/>), a tea
+/// table and a massage station their price; a piece with
 /// a staff job (<see cref="StaffRoles.OfferedBy"/>) adds the button that assigns it. The sources run on the host's thread and read only the
 /// system's published views.
 /// </summary>
-public sealed class BathhouseUi(Func<BathhouseSystem?> system) : IUiExtension
+public sealed class BathhouseUi(Func<BathhouseSystem?> system, CounterLedger ledger) : IUiExtension
 {
     /// <summary>
     /// The most debuff switches a boiler's panel shows (the panel holds about six lines).
@@ -36,7 +37,11 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system) : IUiExtension
 
     public string Id => BathhouseMod.Id;
 
-    public void Register(UiRegistration registration) => registration.AddBuildingActions(Lines);
+    public void Register(UiRegistration registration)
+    {
+        registration.AddBuildingActions(Lines);
+        ledger.Register(registration);
+    }
 
     /// <summary>
     /// The lines of the selected piece: none for a piece that is not the bathhouse's or not the player's.
@@ -57,11 +62,11 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system) : IUiExtension
     /// <summary>
     /// The piece's own lines, after its staff button.
     /// </summary>
-    static IEnumerable<UiBuildingAction> PieceLines(UiBuildingContext context, BathhouseSystem bathhouse)
+    IEnumerable<UiBuildingAction> PieceLines(UiBuildingContext context, BathhouseSystem bathhouse)
     {
         var building = context.Building;
         var counter = bathhouse.Counter;
-        if (building.Record == Ids.Counter) return [CheckInLine(bathhouse.CheckIn(building.SiteId)), .. CounterLines(context, counter)];
+        if (building.Record == Ids.Counter && building.SiteId is { } site) return [CheckInLine(bathhouse.CheckIn(site)), LedgerLine(site)];
         if (building.Record == Ids.TeaTable) return [PriceLine(context, Service.Tea, counter.Percent(Service.Tea), Tooltip(Service.Tea))];
         if (building.Record == Ids.MassageStation)
             return [PriceLine(context, Service.Massage, counter.Percent(Service.Massage), Tooltip(Service.Massage))];
@@ -172,17 +177,13 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system) : IUiExtension
     };
 
     /// <summary>
-    /// A counter's lines: the open switch (its tooltip the customers under way and the latest payment), then one price line per service.
+    /// The counter's ledger button: opens its window, or closes it.
     /// </summary>
-    static IEnumerable<UiBuildingAction> CounterLines(UiBuildingContext context, CounterView view)
+    UiBuildingAction LedgerLine(string counter)
     {
-        string tooltip = $"{view.Groups} groups coming or visiting, {view.Visits} customers in. {view.Latest}";
-        var open = new OpenCommand(!view.Open) { Tick = 0 };
-        yield return new UiBuildingAction($"Customers: {(view.Open ? "open" : "closed")}", tooltip, Send(context, open));
-
-        string visit = $"A medium tub visit costs {view.VisitPrice} cats. Press for the next step.";
-        foreach (var service in (Service[])[Service.Bath, Service.Towel, Service.Soap])
-            yield return PriceLine(context, service, view.Percent(service), visit);
+        string caption = ledger.Shows(counter) ? "Close the bathhouse ledger" : "Open the bathhouse ledger";
+        string tooltip = "Check-in, opening, prices and the latest customers, in a window of their own.";
+        return new UiBuildingAction(caption, tooltip, () => ledger.Toggle(counter));
     }
 
     /// <summary>

@@ -45,7 +45,7 @@ public sealed class BathhouseMod : IMod, IModDataPhase
         var purpose = context.RngPurpose;
         context.AddItemUse(Ids.Towel, use => Towels.Use(use, purpose));
         context.AddSystem("bathhouse", build => _latest = new BathhouseSystem(purpose, build.Data), SystemAnchor.End);
-        context.AddUi(new BathhouseUi(() => _latest));
+        context.AddUi(new BathhouseUi(() => _latest, new CounterLedger(() => _latest, context.Enqueue, () => context.Tick)));
         context.AddDebugCommand("Bathhouse: tubs and bathers", _ => Told(context, _latest?.View ?? "no world yet"));
         context.AddDebugCommand("Bathhouse: send customers (kind)", SendCustomers, hasField: true);
     }

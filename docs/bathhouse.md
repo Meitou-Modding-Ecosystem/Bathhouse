@@ -135,8 +135,10 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
 - **Barks** (`Barks`): two lines per kind for getting into a tub, cold water, a complaint, leaving happy, the price and a fight. English only (the
   engine has no translation catalog for mods).
 - **Panels**: the counter has its clerk button, a check-in line ("ready" with the towel and soap it has, or the first of clerk, warm tub it lacks;
-  tooltip: the fix), an open switch (tooltip: groups and customers under way, the latest payment or complaint) and the bath, towel and soap price lines; the
-  tea table and the massage station have their price line.
+  tooltip: the fix) and the ledger button; the tea table and the massage station have their price line. The building panel holds about six
+  lines, so the counter's details are in its **ledger** window (`CounterLedger`, the HUD overlay, 640 pixels wide, fits a 1280 x 720 screen):
+  check-in and its fix, the open switch with the groups and customers under way, each service's price (- and + step it through 50 to 200% of
+  suggested, with the price in cats) and the latest six payments and complaints (not saved). The button opens and closes it, as does its Close.
 - **Debug rows**: "Bathhouse: tubs and bathers" lists groups, visits, staff errands and dirty tubs; "Bathhouse: send customers (kind)" sends a
   group now.
 
