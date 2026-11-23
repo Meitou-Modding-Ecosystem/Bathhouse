@@ -20,6 +20,7 @@ ICONS = {
     "teaset": (2, 2),
     "usedteaset": (2, 2),
     "bathhouserobe": (2, 2),
+    "dirtyrobe": (3, 2),
 }
 
 root = Path(__file__).resolve().parent.parent

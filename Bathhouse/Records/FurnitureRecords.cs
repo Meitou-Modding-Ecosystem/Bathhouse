@@ -251,6 +251,7 @@ static class FurnitureRecords
             Ids.ZenGarden => Ids.ZenGardenLook,
             Ids.TeaDisplay => Ids.TeaDisplayLook,
             Ids.TeaShelf => Ids.TeaShelfLook,
+            Ids.RobeHamper => Ids.RobeHamperLook,
             _ => null,
         };
 

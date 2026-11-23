@@ -11,9 +11,9 @@ static class ItemRecords
 {
     /// <summary>
     /// One item: its id and name, the game item it looks like (string id, then name), its value in cats, how many stack, its text and its icon
-    /// (null: the model's, until the mod's own lands).
+    /// (<c>Bathhouse/items/icons/bathhouse-&lt;icon&gt;.png</c>).
     /// </summary>
-    sealed record Spec(string Id, string Name, string ModelId, string ModelName, int Value, int Stack, string Text, string? Icon);
+    sealed record Spec(string Id, string Name, string ModelId, string ModelName, int Value, int Stack, string Text, string Icon);
 
     /// <summary>
     /// The game's item functions used: 0, none (a plain trade good).
@@ -60,7 +60,7 @@ static class ItemRecords
         new(Ids.UsedTeaSet, "Used Tea Set", "42316-changes_otto.mod", "Ceramic Bowl", 30, 5,
             "A tray of empty, stained cups. The tea server rinses it back into teaware.", "usedteaset"),
         new(Ids.DirtyRobe, "Dirty Robe", "584-gamedata.base", "Fabrics", 10, 5,
-            "A robe a bather has worn. A washing machine and a little soap make it clean again.", null),
+            "A robe a bather has worn. A washing machine and a little soap make it clean again.", "dirtyrobe"),
     ];
 
     /// <summary>
@@ -81,7 +81,7 @@ static class ItemRecords
         record.Ints["stackable"] = spec.Stack;
         record.Ints["item function"] = NoFunction;
         record.Strings["description"] = spec.Text;
-        if (spec.Icon is not null) SetIcon(record, spec.Icon);
+        SetIcon(record, spec.Icon);
 
         if (spec.Id == Ids.TeaSet) RecordKit.Links(record, "ingredients", (Ids.Teaware, 100, 0), (Ids.GreenfruitTea, 100, 0));
         if (spec.Id == Ids.Towel) Washed(record, Ids.DirtyTowel);
