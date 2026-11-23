@@ -44,17 +44,17 @@ public static class WorkSpots
         [Ids.RobeHamper] = 5.3f,
         [Ids.TowelRack] = 2.6f,
         [Ids.SoapShelf] = 2.6f,
-        [Ids.TeaTable] = 7.6f,
+        [Ids.TeaTable] = 8.7f,
         [Ids.TeaShelf] = 3.0f,
         [Ids.TeawareShelf] = 2.4f,
         [Ids.TeaSetCabinet] = 3.1f,
-        [Ids.UsedTeaRack] = 2.2f,
+        [Ids.UsedTeaRack] = 2.6f,
         [Ids.TowelLoom] = 11.2f,
         [Ids.SoapPress] = 5.3f,
         [Ids.TeaDryer] = 5.5f,
         [Ids.Kiln] = 10.6f,
-        [Ids.WashingMachine] = 4.1f,
-        [Ids.TeaBench] = 3.4f,
+        [Ids.WashingMachine] = 4.5f,
+        [Ids.TeaBench] = 4.4f,
     };
 
     /// <summary>
