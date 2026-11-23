@@ -49,9 +49,14 @@ public static class Ids
     public const string UsedTeaSet = "8-" + FileName;
 
     /// <summary>
-    /// The staff's robe (<c>ARMOUR</c>).
+    /// The bathhouse robe (<c>ARMOUR</c>): staff wear it, and bathers change into one from the lockers.
     /// </summary>
     public const string Robe = "7-" + FileName;
+
+    /// <summary>
+    /// A robe a bather has worn, washed back into a clean one.
+    /// </summary>
+    public const string DirtyRobe = "9-" + FileName;
 
     #endregion
 
@@ -94,7 +99,7 @@ public static class Ids
     /// </summary>
     public const string MassageBed = "50-" + FileName, MassageStation = "51-" + FileName, Counter = "52-" + FileName, Lockers = "53-" + FileName,
         Hamper = "54-" + FileName, TowelRack = "55-" + FileName, TeaTable = "56-" + FileName, ReviewBoard = "57-" + FileName,
-        TeaShelf = "58-" + FileName;
+        TeaShelf = "58-" + FileName, RobeHamper = "59-" + FileName;
 
     /// <summary>
     /// The decorations.

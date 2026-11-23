@@ -37,6 +37,11 @@ static class FurnitureRecords
         Limited,
 
         /// <summary>
+        /// A <see cref="Limited"/> store that locks.
+        /// </summary>
+        LockedLimited,
+
+        /// <summary>
         /// Keeps the model's own functionality (the bed, the shop counter).
         /// </summary>
         Model,
@@ -78,11 +83,14 @@ static class FurnitureRecords
     const int StorageWidth = 8, StorageHeight = 8;
 
     /// <summary>
-    /// The only items each <see cref="Use.Limited"/> piece takes.
+    /// The only items each <see cref="Use.Limited"/> and <see cref="Use.LockedLimited"/> piece takes.
     /// </summary>
     static readonly Dictionary<string, string[]> Limits = new()
     {
         [Ids.Hamper] = [Ids.DirtyTowel],
+        [Ids.RobeHamper] = [Ids.DirtyRobe],
+        // Two items, so the grid is the storage size rather than one robe's footprint; haulers store only the robe (itemtype limit ARMOUR).
+        [Ids.Lockers] = [Ids.Robe, Ids.DirtyRobe],
         [Ids.TowelRack] = [Ids.Towel],
         [Ids.TeaTable] = [Ids.TeaSet, Ids.UsedTeaSet],
         [Ids.TeaShelf] = [Ids.GreenfruitTea, Ids.Teaware, Ids.TeaSet, Ids.UsedTeaSet],
@@ -138,8 +146,9 @@ static class FurnitureRecords
             "The heart of the bathhouse: customers come to it from 6:00 to 22:00 while it stands in a building with a warm tub. Keep towels"
             + " and soap in it or in the building's stores, have someone stand by it (Bathhouse clerk, panel button), and set prices and open it"
             + " on its panel."),
-        new(Ids.Lockers, "Lockers", "1532622-rebirth.mod", "Crossbow Locker", Use.LockedStorage,
-            "A lockable cabinet for the bathhouse."),
+        new(Ids.Lockers, "Lockers", "1532622-rebirth.mod", "Crossbow Locker", Use.LockedLimited,
+            "Holds only bathhouse robes, and locks. Bathers in the same building take a robe here and keep the armour it replaces in their"
+            + " backpack while they soak; the worn robe goes to a robe hamper."),
         new(Ids.Hamper, "Laundry Hamper", "5355-furniture_otto.mod", "Small Barrel", Use.Limited,
             "Holds only dirty towels. Used towels land here, and a Laundry runner takes them to the washing machine."),
         new(Ids.TowelRack, "Towel Rack", "3470-otto.mod", "Shelf", Use.Limited,
@@ -149,6 +158,8 @@ static class FurnitureRecords
             + " tea shelf and clears used ones. Set the tea price on its panel."),
         new(Ids.TeaShelf, "Tea Shelf", "3470-otto.mod", "Shelf", Use.Limited,
             "Holds only greenfruit tea, teaware and tea sets. The Tea server takes tea sets from it and rinses used ones back into teaware here."),
+        new(Ids.RobeHamper, "Robe Hamper", "5355-furniture_otto.mod", "Small Barrel", Use.Limited,
+            "Holds only dirty robes. Bathers drop their robe here after a soak (on the floor without one)."),
         new(Ids.ReviewBoard, "Review Board", "54552-Newwworld.mod", "banner_traders", Use.None,
             "Decoration: a notice board for guests' reviews."),
         new(Ids.ZenGarden, "Zen Garden", "50606-Newwworld.mod", "Carpet: Rusty Rug", Use.None, "Decoration: raked gravel and three stones."),
@@ -311,7 +322,7 @@ static class FurnitureRecords
         var use = spec.Use;
         bool storage = use is Use.Storage or Use.LockedStorage;
         record.Bools["has inventory"] = storage || use == Use.Model && record.Bools.GetValueOrDefault("has inventory");
-        record.Bools["has lock"] = use == Use.LockedStorage;
+        record.Bools["has lock"] = use is Use.LockedStorage or Use.LockedLimited;
 
         if (storage)
         {
@@ -322,7 +333,8 @@ static class FurnitureRecords
 
         if (use == Use.Massage) RecordKit.Links(record, "functionality", (Ids.MassageWork, 0, 0));
         if (use == Use.Water) SetWater(record);
-        if (use == Use.Limited) SetLimited(record, Limits[spec.Id]);
+        if (use is Use.Limited or Use.LockedLimited) SetLimited(record, Limits[spec.Id]);
+        if (spec.Id == Ids.Lockers) record.Ints["itemtype limit"] = (int)FcsRecordType.Armour;
     }
 
     /// <summary>

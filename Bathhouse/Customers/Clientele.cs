@@ -424,8 +424,8 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     }
 
     /// <summary>
-    /// The check-in: a clerk at the counter and a free warm tub in its building, then the price of the bath and the towel and soap in stock. True when the visit
-    /// moved on (sent to soak, or turned away by the price); false to keep waiting.
+    /// The check-in: a clerk at the counter and a free warm tub in its building, then the price of the bath and the towel and soap in stock. True
+    /// when the visit moved on (sent to soak, or turned away by the price); false to keep waiting.
     /// </summary>
     bool CheckIn(World world, int slot, Visit visit, BuildSite counter, IReadOnlyList<Tub> tubs)
     {
@@ -525,7 +525,8 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
         }
 
         var kind = CustomerTypes.Find(visit.Kind);
-        var quality = Quality.Of(soak.Soaked, soak.Lukewarm, visit.Waited, end == SoakEnd.Cold, visit.DirtyTub, visit.Towel, visit.Soap);
+        var quality = Quality.Of(soak.Soaked, soak.Lukewarm, visit.Waited, end == SoakEnd.Cold, visit.DirtyTub, visit.Towel, visit.Soap,
+            soak.Robed == true);
         if (end == SoakEnd.Cold) Barks.Say(world, world.Characters.IdOf(slot), visit.Kind, BarkEvent.Cold, purpose);
         if (kind is null || quality.Total < kind.Demand)
         {
@@ -682,19 +683,19 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     }
 
     /// <summary>
-    /// An hour of massage pays the massage price times the attendant's skill; time with nobody at the station is waiting.
+    /// An hour of massage pays the massage price times the attendant's pay factor (Dexterity, robe); time with nobody at the station is waiting.
     /// </summary>
     void Rub(World world, Visit visit, BuildSite bed, double hours)
     {
-        float? dexterity = Massage.Station(world, bed) is { } station ? Massage.Attendant(world, station) : null;
-        if (dexterity is not { } skill)
+        double? attendant = Massage.Station(world, bed) is { } station ? Massage.Attendant(world, station) : null;
+        if (attendant is not { } skill)
         {
             visit.BedWait += hours;
             return;
         }
 
         visit.Massaged += hours;
-        visit.MassagePay += Prices.Price(Service.Massage, TubKind.Small) * hours * Massage.Skill(skill);
+        visit.MassagePay += Prices.Price(Service.Massage, TubKind.Small) * hours * skill;
     }
 
     /// <summary>

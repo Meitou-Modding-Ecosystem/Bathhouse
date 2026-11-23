@@ -136,7 +136,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     public BathhouseSystem(RngPurpose purpose, PopulationData data)
     {
         _purpose = purpose;
-        _soaks = new Soaks(_heating, Finished);
+        _soaks = new Soaks(_heating, Finished, data);
         _clientele = new Clientele(_heating, _soaks, _care, data, purpose);
         _staff = new Staff(new Plans(_soaks, _care));
         _privateBeds = new PrivateBeds(data.Relations);
@@ -425,7 +425,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     /// <summary>
     /// The sidecar layout's version.
     /// </summary>
-    public const int SaveVersion = 4;
+    public const int SaveVersion = 5;
 
     public void Write(Stream stream)
     {
@@ -460,6 +460,9 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
             w.Write(soak.SentAt);
             w.Write(soak.Soaked);
             w.Write(soak.Lukewarm);
+            w.Write(soak.Robed switch { null => (byte)0, true => (byte)1, false => (byte)2 });
+            w.Write(soak.Changed);
+            w.Write(soak.Stowed);
         }
     }
 
@@ -478,14 +481,14 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
         int owed = r.ReadInt32();
         for (int k = 0; k < owed; k++) _heating.Owed[r.ReadString()] = r.ReadDouble();
 
-        ReadSoaks(r);
+        ReadSoaks(r, version);
         if (version >= 2) ClienteleSave.Read(r, _clientele, _care, version);
     }
 
     /// <summary>
     /// Reads the soaks; their bathers are found again by lasting id at the next check and walk back into their tubs.
     /// </summary>
-    void ReadSoaks(BinaryReader r)
+    void ReadSoaks(BinaryReader r, int version)
     {
         int soaks = r.ReadInt32();
         for (int k = 0; k < soaks; k++)
@@ -500,8 +503,19 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
             };
             soak.Soaked = r.ReadDouble();
             soak.Lukewarm = r.ReadDouble();
+            if (version >= 5) ReadRobe(r, soak);
             _soaks.Restore(soak);
         }
+    }
+
+    /// <summary>
+    /// Reads a soak's robe (layout 5).
+    /// </summary>
+    static void ReadRobe(BinaryReader r, Soak soak)
+    {
+        soak.Robed = r.ReadByte() switch { 1 => true, 2 => false, _ => null };
+        soak.Changed = r.ReadBoolean();
+        soak.Stowed = r.ReadString();
     }
 
     #endregion

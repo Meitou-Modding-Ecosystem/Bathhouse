@@ -4,6 +4,7 @@ using Meitou.Data.Gameplay.Ai;
 using Meitou.Simulation;
 using Meitou.Simulation.Ai;
 using Meitou.Simulation.Movement;
+using Meitou.Simulation.Population;
 
 namespace Bathhouse.Bathing;
 
@@ -49,6 +50,21 @@ public sealed class Soak
     public double Lukewarm { get; set; }
 
     /// <summary>
+    /// Whether it soaks in a robe: null before it first sat down, then whether it changed into one or already wore one (<see cref="Robes"/>).
+    /// </summary>
+    public bool? Robed { get; set; }
+
+    /// <summary>
+    /// Whether it changed into a robe from the lockers, which it takes off after the soak.
+    /// </summary>
+    public bool Changed { get; set; }
+
+    /// <summary>
+    /// The record of the piece it took off for the robe, now in its main grid or bag; empty for none.
+    /// </summary>
+    public string Stowed { get; set; } = "";
+
+    /// <summary>
     /// Whether it sits in the water now (not saved: tasks are not, so a loaded bather walks back in).
     /// </summary>
     public bool Seated { get; set; }
@@ -80,7 +96,7 @@ public enum SoakEnd
 /// the bather walks to its tub, steps into its seat and rests there (sitting on the ground in the water) until its soak ends. Its act-out runs on
 /// the goal's own row. Desire is asked in parallel and reads only what the serial steps wrote.
 /// </summary>
-public sealed class Soaks(Heating heating, Action<World, int, Soak, SoakEnd> finished) : IModGoal
+public sealed class Soaks(Heating heating, Action<World, int, Soak, SoakEnd> finished, PopulationData? data = null) : IModGoal
 {
     #region State
 
@@ -250,10 +266,11 @@ public sealed class Soaks(Heating heating, Action<World, int, Soak, SoakEnd> fin
     }
 
     /// <summary>
-    /// Puts the bather in its seat and starts it resting there on the goal's row.
+    /// Puts the bather in its seat (changing into a robe the first time) and starts it resting there on the goal's row.
     /// </summary>
     bool SitDown(World world, int slot, Tub tub, Soak soak)
     {
+        soak.Robed ??= Robes.PutOn(world, slot, tub.Building, soak, data);
         Place(world, slot, Tubs.SeatAt(tub, soak.Seat));
         var started = TaskStart.Start(world, slot, new TaskRequest(CharacterTask.Rest, Row, TaskSource.Goal));
         soak.Seated = started == StartResult.Started;
@@ -270,10 +287,11 @@ public sealed class Soaks(Heating heating, Action<World, int, Soak, SoakEnd> fin
     }
 
     /// <summary>
-    /// Forgets a soak, lets the goal go and tells the owner how it ended.
+    /// Forgets a soak, takes off the robe it changed into, lets the goal go and tells the owner how it ended.
     /// </summary>
     void Drop(World world, int slot, Soak soak, SoakEnd end)
     {
+        Robes.TakeOff(world, slot, world.Buildings.Find(soak.Tub)?.Parent, soak, data);
         _soaks.Remove(soak.Bather.Value);
         _present.Remove(world.Characters.IdOf(slot));
         if (ModGoals.Holds(world, slot, Row)) ModGoals.Done(world, slot, Row);
