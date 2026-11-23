@@ -85,21 +85,23 @@ public sealed class Pricing
     public static double ReputationFactor => 1;
 
     /// <summary>
-    /// A service's base price in cats; a bath's by its tub.
+    /// A service's base price in cats; a bath's by its tub. The towel, soap and tea are the trade worth of the item the customer takes (a Towel, a
+    /// Soap, a Tea Set: ingredients plus 2% per hour worked, <c>ItemRecords</c>); the bath uses no goods and is 1.5 times what it was before the
+    /// goods were priced so. The massage's is an hour by an attendant with Dexterity 100: a less skilled attendant earns less (<c>Massage.Pay</c>).
     /// </summary>
     public static int Base(Service service, TubKind tub) => service switch
     {
-        Service.Towel => 15,
-        Service.Soap => 10,
-        Service.Tea => 20,
-        Service.Massage => 30,
+        Service.Towel => 27,
+        Service.Soap => 18,
+        Service.Tea => 69,
+        Service.Massage => 300,
         _ => tub switch
         {
-            TubKind.Small => 30,
-            TubKind.Medium => 40,
-            TubKind.Large => 50,
-            TubKind.Oil => 60,
-            _ => 80,
+            TubKind.Small => 45,
+            TubKind.Medium => 60,
+            TubKind.Large => 75,
+            TubKind.Oil => 90,
+            _ => 120,
         },
     };
 

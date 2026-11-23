@@ -4,8 +4,9 @@ using Meitou.Simulation;
 namespace Bathhouse.Customers;
 
 /// <summary>
-/// The customers' part of the sidecar (layout versions 2 to 4) and of the state hash: open, prices, schedule, the complaints' day, groups, visits
-/// and, from version 3, the tea and massage prices, the visits' massage and the dirty tubs; from version 4, the visits' towel and soap.
+/// The customers' part of the sidecar (layout versions 2 to 7) and of the state hash: open, prices, schedule, the complaints' day, groups, visits
+/// and, from version 3, the tea and massage prices, the visits' massage and the dirty tubs; from version 4, the visits' towel and soap; from
+/// version 6, the guest book (not hashed); from version 7, the visits' tea.
 /// </summary>
 public static class ClienteleSave
 {
@@ -23,6 +24,7 @@ public static class ClienteleSave
         WriteVisits(w, clientele.Visits);
         w.Write(care.Dirty.Count);
         foreach (string tub in care.Dirty) w.Write(tub);
+        clientele.Book.Write(w);
     }
 
     /// <summary>
@@ -42,6 +44,8 @@ public static class ClienteleSave
         int count = version >= 3 ? r.ReadInt32() : 0;
         for (int k = 0; k < count; k++) dirty.Add(r.ReadString());
         care.Restore(dirty);
+        if (version >= 6) clientele.Book.Read(r);
+        else clientele.Book.Clear();
     }
 
     /// <summary>
@@ -79,6 +83,7 @@ public static class ClienteleSave
             hasher.Add(visit.BedWait);
             hasher.Add(visit.Towel);
             hasher.Add(visit.Soap);
+            hasher.Add(visit.Drunk);
         }
     }
 
@@ -160,6 +165,10 @@ public static class ClienteleSave
             w.Write(visit.MassagePay);
             w.Write(visit.Towel);
             w.Write(visit.Soap);
+            w.Write(visit.Table ?? "");
+            w.Write(visit.Sitting);
+            w.Write(visit.Drunk);
+            w.Write(visit.TeaWait);
         }
     }
 
@@ -178,8 +187,21 @@ public static class ClienteleSave
             visit.Price = r.ReadInt64();
             if (version >= 3) ReadMassage(r, visit);
             if (version >= 4) ReadSupplies(r, visit);
+            if (version >= 7) ReadTea(r, visit);
             clientele.Restore(visit);
         }
+    }
+
+    /// <summary>
+    /// Reads a visit's tea table, whether it sits there, and its hours drinking and getting there (layout 7).
+    /// </summary>
+    static void ReadTea(BinaryReader r, Visit visit)
+    {
+        string table = r.ReadString();
+        visit.Table = table.Length == 0 ? null : table;
+        visit.Sitting = r.ReadBoolean();
+        visit.Drunk = r.ReadDouble();
+        visit.TeaWait = r.ReadDouble();
     }
 
     /// <summary>

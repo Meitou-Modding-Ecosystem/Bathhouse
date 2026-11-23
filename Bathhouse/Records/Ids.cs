@@ -66,7 +66,7 @@ public static class Ids
     /// The machines' functionalities (<c>BUILDING_FUNCTIONALITY</c>), in the order of <see cref="TowelLoom"/> and the machines after it.
     /// </summary>
     public const string TowelLoomWork = "20-" + FileName, SoapPressWork = "21-" + FileName, WasherWork = "22-" + FileName,
-        TeaDryerWork = "23-" + FileName, KilnWork = "24-" + FileName, TeaBenchWork = "25-" + FileName, MassageWork = "26-" + FileName;
+        TeaDryerWork = "23-" + FileName, KilnWork = "24-" + FileName, TeaBenchWork = "25-" + FileName;
 
     /// <summary>
     /// The production machines and the tea bench (<c>BUILDING</c>).
@@ -112,6 +112,21 @@ public static class Ids
     /// </summary>
     public const string SoapShelf = "66-" + FileName;
 
+    /// <summary>
+    /// The tea stores, one for each tea item the brewing makes or leaves: teaware, tea sets and used tea sets (service furniture).
+    /// </summary>
+    public const string TeawareShelf = "67-" + FileName, TeaSetCabinet = "68-" + FileName, UsedTeaRack = "69-" + FileName;
+
+    #endregion
+
+    #region Effects
+
+    /// <summary>
+    /// The steam effects (<c>EFFECT</c>, Records/EffectRecords.cs): one over each kind of tub's water, and the boiler's plume.
+    /// </summary>
+    public const string SmallTubSteam = "70-" + FileName, MediumTubSteam = "71-" + FileName, LargeTubSteam = "72-" + FileName,
+        OilBathSteam = "73-" + FileName, BloodBathSteam = "74-" + FileName, BoilerSteam = "75-" + FileName;
+
     #endregion
 
     #region Models
@@ -128,7 +143,7 @@ public static class Ids
         LockersLook = "901500-" + FileName, TowelRackLook = "901600-" + FileName, TeaDryerLook = "901700-" + FileName,
         KilnLook = "901800-" + FileName, ReviewBoardLook = "902100-" + FileName, StatueLook = "902200-" + FileName,
         ZenGardenLook = "902300-" + FileName, TeaDisplayLook = "902400-" + FileName, TeaShelfLook = "902500-" + FileName,
-        RobeHamperLook = "902600-" + FileName;
+        RobeHamperLook = "902600-" + FileName, SoapShelfLook = "902700-" + FileName;
 
     #endregion
 
@@ -157,7 +172,7 @@ public static class Ids
     /// <summary>
     /// The staff job types (docs/bathhouse.md "Staff"): clerk, scrubber, laundry runner and tea server, each also its errands' row.
     /// </summary>
-    public const int ClerkJob = 4403, ScrubberJob = 4404, LaundryJob = 4405, TeaJob = 4406;
+    public const int ClerkJob = 4403, ScrubberJob = 4404, LaundryJob = 4405, TeaJob = 4406, MassageJob = 4407;
 
     #endregion
 

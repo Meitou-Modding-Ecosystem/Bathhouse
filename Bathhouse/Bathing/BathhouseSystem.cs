@@ -57,6 +57,16 @@ public readonly record struct CounterView(bool Open, int[] Percents, long VisitP
 public readonly record struct CheckInView(CheckInNeed? Need, bool Towel, bool Soap);
 
 /// <summary>
+/// What the ledger's guest list shows: the groups on their way and the guests whose visits run.
+/// </summary>
+public sealed record GuestsNow(string[] OnTheWay, GuestView[] Guests);
+
+/// <summary>
+/// What the review board shows: its summary and the finished visits of the last three days, newest first.
+/// </summary>
+public sealed record ReviewsNow(GuestSummary Summary, GuestRecord[] Records);
+
+/// <summary>
 /// What the panel of a tub or boiler shows: its building's heat, and for a tub the seats taken.
 /// </summary>
 public readonly record struct PieceView(BuildingHeat Heat, int Taken, int Seats);
@@ -195,6 +205,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
         SendCustomers(world, tubs);
         _soaks.Step(world, hours, tub => Length(tub.Kind, settings));
         _clientele.Step(world, tubs, settings, hours);
+        StaffRoles.TakeClickedJobs(world);
         _staff.Step(world);
         _privateBeds.Step(world);
         _bedHealing.Step(world);
@@ -271,6 +282,11 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     };
 
     /// <summary>
+    /// The soak length of a kind of tub under the current settings.
+    /// </summary>
+    static double LengthNow(TubKind kind) => Length(kind, BathhouseSettings.Current);
+
+    /// <summary>
     /// A cold state's reason, for barks and panels.
     /// </summary>
     public static string Describe(Heat heat) => heat switch
@@ -324,9 +340,34 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     public CheckInView? CheckIn(string? site) => site is not null && _checkIns.TryGetValue(site, out var view) ? view : null;
 
     /// <summary>
+    /// The first counter's site id; null for none.
+    /// </summary>
+    public string? FirstCounter => _checkIns.Keys.Order(StringComparer.Ordinal).FirstOrDefault();
+
+    /// <summary>
     /// The debug row's view: each building's heat, then each soak.
     /// </summary>
     public string View => _view;
+
+    /// <summary>
+    /// The latest guest list (written in the tick, read on the host's thread).
+    /// </summary>
+    volatile GuestsNow _guests = new([], []);
+
+    /// <summary>
+    /// The ledger's guest list.
+    /// </summary>
+    public GuestsNow Guests => _guests;
+
+    /// <summary>
+    /// The latest review board view (written in the tick, read on the host's thread).
+    /// </summary>
+    volatile ReviewsNow _reviews = new(default, []);
+
+    /// <summary>
+    /// The review board's view.
+    /// </summary>
+    public ReviewsNow Reviews => _reviews;
 
     /// <summary>
     /// Publishes the panels' and the debug row's views.
@@ -346,6 +387,9 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
         _pieces = pieces;
         _counter = new StrongBox<CounterView>(CounterNow());
         _checkIns = CheckInsNow(world, tubs);
+        _guests = new GuestsNow(GuestList.OnTheWay(world, _clientele), GuestList.Of(world, _clientele, _soaks, tubs, LengthNow));
+        var book = _clientele.Book;
+        _reviews = new ReviewsNow(book.Summary(world.GameHours), [.. book.Records.Reverse()]);
         _view = Describe(world, tubs);
     }
 
@@ -426,7 +470,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     /// <summary>
     /// The sidecar layout's version.
     /// </summary>
-    public const int SaveVersion = 5;
+    public const int SaveVersion = 7;
 
     public void Write(Stream stream)
     {

@@ -12,7 +12,7 @@ Locker bank,Furniture,a row of four tall riveted iron lockers with padlocks and 
 Laundry hamper,Furniture,"a woven reed laundry basket with a cloth lid, a dirty towel hanging out",0.7 x 0.7 x 0.8
 Towel rack,Furniture,a freestanding timber rack with clean folded towels on shelves,1 x 0.4 x 1.6
 Tea table,Furniture,a low square tea table with floor cushions and a tea tray,1.2 x 1.2 x 0.4
-Tea shelf,Furniture,"a tall open-backed timber storage shelf for a tea house, four shelves holding stacked tea trays with teapots and cups, cloth sacks and small wooden boxes of dried greenfruit tea, a few empty stained cups on a tray at the bottom",1.2 x 0.4 x 1.7
+Tea shelf,Furniture,"a tall open-backed timber storage shelf for a tea house, four shelves of tied cloth sacks and small lidded wooden boxes of dried sliced greenfruit tea, a scoop resting on the top shelf, a few loose dried slices on the bottom",1.2 x 0.4 x 1.7
 Tea bench,Furniture,"a workbench with a kettle, bowls of dried leaves, cups and a small brazier",1.6 x 0.7 x 1
 Towel loom,Furniture,a hand loom of worn timber weaving thick cloth towels,1.8 x 1.2 x 1.8
 Soap press,Furniture,a screw press of timber and iron with a vat and soap moulds,1.5 x 1 x 1.8
@@ -37,3 +37,6 @@ Bathhouse robe,Item (armour),"a simple wrapped cotton bath robe with a cloth bel
 Robe hamper,Furniture,"a tall woven reed laundry basket on a wooden frame with a cloth lid, a stained bath robe hanging over the rim",0.8 x 0.8 x 1.0
 Dirty robe,Item (armour),"the same bath robe crumpled and stained grey-brown, its cloth belt hanging loose",folded 0.4 x 0.3 x 0.1
 Soap shelf,Furniture,"a short wooden wall-side shelf for a bathhouse, three slatted shelves stacked with pale bars of hemp soap wrapped in paper and twine, a shallow woven tray of loose soap bars on top, a few soap flakes on the bottom shelf",0.9 x 0.35 x 1.1
+Teaware shelf,Furniture,"a narrow open timber shelf for a tea house, five shelves of clean unglazed fired-stone teapots and cups stacked upside down in neat rows",1 x 0.4 x 1.6
+Tea set cabinet,Furniture,"a low timber cabinet with sliding slatted doors half open, inside it stacked trays each holding a filled teapot and cups ready to serve, a folded cloth on top",1.2 x 0.5 x 1.1
+Used tea rack,Furniture,"a rough slatted drying rack on short legs beside a shallow wooden wash basin, stacked trays of empty stained cups and teapots waiting to be washed, a rag hanging off one side",1.2 x 0.5 x 1

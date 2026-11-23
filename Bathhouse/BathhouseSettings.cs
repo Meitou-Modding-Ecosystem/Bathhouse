@@ -90,6 +90,14 @@ public sealed class BathhouseSettings
     public int HoursBetweenGroups { get; set; } = 6;
 
     /// <summary>
+    /// The most bathers in a group while the bathhouse is new (reputation 1); each reputation level adds <c>GroupSize.PerReputation</c>, up to the
+    /// building's tub seats plus 2. The world's Squad size setting does not apply.
+    /// </summary>
+    [Setting("Most bathers per group", Hint = "Groups come with 1 to this many bathers while the bathhouse is new. Reputation raises it, up to the"
+        + " tub seats plus 2.", Min = 1, Max = 12, Step = 1)]
+    public int StartGroupSize { get; set; } = 3;
+
+    /// <summary>
     /// Faction relation lost per complaint.
     /// </summary>
     [Setting("Relation lost per complaint", Min = 0, Max = 10, Step = 1)]

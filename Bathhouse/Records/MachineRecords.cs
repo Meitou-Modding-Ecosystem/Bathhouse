@@ -30,8 +30,8 @@ static class MachineRecords
             [new("584-gamedata.base", 10, 50)], [new(Ids.Towel, 10)],
             "Weaves fabric into thick towels, two from each bolt. Give one of your people its operate job and keep it in fabric."),
         new(Ids.SoapPress, Ids.SoapPressWork, "Soap Press", "52163-rebirth.mod", "Hemp Processor", "52158-rebirth.mod", "drugs",
-            [new("1965-gamedata.base", 10, 200)], [new(Ids.Soap, 10)],
-            "Presses hemp into bars of soap, two hemp a bar. Give one of your people its operate job and keep it in hemp."),
+            [new("1965-gamedata.base", 10, 100)], [new(Ids.Soap, 10)],
+            "Presses hemp into bars of soap, one hemp a bar. Give one of your people its operate job and keep it in hemp."),
         new(Ids.TeaDryer, Ids.TeaDryerWork, "Tea Dryer", "50922-rebirth.mod", "Biofuel Distillery (Hemp)", "50921-rebirth.mod", "hemp to fuel",
             [new("42309-changes_otto.mod", 10, 100)], [new(Ids.GreenfruitTea, 10)],
             "Slices and dries greenfruit into greenfruit tea. Give one of your people its operate job and keep it in greenfruit."),
@@ -72,13 +72,15 @@ static class MachineRecords
         record.Ints["function"] = RefineryFunction;
         record.Bools["is production building"] = true;
         record.Bools["output per day"] = true;
+        record.Floats["use range"] = WorkSpots.OperatorReach;
         RecordKit.Links(record, "consumes", [.. spec.Consumes.Select(f => (f.Item, f.Holds, f.Rate))]);
         RecordKit.Links(record, "produces", [.. spec.Produces.Select(f => (f.Item, f.Holds, 0))]);
         return record;
     }
 
     /// <summary>
-    /// A machine: the model building's look, size and build cost with the given functionality, in the given build-menu list.
+    /// A machine: the model building's look, size and build cost with the given functionality, in the given build-menu list. On its own look its
+    /// operator stands at a use node in front of it (<see cref="WorkSpots"/>), not wherever the walk to its centre ends.
     /// </summary>
     static FcsRecord Building(GameDatabase game, Spec spec, string work)
     {
@@ -87,6 +89,7 @@ static class MachineRecords
         var record = RecordKit.Copy(model, spec.Id, spec.Name, "functionality", "upgrades to");
 
         if (model != standIn) KeepCost(standIn, record);
+        if (model != standIn) FurnitureRecords.AddUseNode(record, WorkSpots.Local(spec.Id), WorkSpots.NodeYaw);
 
         RecordKit.Links(record, "functionality", (work, 0, 0));
         record.Strings["building category"] = RecordKit.BuildCategory;
@@ -133,20 +136,22 @@ static class MachineRecords
         var record = RecordKit.Copy(model, Ids.TeaBenchWork, "tea bench", "item crafts");
 
         RecordKit.Links(record, "item crafts", (Ids.TeaSet, 5, 0));
+        record.Floats["use range"] = WorkSpots.OperatorReach;
         return record;
     }
 
     /// <summary>
-    /// The washing machine's functionality: the cooking stove's crafting, with a queue of towel and robe washes (each from its <c>ingredients</c>, a
-    /// dirty one and a quarter of a soap). The output holds 10 towels, and one robe (armour never stacks).
+    /// The washing machine's functionality: the cooking stove's crafting, with a queue of towel, robe and teaware washes (each from its
+    /// <c>ingredients</c>, a dirty one and a quarter of a soap). The output holds 10 towels, one robe (armour never stacks) and 5 teaware.
     /// </summary>
     static FcsRecord WasherWork(GameDatabase game)
     {
         var model = RecordKit.Model(game, FcsRecordType.BuildingFunctionality, "43954-rebirth.mod", "cooking general");
         var record = RecordKit.Copy(model, Ids.WasherWork, "Washing Machine", "item crafts");
 
-        RecordKit.Links(record, "item crafts", (Ids.Towel, 10, 0), (Ids.Robe, 1, 0));
+        RecordKit.Links(record, "item crafts", (Ids.Towel, 10, 0), (Ids.Robe, 1, 0), (Ids.Teaware, 5, 0));
         record.Floats["production mult"] = WashSpeed;
+        record.Floats["use range"] = WorkSpots.OperatorReach;
         return record;
     }
 
@@ -156,9 +161,10 @@ static class MachineRecords
     static FcsRecord Washer(GameDatabase game)
     {
         var spec = new Spec(Ids.WashingMachine, Ids.WasherWork, "Washing Machine", "52162-rebirth.mod", "Sake Still", "", "", [], [],
-            "Washes dirty towels and robes clean, one bar of soap for four. Queue Towel and Robe washes at it like a crafting bench (Repeat"
-            + " Queue keeps it going) and give one of your people its operate job. A Laundry runner (panel button) fetches dirty goods from the"
-            + " hampers for the queued washes, keeps it in soap and takes towels to the racks and robes to the lockers.");
+            "Washes dirty towels, robes and used tea sets clean, one bar of soap for four. Queue Towel, Robe and Teaware washes at it like a"
+            + " crafting bench (Repeat Queue keeps it going) and give one of your people its operate job. A Laundry runner (panel button)"
+            + " fetches dirty goods from the hampers and the used tea rack for the queued washes, keeps it in soap and takes towels to the"
+            + " racks, robes to the lockers and teaware to the teaware shelf.");
         return Building(game, spec, Ids.WasherWork);
     }
 
@@ -191,6 +197,7 @@ static class MachineRecords
             + " from the building's stores, so build a bathhouse water tank beside it."
             + $" Each boiler heats {BathhouseSettings.DefaultSeatsPerBoiler} bathers' seats.";
         record.Bools["creates player town"] = true;
+        EffectRecords.Attach(record, Ids.Boiler);
         return record;
     }
 

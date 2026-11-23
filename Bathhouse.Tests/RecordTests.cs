@@ -3,7 +3,9 @@ using Bathhouse.Records;
 using Meitou.Content;
 using Meitou.Data;
 using Meitou.Data.Fcs;
+using Meitou.Data.Gameplay;
 using Meitou.Data.Gameplay.Construction;
+using Meitou.Simulation.Factions;
 
 namespace Bathhouse.Tests;
 
@@ -45,15 +47,54 @@ public sealed class RecordTests
     }
 
     [Fact]
-    public void The_washing_machine_crafts_towels_and_robes_from_dirty_ones_and_soap()
+    public void The_washing_machine_washes_towels_robes_and_teaware_from_dirty_ones_and_soap()
     {
         var game = Game();
         var data = Machine(Ids.WashingMachine);
 
         Assert.True(data.IsCrafting);
-        Assert.Equal([Ids.Towel, Ids.Robe], data.Craft!.Options.Select(o => o.Item));
+        Assert.Equal([Ids.Towel, Ids.Robe, Ids.Teaware], data.Craft!.Options.Select(o => o.Item));
+        Assert.Equal([Ids.UsedTeaSet, Ids.Soap], game.Find(Ids.Teaware)!.GetReferences("ingredients").Select(l => l.TargetStringId));
         Assert.Equal([Ids.DirtyTowel, Ids.Soap], game.Find(Ids.Towel)!.GetReferences("ingredients").Select(l => l.TargetStringId));
         Assert.Equal([Ids.DirtyRobe, Ids.Soap], game.Find(Ids.Robe)!.GetReferences("ingredients").Select(l => l.TargetStringId));
+    }
+
+    [Theory]
+    [InlineData(Ids.TeaShelf, Ids.GreenfruitTea, 50)]
+    [InlineData(Ids.TeawareShelf, Ids.Teaware, 20)]
+    [InlineData(Ids.TeaSetCabinet, Ids.TeaSet, 20)]
+    [InlineData(Ids.UsedTeaRack, Ids.UsedTeaSet, 20)]
+    [InlineData(Ids.TowelRack, Ids.Towel, 50)]
+    [InlineData(Ids.MassageStation, Ids.Towel, 5)]
+    public void Each_store_holds_only_its_item_up_to_its_capacity(string piece, string item, int capacity)
+    {
+        var data = Machine(piece);
+
+        Assert.Equal([item], data.StorageLimit);
+        Assert.Equal(capacity, data.StackBonusMult);
+    }
+
+    [Theory]
+    [InlineData("3950-gamedata.base", 1)]
+    [InlineData("1161-gamedata.base", 3)]
+    [InlineData("51336-rebirth.mod", 5)]
+    public void A_bather_template_makes_its_size_whatever_the_squad_size_setting(string source, int size)
+    {
+        var record = Game().Find(SquadRecords.Id(source, size)!)!;
+
+        var plan = SquadFactory.Plan(Game(), SquadTemplate.From(record), multiplier: 3, seed: 1, key: 2, checkWorldState: false);
+
+        Assert.Equal(size, plan.TotalMembers);
+    }
+
+    [Fact]
+    public void The_tea_table_holds_one_tea_set_fresh_or_used()
+    {
+        var data = Machine(Ids.TeaTable);
+
+        Assert.Equal([Ids.TeaSet, Ids.UsedTeaSet], data.StorageLimit);
+        Assert.Equal((2, 2), (data.StorageWidth, data.StorageHeight));
+        Assert.Equal(1, data.StackBonusMult);
     }
 
     [Fact]
@@ -81,8 +122,71 @@ public sealed class RecordTests
     [InlineData(Ids.LargeTub)]
     [InlineData(Ids.OilBath)]
     [InlineData(Ids.BloodBath)]
-    public void A_tub_has_no_functionality_for_other_AI_to_sit_in(string tub) =>
-        Assert.Empty(Game().Find(tub)!.GetReferences("functionality"));
+    public void A_tub_is_a_storage_that_takes_nothing_so_only_shift_clicks_use_it(string tub)
+    {
+        var data = Machine(tub);
+
+        Assert.True(data.IsStorage);
+        Assert.False(data.Operable);
+        Assert.False(data.Accepts(Ids.Towel, FcsRecordType.Item));
+        Assert.False(data.Accepts("1914-gamedata.base", FcsRecordType.Item));
+    }
+
+    [Fact]
+    public void The_counter_stores_only_towels_and_soap()
+    {
+        var data = Machine(Ids.Counter);
+
+        Assert.True(data.IsStorage);
+        Assert.True(data.Accepts(Ids.Towel, FcsRecordType.Item));
+        Assert.True(data.Accepts(Ids.Soap, FcsRecordType.Item));
+        Assert.False(data.Accepts(Ids.DirtyTowel, FcsRecordType.Item));
+    }
+
+    [Theory]
+    [InlineData(Ids.SmallTub)]
+    [InlineData(Ids.MediumTub)]
+    [InlineData(Ids.LargeTub)]
+    [InlineData(Ids.OilBath)]
+    [InlineData(Ids.BloodBath)]
+    [InlineData(Ids.Boiler)]
+    public void Tubs_and_the_boiler_steam_with_a_system_the_mod_ships(string piece)
+    {
+        var game = Game();
+        var effects = game.Find(piece)!.Instances.Values
+            .Select(i => game.Find(i.Target))
+            .Where(r => r?.Type == FcsRecordType.Effect)
+            .ToList();
+        var library = new Meitou.Data.Particles.ParticleLibrary();
+        library.AddScript(File.ReadAllText(SteamScript()), "bathhouse_steam.pu");
+
+        var steam = Assert.Single(effects);
+        Assert.Empty(library.Errors);
+        Assert.NotNull(library.FindSystem(steam!.GetString("particle system")));
+    }
+
+    [Fact]
+    public void The_steam_uses_a_particle_material_of_the_base_game()
+    {
+        var install = GameInstall.Locate();
+        Assert.SkipWhen(install is null, "No game install (KENSHI_PATH).");
+        var library = new Meitou.Data.Particles.ParticleLibrary();
+        library.AddScript(File.ReadAllText(SteamScript()), "bathhouse_steam.pu");
+        var materials = Directory.EnumerateFiles(Path.Combine(install!.DataDirectory, "particles", "materials"), "*.material")
+            .Select(File.ReadAllText);
+
+        Assert.All(library.AllSystems, s => Assert.Contains(materials, m => s.Techniques.All(t => m.Contains("material " + t.Material))));
+    }
+
+    /// <summary>
+    /// The mod's steam script in the repo.
+    /// </summary>
+    static string SteamScript()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Bathhouse", "items", "particles", "bathhouse_steam.pu"))) dir = dir.Parent;
+        return Path.Combine(dir!.FullName, "Bathhouse", "items", "particles", "bathhouse_steam.pu");
+    }
 
     [Fact]
     public void The_water_tank_stores_only_water()
