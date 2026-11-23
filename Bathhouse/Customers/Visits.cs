@@ -26,6 +26,11 @@ public enum VisitPhase
     /// Soaked and lying on a massage bed (after <see cref="Done"/> in number, as saves keep it).
     /// </summary>
     Massage,
+
+    /// <summary>
+    /// Soaked and going to a tea table, or sitting on the floor at it drinking (from layout 7).
+    /// </summary>
+    Tea,
 }
 
 /// <summary>
@@ -122,6 +127,26 @@ public sealed class Visit
     /// The soak's quality once it ended, for the review board; NaN before, and after a load (not saved).
     /// </summary>
     public float Quality { get; set; } = float.NaN;
+
+    /// <summary>
+    /// The tea table it drinks at while on <see cref="VisitPhase.Tea"/>.
+    /// </summary>
+    public string? Table { get; set; }
+
+    /// <summary>
+    /// Whether it sits at its tea table.
+    /// </summary>
+    public bool Sitting { get; set; }
+
+    /// <summary>
+    /// Game hours it has sat drinking.
+    /// </summary>
+    public double Drunk { get; set; }
+
+    /// <summary>
+    /// Game hours it has spent getting to its tea table.
+    /// </summary>
+    public double TeaWait { get; set; }
 }
 
 /// <summary>

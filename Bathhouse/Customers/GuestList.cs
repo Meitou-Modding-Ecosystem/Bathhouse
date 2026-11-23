@@ -45,6 +45,7 @@ public static class GuestList
             {
                 VisitPhase.Arriving => Arriving(name, kind, visit),
                 VisitPhase.Soaking => Soaking(name, kind, visit, soaks.Of(who), tubs, length),
+                VisitPhase.Tea => Drinking(name, kind, visit),
                 _ => Massaged(name, kind, visit),
             });
         }
@@ -78,6 +79,12 @@ public static class GuestList
         string status = soak.Seated ? $"soaking in the {where}" : "going to the tub";
         return new GuestView(name, kind, status, Hours(hours - soak.Soaked), quality.Total, Issues(quality));
     }
+
+    /// <summary>
+    /// A guest going to a tea table or drinking at it.
+    /// </summary>
+    static GuestView Drinking(string name, string kind, Visit visit) =>
+        new(name, kind, visit.Sitting ? "drinking tea" : "going to the tea table", Hours(Clientele.TeaHours - visit.Drunk), visit.Quality, "");
 
     /// <summary>
     /// A guest on a massage bed.
