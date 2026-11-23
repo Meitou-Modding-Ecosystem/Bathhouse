@@ -45,15 +45,40 @@ public sealed class RecordTests
     }
 
     [Fact]
-    public void The_washing_machine_crafts_towels_and_robes_from_dirty_ones_and_soap()
+    public void The_washing_machine_washes_towels_robes_and_teaware_from_dirty_ones_and_soap()
     {
         var game = Game();
         var data = Machine(Ids.WashingMachine);
 
         Assert.True(data.IsCrafting);
-        Assert.Equal([Ids.Towel, Ids.Robe], data.Craft!.Options.Select(o => o.Item));
+        Assert.Equal([Ids.Towel, Ids.Robe, Ids.Teaware], data.Craft!.Options.Select(o => o.Item));
+        Assert.Equal([Ids.UsedTeaSet, Ids.Soap], game.Find(Ids.Teaware)!.GetReferences("ingredients").Select(l => l.TargetStringId));
         Assert.Equal([Ids.DirtyTowel, Ids.Soap], game.Find(Ids.Towel)!.GetReferences("ingredients").Select(l => l.TargetStringId));
         Assert.Equal([Ids.DirtyRobe, Ids.Soap], game.Find(Ids.Robe)!.GetReferences("ingredients").Select(l => l.TargetStringId));
+    }
+
+    [Theory]
+    [InlineData(Ids.TeaShelf, Ids.GreenfruitTea, 50)]
+    [InlineData(Ids.TeawareShelf, Ids.Teaware, 20)]
+    [InlineData(Ids.TeaSetCabinet, Ids.TeaSet, 20)]
+    [InlineData(Ids.UsedTeaRack, Ids.UsedTeaSet, 20)]
+    [InlineData(Ids.TowelRack, Ids.Towel, 50)]
+    public void Each_store_holds_only_its_item_up_to_its_capacity(string piece, string item, int capacity)
+    {
+        var data = Machine(piece);
+
+        Assert.Equal([item], data.StorageLimit);
+        Assert.Equal(capacity, data.StackBonusMult);
+    }
+
+    [Fact]
+    public void The_tea_table_holds_one_tea_set_fresh_or_used()
+    {
+        var data = Machine(Ids.TeaTable);
+
+        Assert.Equal([Ids.TeaSet, Ids.UsedTeaSet], data.StorageLimit);
+        Assert.Equal((2, 2), (data.StorageWidth, data.StorageHeight));
+        Assert.Equal(1, data.StackBonusMult);
     }
 
     [Fact]

@@ -13,11 +13,11 @@ for its look (a stand-in until the mod's models land) and links game items by id
 | Items | Towel, Dirty Towel, Soap, Greenfruit Tea, Teaware, Tea Set, Used Tea Set, Dirty Robe | Fabrics, Fabrics, Foodcube, Greenfruit, Cup, Ceramic Bowl, Ceramic Bowl, Fabrics |
 | Armour | Bathhouse Robe (`slot` 5, body: it replaces body armour; the Monk Robe sits in the belt slot, 14, under body armour; `part coverage` 20 on each arm and the stomach, 27 on the chest, so its total coverage is 100 and the clothing bench makes it from one Fabrics) | Monk Robe |
 | Production (function 4) | Towel Loom (Fabrics to 2 Towels), Soap Press (Hemp to Soap), Tea Dryer (Greenfruit to Greenfruit Tea), Pottery Kiln (Raw Stone to Teaware) | Fabric Loom (hemp), Hemp Processor, Biofuel Distillery (Hemp), Cooking Stove |
-| Crafting (function 10) | Tea Bench: Tea Set from Teaware + Greenfruit Tea (the Tea Set's `ingredients`); Washing Machine: a queue of Towel (Dirty Towel + 1/4 Soap) and Bathhouse Robe (Dirty Robe + 1/4 Soap) washes, 1 h each (the items' `ingredients` and `production time`; output holds 10 towels or 1 robe) | Cooking Stove, Sake Still |
+| Crafting (function 10) | Tea Bench: Tea Set from Teaware + Greenfruit Tea (the Tea Set's `ingredients`); Washing Machine: a queue of Towel (Dirty Towel + 1/4 Soap), Bathhouse Robe (Dirty Robe + 1/4 Soap) and Teaware (Used Tea Set + 1/4 Soap) washes, 1 h each (the items' `ingredients` and `production time`; output holds 10 towels, 1 robe or 5 teaware) | Cooking Stove, Sake Still |
 | Power | Steam Boiler: draws 10, functionality the game's Lights (a consumer with no operator, so the Power switch shows) | Boiler Tank |
 | Water | Bathhouse Water Tank: Resource storage limited to Water, as the game's Water Tower | Small Water Tank |
 | Tubs (Resource storage that takes nothing: `itemtype limit` BUILDING, so only a Shift + right click uses it) | Small Tub (1 seat), Medium Tub (2), Large Bath (4), Oil Bath, Blood Bath (+10 Raw Meat to build) | own model (below), Large Barrels, Booze Barrels, Booze Barrel, Cannibal Butcher Table |
-| Service | Massage Bed (bed), Massage Station (production: Towel to Dirty Towel, 1 operator), Check-in Counter (Towels and Soap only, so haulers stock it; grid 12 x 10), Lockers (locks; haulers store only Robes: `itemtype limit` ARMOUR and `limit inventory` Robe and Dirty Robe, two items so the grid stays 8 x 8 instead of one robe's footprint), Laundry Hamper (Dirty Towels only), Robe Hamper (Dirty Robes only), Towel Rack (Towels only), Soap Shelf (Soap only), Tea Table (Tea Sets and Used Tea Sets only), Tea Shelf (Greenfruit Tea, Teaware, Tea Sets, Used Tea Sets only), Review Board | Bed, Small Table, Shop Counter, Crossbow Locker, Small Barrel, Small Barrel, Shelf, Shelf, Small Table, Shelf, banner_traders |
+| Service | Massage Bed (bed), Massage Station (production: Towel to Dirty Towel, 1 operator), Check-in Counter (Towels and Soap only, so haulers stock it; grid 12 x 10), Lockers (locks; haulers store only Robes: `itemtype limit` ARMOUR and `limit inventory` Robe and Dirty Robe, two items so the grid stays 8 x 8 instead of one robe's footprint), Laundry Hamper (Dirty Towels only), Robe Hamper (Dirty Robes only), Towel Rack (Towels only), Soap Shelf (Soap only), Tea Table (one Tea Set or Used Tea Set: both listed, grid 2 x 2, one set's footprint), Tea Shelf (Greenfruit Tea only), Teaware Shelf (Teaware only), Tea Set Cabinet (Tea Sets only), Used Tea Rack (Used Tea Sets only), Review Board | Bed, Small Table, Shop Counter, Crossbow Locker, Small Barrel, Small Barrel, Shelf, Shelf, Small Table, Shelf, Shelf, Shelf, Shelf, banner_traders |
 | Decorations | Zen Garden, Wall Art, Tapestry, Statue, Towel Hanger, Tea Set Display | Carpet: Rusty Rug, banner_empire, banner_holy, Emperor Statue, Wall Shelf 1, Wall Shelf 2 |
 
 ### Values
@@ -33,9 +33,9 @@ Machine hours an item: 24 / (`output rate` x `production mult`).
 | Towel | 1/2 Fabrics (towel loom) | 0.5 | 27 (as washed: Dirty Towel + 1/4 Soap, 1 h) |
 | Dirty Towel | a Towel less its wash | | 22 |
 | Greenfruit Tea | 1 Greenfruit (tea dryer) | 0.4 | 27 |
-| Teaware | 1 Raw Stone (kiln) | 0.5 | 37 |
+| Teaware | 1 Raw Stone (kiln), or washed: Used Tea Set + 1/4 Soap, 1 h | 0.5 | 38 |
 | Tea Set | Teaware + Greenfruit Tea (tea bench) | 4 | 69 |
-| Used Tea Set | Teaware to rinse | | 36 |
+| Used Tea Set | Teaware less its wash | | 32 |
 | Bathhouse Robe | 1 Fabrics (clothing bench) | 3 at quality 50 | 60 at quality 50 (`relative price mult` 0.11; 5 to 237 by quality) |
 | Dirty Robe | a robe less its wash | | 54 |
 
@@ -152,10 +152,11 @@ following the water's heat needs an engine hook.
   factor: 0.1 at Dexterity 0 rising evenly to 1 at 100, x 1.2 in a Bathhouse Robe, never past 1. Each hour worked with a customer
   on the bed trains the attendant's Dexterity by 0.5 on the game's curve (about a third of a level an hour at 20). After 1 hour massaged, or 1 hour lying with nobody at the station (or waiting for the bed), it gets up and pays
   the soak, the tea and the massage so far.
-- **Limited storage** (`FurnitureRecords.Limits`): the hamper, towel rack, soap shelf, tea table and tea shelf are the game's Resource storage with a
-  `limit inventory`, so haulers (who fill the nearest store that `Accepts` an item) never put other goods in them. The game sizes a store limited to
-  one item to one stack of it, so the hamper, rack and soap shelf carry `stackable bonus mult` 5 (50 towels, 100 soap). The tea server takes from and rinses into tea
-  shelves first (`Plans.TeaStore`).
+- **Limited storage** (`FurnitureRecords.Limits`): the hampers, racks, shelves, cabinet and tea table are the game's Resource storage with a
+  `limit inventory`, so haulers (who fill the nearest store that `Accepts` an item) never put other goods in them. The game makes a store limited to
+  one item one cell of that item's footprint (engine `MachineData.StorageGrid`), and a limited store's stack starts from 1 times its `stackable
+  bonus mult` (engine `Inventory.LimitOf`), so the mult is the capacity (`FurnitureRecords.Capacity`: hamper, towel rack and tea shelf 50, soap
+  shelf 100, robe hamper and the teaware, tea set and used tea stores 20), as the game's own (Storage: Hemp 250, Water Tank 100).
 - **Private beds** (`PrivateBeds`): only customers and the player's orders use a massage bed. Every game bed search (sleeping, "Sleep when
   injured", rescuing or putting someone in the nearest bed, NPC sleep, rented beds) passes over a bed `FixtureRegistry.Reachable` refuses for
   the searcher's faction, so each massage bed is marked unreachable for every faction (`MarkUnreachable`, until the end of the next 24-hour
@@ -203,16 +204,18 @@ saved: a loaded staff member plans again.
   the counter), so a dirty tub empties and gets scrubbed; with nobody, a dirty tub is used and the visit is worse. Like any job, it runs only
   when no job above it in the list has work: hauling jobs above it keep a hauler from scrubbing.
 - **Laundry runner** (washing machine): loads what it carries that the current wash takes; puts carried clean goods away (towels to the first
-  towel rack, else the counter, robes to the first lockers, with room) and dirty goods it cannot load back in their hamper; takes finished goods
-  out of the washer to those places; fetches from a hamper only as many dirty goods (up to 10) as the queued washes of the current kind still
+  towel rack, else the counter, robes to the first lockers, teaware to the first teaware shelf, with room) and dirty goods it cannot load back in their hamper (used tea
+  sets: the used tea rack); takes finished goods
+  out of the washer to those places; fetches from a hamper or used tea rack only as many dirty goods (up to 10) as the queued washes of the current kind still
   need, since the washer drops what is left in its sections when the next wash takes another item; keeps 3 Soap in the washer from a store in
   the building (not a hamper or the counter). Queue the washes and set Repeat Queue at the washer; it also needs an operator.
-- **Tea server** (tea table): brings a Tea Set from a store to a table without one; takes a table's Used Tea Sets to a store, where each is rinsed into Teaware.
+- **Tea server** (tea table): puts carried Used Tea Sets in a used tea rack; brings a Tea Set (from a tea set cabinet first) to an empty table; takes a
+  table's Used Tea Set to a used tea rack. The washing machine washes them back into Teaware (the laundry runner fetches them like dirty towels).
 
 ## Research
 
 All in the Crafting list, no cost: Bathhouse Basics (level 1; loom, press, washer, boiler, water tank, small tub, counter, lockers, hamper,
-rack, robe hamper, soap shelf, robe), then Hot Baths (medium and large tubs, review board, decorations), Massage, Tea Service (dryer, kiln, bench, tea table, tea shelf, display)
+rack, robe hamper, soap shelf, robe), then Hot Baths (medium and large tubs, review board, decorations), Massage, Tea Service (dryer, kiln, bench, tea table, tea shelf, teaware shelf, tea set cabinet, used tea rack, display)
 and Oil Baths (level 2), and Blood Baths after Hot Baths (level 3).
 
 ## Settings

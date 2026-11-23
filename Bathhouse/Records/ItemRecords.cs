@@ -83,8 +83,8 @@ static class ItemRecords
             "A pot and cups of fired stone. Fill it with greenfruit tea at a tea bench to make a tea set.", "teaware"),
         new(Ids.TeaSet, "Tea Set", "42316-changes_otto.mod", "Ceramic Bowl", 115, 5,
             "A tray of hot greenfruit tea, ready to serve. Drunk, it leaves a used tea set behind.", "teaset"),
-        new(Ids.UsedTeaSet, "Used Tea Set", "42316-changes_otto.mod", "Ceramic Bowl", 60, 5,
-            "A tray of empty, stained cups. The tea server rinses it back into teaware.", "usedteaset"),
+        new(Ids.UsedTeaSet, "Used Tea Set", "42316-changes_otto.mod", "Ceramic Bowl", 53, 5,
+            "A tray of empty, stained cups. A washing machine and a little soap make it clean teaware again.", "usedteaset"),
         new(Ids.DirtyRobe, "Dirty Robe", "584-gamedata.base", "Fabrics", 90, 5,
             "A robe a bather has worn. A washing machine and a little soap make it clean again.", "dirtyrobe"),
     ];
@@ -111,6 +111,7 @@ static class ItemRecords
 
         if (spec.Id == Ids.TeaSet) RecordKit.Links(record, "ingredients", (Ids.Teaware, 100, 0), (Ids.GreenfruitTea, 100, 0));
         if (spec.Id == Ids.Towel) Washed(record, Ids.DirtyTowel);
+        if (spec.Id == Ids.Teaware) Washed(record, Ids.UsedTeaSet);
         if (record.References.ContainsKey("ingredients")) Markup(record);
         return record;
     }

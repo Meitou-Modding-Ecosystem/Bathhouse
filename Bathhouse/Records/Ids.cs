@@ -112,6 +112,11 @@ public static class Ids
     /// </summary>
     public const string SoapShelf = "66-" + FileName;
 
+    /// <summary>
+    /// The tea stores, one for each tea item the brewing makes or leaves: teaware, tea sets and used tea sets (service furniture).
+    /// </summary>
+    public const string TeawareShelf = "67-" + FileName, TeaSetCabinet = "68-" + FileName, UsedTeaRack = "69-" + FileName;
+
     #endregion
 
     #region Effects

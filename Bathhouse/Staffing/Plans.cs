@@ -101,7 +101,12 @@ public sealed class Plans(Soaks soaks, TubCare care)
     /// <summary>
     /// The washer's crafts: each clean item, the dirty one it is washed from, the hamper that holds those and where the clean ones go.
     /// </summary>
-    static readonly (string Clean, string Dirty, string Hamper)[] Washes = [(Ids.Towel, Ids.DirtyTowel, Ids.Hamper), (Ids.Robe, Ids.DirtyRobe, Ids.RobeHamper)];
+    static readonly (string Clean, string Dirty, string Hamper)[] Washes =
+    [
+        (Ids.Towel, Ids.DirtyTowel, Ids.Hamper),
+        (Ids.Robe, Ids.DirtyRobe, Ids.RobeHamper),
+        (Ids.Teaware, Ids.UsedTeaSet, Ids.UsedTeaRack),
+    ];
 
     /// <summary>
     /// The laundry runner's next errand, in order: load what the washer's current craft takes, put away carried clean goods, take dirty goods the
@@ -177,12 +182,15 @@ public sealed class Plans(Soaks soaks, TubCare care)
     }
 
     /// <summary>
-    /// Where clean goods go: towels to the first rack, else counter, robes to the first lockers, in the building with room for one.
+    /// Where clean goods go: towels to the first rack, else counter, robes to the first lockers, teaware to the first teaware shelf, in the
+    /// building with room for one.
     /// </summary>
-    static BuildSite? CleanTarget(World world, string building, string clean) =>
-        clean == Ids.Robe
-            ? WithRoom(world, building, Ids.Lockers, Ids.Robe)
-            : WithRoom(world, building, Ids.TowelRack, Ids.Towel) ?? WithRoom(world, building, Ids.Counter, Ids.Towel);
+    static BuildSite? CleanTarget(World world, string building, string clean) => clean switch
+    {
+        Ids.Robe => WithRoom(world, building, Ids.Lockers, Ids.Robe),
+        Ids.Teaware => WithRoom(world, building, Ids.TeawareShelf, Ids.Teaware),
+        _ => WithRoom(world, building, Ids.TowelRack, Ids.Towel) ?? WithRoom(world, building, Ids.Counter, Ids.Towel),
+    };
 
     /// <summary>
     /// The first piece of a record in the building with room for one of an item; null for none.
@@ -205,7 +213,7 @@ public sealed class Plans(Soaks soaks, TubCare care)
     {
         if (world.Machines.Find(washer.Id) is not { } machine || Goods.Carried(world, slot) is not { } carried) return false;
 
-        foreach (var input in machine.Inputs.Where(i => !i.Idle && i.Item is Ids.DirtyTowel or Ids.DirtyRobe or Ids.Soap))
+        foreach (var input in machine.Inputs.Where(i => !i.Idle && (i.Item == Ids.Soap || Washes.Any(w => w.Dirty == i.Item))))
         {
             while (input.Count < input.Recipe.Capacity && Goods.Take(carried, input.Item)) input.Count++;
         }
@@ -249,51 +257,58 @@ public sealed class Plans(Soaks soaks, TubCare care)
     #region Tea
 
     /// <summary>
-    /// The tea server's next errand: deliver carried Tea Sets, rinse a table's Used Tea Sets into Teaware in a store, or bring a Tea Set to a table without one.
+    /// The tea server's next errand: put carried Used Tea Sets in a used tea rack, deliver a carried Tea Set to an empty table, take a table's
+    /// Used Tea Set to a rack, or bring a Tea Set from a store to an empty table.
     /// </summary>
     static Leg[]? Tea(World world, int slot, string? building)
     {
         if (building is null) return null;
 
+        var bag = Goods.Carried(world, slot);
+        if (Goods.Count(bag, Ids.UsedTeaSet) > 0 && TeaStore(world, building, Ids.UsedTeaSet, room: true) is { } rack)
+            return [new Leg(WorkSpots.Front(rack), Handling, (w, s) => Put(w, s, rack, Ids.UsedTeaSet))];
+
         var tables = Goods.PiecesIn(world, building, Ids.TeaTable).ToList();
-        var bare = tables.FirstOrDefault(t => Goods.Count(Goods.StoreOf(world, t), Ids.TeaSet) == 0);
-        if (Goods.Count(Goods.Carried(world, slot), Ids.TeaSet) > 0 && bare is not null)
-            return [new Leg(WorkSpots.Front(bare), Handling, (w, s) => Put(w, s, bare, Ids.TeaSet, 1))];
+        var empty = tables.FirstOrDefault(t => TableEmpty(world, t));
+        if (Goods.Count(bag, Ids.TeaSet) > 0 && empty is not null)
+            return [new Leg(WorkSpots.Front(empty), Handling, (w, s) => Put(w, s, empty, Ids.TeaSet, 1))];
 
         var used = tables.FirstOrDefault(t => Goods.Count(Goods.StoreOf(world, t), Ids.UsedTeaSet) > 0);
-        if (used is not null && TeaStore(world, building, Ids.Teaware, room: true) is { } shelf)
-            return [Pick(used, Ids.UsedTeaSet, Armful), new Leg(WorkSpots.Front(shelf), Handling, (w, s) => Rinse(w, s, shelf))];
+        if (used is not null && TeaStore(world, building, Ids.UsedTeaSet, room: true) is { } bin)
+            return [Pick(used, Ids.UsedTeaSet, 1), new Leg(WorkSpots.Front(bin), Handling, (w, s) => Put(w, s, bin, Ids.UsedTeaSet))];
 
-        if (bare is null || TeaStore(world, building, Ids.TeaSet, room: false) is not { } stock) return null;
+        if (empty is null || TeaStore(world, building, Ids.TeaSet, room: false) is not { } stock) return null;
 
-        return [Pick(stock, Ids.TeaSet, 1), new Leg(WorkSpots.Front(bare), Handling, (w, s) => Put(w, s, bare, Ids.TeaSet, 1))];
+        return [Pick(stock, Ids.TeaSet, 1), new Leg(WorkSpots.Front(empty), Handling, (w, s) => Put(w, s, empty, Ids.TeaSet, 1))];
     }
 
     /// <summary>
-    /// Rinses the carried Used Tea Sets: each becomes a Teaware in the store, while it has room; the rest stay carried.
+    /// Whether a tea table holds neither a Tea Set nor a Used Tea Set: its one place is free for a set.
     /// </summary>
-    static bool Rinse(World world, int slot, BuildSite shelf)
+    static bool TableEmpty(World world, BuildSite table)
     {
-        if (Goods.StoreOf(world, shelf) is not { } store || Goods.Carried(world, slot) is not { } bag) return false;
-
-        int rinsed = 0;
-        while (Goods.Count(bag, Ids.UsedTeaSet) > 0 && Goods.Make(world, Ids.Teaware) is { } clean && store.HasRoomFor(clean))
-        {
-            Goods.Take(bag, Ids.UsedTeaSet);
-            store.Add(clean);
-            rinsed++;
-        }
-
-        return rinsed > 0;
+        var store = Goods.StoreOf(world, table);
+        return Goods.Count(store, Ids.TeaSet) == 0 && Goods.Count(store, Ids.UsedTeaSet) == 0;
     }
 
     /// <summary>
-    /// The first store in the building that takes a record and is not a tea table or counter, tea shelves first: with room for it, or holding one.
+    /// The first store in the building that takes a record and is not a tea table or counter, the record's own store first (a tea set cabinet,
+    /// a used tea rack): with room for it, or holding one.
     /// </summary>
     static BuildSite? TeaStore(World world, string building, string record, bool room) =>
         world.Buildings.All
-            .OrderBy(s => s.Record != Ids.TeaShelf)
+            .OrderBy(s => s.Record != OwnStore(record))
             .FirstOrDefault(s => IsTeaStore(world, s, building, record, room));
+
+    /// <summary>
+    /// The piece made to hold a tea record (null for another record).
+    /// </summary>
+    static string? OwnStore(string record) => record switch
+    {
+        Ids.TeaSet => Ids.TeaSetCabinet,
+        Ids.UsedTeaSet => Ids.UsedTeaRack,
+        _ => null,
+    };
 
     /// <summary>
     /// Whether a site is a finished store in the building, not a tea table or counter, that takes a record: with room for it, or holding one.
