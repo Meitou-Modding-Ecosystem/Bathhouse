@@ -70,6 +70,16 @@ public sealed class Pricing
     public static int Next(int percent) => Steps.FirstOrDefault(s => s > percent, Steps[0]);
 
     /// <summary>
+    /// The step below <paramref name="percent"/> (the lowest stays).
+    /// </summary>
+    public static int Previous(int percent) => Steps.LastOrDefault(s => s < percent, Steps[0]);
+
+    /// <summary>
+    /// The step above <paramref name="percent"/> (the highest stays).
+    /// </summary>
+    public static int Higher(int percent) => Steps.FirstOrDefault(s => s > percent, Steps[^1]);
+
+    /// <summary>
     /// The reputation factor of the suggested prices: 1 until reputation lands (milestone 5).
     /// </summary>
     public static double ReputationFactor => 1;
@@ -104,11 +114,11 @@ public sealed class Pricing
     public long Price(Service service, TubKind tub) => (long)Math.Round(Suggested(service, tub) * Percent(service) / 100);
 
     /// <summary>
-    /// A check-in's price (bath, towel and soap) and its suggested price.
+    /// A check-in's price (the bath, and the towel and soap it gets) and its suggested price.
     /// </summary>
-    public (long Price, double Suggested) Visit(TubKind tub)
+    public (long Price, double Suggested) Visit(TubKind tub, bool towel = true, bool soap = true)
     {
-        Service[] services = [Service.Bath, Service.Towel, Service.Soap];
+        Service[] services = [Service.Bath, .. towel ? [Service.Towel] : Array.Empty<Service>(), .. soap ? [Service.Soap] : Array.Empty<Service>()];
         return (services.Sum(s => Price(s, tub)), services.Sum(s => Suggested(s, tub)));
     }
 

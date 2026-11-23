@@ -3,6 +3,7 @@ using Bathhouse.Records;
 using Meitou.Data.Gameplay.Ai;
 using Meitou.Simulation;
 using Meitou.Simulation.Construction;
+using Meitou.Simulation.Items;
 using Meitou.Simulation.Locks;
 
 namespace Bathhouse.Customers;
@@ -29,6 +30,11 @@ public static class Massage
     public const float AttendantReach = 40;
 
     /// <summary>
+    /// What an attendant in a bathhouse robe earns more, as a factor.
+    /// </summary>
+    public const double RobeBonus = 1.2;
+
+    /// <summary>
     /// A free massage bed with a station in the building; null for none. Beds other visits hold are taken, and so is one somebody lies in (one of
     /// the player's people the player ordered into it, <see cref="PrivateBeds"/>).
     /// </summary>
@@ -52,30 +58,31 @@ public static class Massage
             .FirstOrDefault();
 
     /// <summary>
-    /// The Dexterity of whoever works the station now (the nearest of the player's people operating a machine there); null with no attendant.
+    /// The pay factor of whoever works the station now (the best of the player's people operating a machine there, <see cref="Skill"/>); null with
+    /// no attendant.
     /// </summary>
-    public static float? Attendant(World world, BuildSite station)
+    public static double? Attendant(World world, BuildSite station)
     {
         if (world.Machines.Find(station.Id) is not { Operators: > 0 }) return null;
 
         var table = world.Characters;
-        float? best = null;
+        double? best = null;
         for (int slot = 0; slot < table.HighWater; slot++)
         {
             if (!table.Next[slot].Alive || table.Cold(slot) is not { IsPlayer: true, Running.Row: TaskType.OperateMachinery } cold) continue;
             if (Soaks.Flat(table.Next[slot].Position, station.Position) > AttendantReach) continue;
 
-            float dexterity = cold.Stats?.Dexterity ?? 0;
-            best = Math.Max(best ?? 0, dexterity);
+            bool robed = cold.Inventory?.Items.Any(i => i.Record == Ids.Robe && InventoryCommands.IsEquipmentSection(i.Section)) ?? false;
+            best = Math.Max(best ?? 0, Skill(cold.Stats?.Dexterity ?? 0, robed));
         }
 
         return best;
     }
 
     /// <summary>
-    /// The pay factor of an attendant's Dexterity: 0.5 at 0, 1 at 50, 1.5 at 100.
+    /// The pay factor of an attendant's Dexterity: 0.5 at 0, 1 at 50, 1.5 at 100; times <see cref="RobeBonus"/> in a bathhouse robe.
     /// </summary>
-    public static double Skill(float dexterity) => 0.5 + Math.Clamp(dexterity, 0, 100) / 100.0;
+    public static double Skill(float dexterity, bool robed = false) => (0.5 + Math.Clamp(dexterity, 0, 100) / 100.0) * (robed ? RobeBonus : 1);
 
     /// <summary>
     /// The bed's fixture; null for none.

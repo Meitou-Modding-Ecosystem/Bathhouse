@@ -45,13 +45,15 @@ public sealed class RecordTests
     }
 
     [Fact]
-    public void The_washing_machine_takes_dirty_towels_and_soap()
+    public void The_washing_machine_crafts_towels_and_robes_from_dirty_ones_and_soap()
     {
+        var game = Game();
         var data = Machine(Ids.WashingMachine);
 
-        Assert.True(data.IsProducer);
-        Assert.Equal([Ids.DirtyTowel, Ids.Soap], data.Inputs.Select(i => i.Item));
-        Assert.Equal(Ids.Towel, data.Output?.Item);
+        Assert.True(data.IsCrafting);
+        Assert.Equal([Ids.Towel, Ids.Robe], data.Craft!.Options.Select(o => o.Item));
+        Assert.Equal([Ids.DirtyTowel, Ids.Soap], game.Find(Ids.Towel)!.GetReferences("ingredients").Select(l => l.TargetStringId));
+        Assert.Equal([Ids.DirtyRobe, Ids.Soap], game.Find(Ids.Robe)!.GetReferences("ingredients").Select(l => l.TargetStringId));
     }
 
     [Fact]
@@ -89,6 +91,16 @@ public sealed class RecordTests
 
         Assert.True(Machine(Ids.WaterTank).IsStorage);
         Assert.Equal(["1914-gamedata.base"], game.Find(Ids.WaterTank)!.GetReferences("limit inventory").Select(l => l.TargetStringId));
+    }
+
+    [Fact]
+    public void The_soap_shelf_stores_only_soap_and_is_researched_with_the_basics()
+    {
+        var game = Game();
+
+        Assert.True(Machine(Ids.SoapShelf).IsStorage);
+        Assert.Equal([Ids.Soap], game.Find(Ids.SoapShelf)!.GetReferences("limit inventory").Select(l => l.TargetStringId));
+        Assert.Contains(Ids.SoapShelf, game.Find(Ids.BasicsResearch)!.GetReferences("enable buildings").Select(l => l.TargetStringId));
     }
 
     [Theory]
