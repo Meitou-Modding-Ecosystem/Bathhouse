@@ -43,6 +43,11 @@ public sealed class Plans(Soaks soaks, TubCare care)
     public const float BehindCounter = 15;
 
     /// <summary>
+    /// Game hours a massage attendant works before it checks again whether a bed is taken.
+    /// </summary>
+    public const double AttendSpell = 0.1;
+
+    /// <summary>
     /// The errand of a role's job at its piece, for the character at <paramref name="slot"/>; null for nothing to do.
     /// </summary>
     public Queue<Leg>? Plan(World world, int slot, StaffRole role, string? site)
@@ -54,19 +59,26 @@ public sealed class Plans(Soaks soaks, TubCare care)
             StaffRole.Clerk => Clerk(piece),
             StaffRole.Scrubber => Scrub(world, piece.Parent),
             StaffRole.Laundry => Laundry(world, slot, piece),
-            _ => Tea(world, slot, piece.Parent),
+            StaffRole.Tea => Tea(world, slot, piece.Parent),
+            _ => Attend(world, piece),
         };
         return legs is null ? null : new Queue<Leg>(legs);
     }
 
     #endregion
 
-    #region Clerk and scrubber
+    #region Clerk, attendant and scrubber
 
     /// <summary>
     /// The clerk stands behind its counter for a shift.
     /// </summary>
     static Leg[] Clerk(BuildSite counter) => [new Leg(Behind(counter), ClerkShift, (_, _) => true)];
+
+    /// <summary>
+    /// The massage attendant stands at its station's work spot for a spell while someone lies on a paired bed and the station holds a towel.
+    /// </summary>
+    static Leg[]? Attend(World world, BuildSite station) =>
+        Massage.Busy(world, station) ? [new Leg(WorkSpots.Front(station), AttendSpell, (_, _) => true)] : null;
 
     /// <summary>
     /// The scrubber scrubs the building's first dirty tub nobody soaks in.

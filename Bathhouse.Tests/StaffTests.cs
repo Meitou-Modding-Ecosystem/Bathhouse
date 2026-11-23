@@ -107,6 +107,7 @@ public sealed class StaffTests
         Assert.Equal(StaffRole.Scrubber, StaffRoles.OfferedBy(Ids.BloodBath));
         Assert.Equal(StaffRole.Laundry, StaffRoles.OfferedBy(Ids.WashingMachine));
         Assert.Equal(StaffRole.Tea, StaffRoles.OfferedBy(Ids.TeaTable));
+        Assert.Equal(StaffRole.Massage, StaffRoles.OfferedBy(Ids.MassageStation));
         Assert.Null(StaffRoles.OfferedBy(Ids.Boiler));
     }
 }

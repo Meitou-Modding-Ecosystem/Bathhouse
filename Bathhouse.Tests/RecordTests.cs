@@ -63,6 +63,7 @@ public sealed class RecordTests
     [InlineData(Ids.TeaSetCabinet, Ids.TeaSet, 20)]
     [InlineData(Ids.UsedTeaRack, Ids.UsedTeaSet, 20)]
     [InlineData(Ids.TowelRack, Ids.Towel, 50)]
+    [InlineData(Ids.MassageStation, Ids.Towel, 5)]
     public void Each_store_holds_only_its_item_up_to_its_capacity(string piece, string item, int capacity)
     {
         var data = Machine(piece);

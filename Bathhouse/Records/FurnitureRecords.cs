@@ -48,11 +48,6 @@ static class FurnitureRecords
         Model,
 
         /// <summary>
-        /// The massage station's functionality (<see cref="Ids.MassageWork"/>).
-        /// </summary>
-        Massage,
-
-        /// <summary>
         /// A storage that takes nothing (the game's Resource storage with an <c>itemtype limit</c> no item has): only so that a Shift + right click
         /// gives the selection a job there, which the mod turns into its own (a tub's Tub scrubber).
         /// </summary>
@@ -102,6 +97,7 @@ static class FurnitureRecords
     {
         [Ids.Hamper] = [Ids.DirtyTowel],
         [Ids.Counter] = [Ids.Towel, Ids.Soap],
+        [Ids.MassageStation] = [Ids.Towel],
         [Ids.RobeHamper] = [Ids.DirtyRobe],
         // Two items, so the grid is the storage size rather than one robe's footprint; haulers store only the robe (itemtype limit ARMOUR).
         [Ids.Lockers] = [Ids.Robe, Ids.DirtyRobe],
@@ -125,6 +121,8 @@ static class FurnitureRecords
         [Ids.Hamper] = 50,
         [Ids.RobeHamper] = 20,
         [Ids.TowelRack] = 50,
+        // Few, so the station does not hoard the clean towels.
+        [Ids.MassageStation] = 5,
         [Ids.SoapShelf] = 100,
         [Ids.TeaShelf] = 50,
         [Ids.TeawareShelf] = 20,
@@ -171,13 +169,13 @@ static class FurnitureRecords
         new(Ids.BloodBath, "Blood Bath", "2642-Cannibals.mod", "Cannibal Butcher Table", Use.JobPost,
             "A grim soak for grim guests. Other bathers refuse a building that has one, and the Holy Nation and United Cities disapprove. " + TubUse),
         new(Ids.MassageBed, "Massage Bed", "3460-otto.mod", "Bed", Use.Model,
-            "Customers lie here for a massage. Build a massage station in the same building: each bed pairs with the nearest one. Heals bandaged"
-            + " wounds four times as fast while someone works the station. Your own people only use it when ordered to."),
-        new(Ids.MassageStation, "Massage Station", "3471-otto.mod", "Small Table", Use.Massage,
-            "Give one of your people its operate job and keep towels in it: the attendant only works while it has some, using one an hour."
-            + " While a customer lies on the nearest massage bed in the same building, each hour pays by the worker's Dexterity (up to 300"
-            + " an hour at 100), which the work trains a little. Set the massage"
-            + " price on its panel."),
+            "Customers lie here for a massage. Build a massage station within 5 m in the same building: each bed pairs with the nearest one."
+            + " Heals bandaged wounds four times as fast while its attendant works the station. Your own people only use it when ordered to."),
+        new(Ids.MassageStation, "Massage Station", "3471-otto.mod", "Small Table", Use.Limited,
+            "Holds up to 5 towels, which haulers bring. Give one of your people its Massage attendant job (panel button, or Shift + right"
+            + " click the station): they come over while someone lies on a massage bed within 5 m of it. Each hour of massage pays by the"
+            + " attendant's Dexterity (up to 300 an hour at 100), which the work trains a little, and a massage uses one towel. Set the"
+            + " massage price on its panel."),
         new(Ids.Counter, "Check-in Counter", "3469-otto.mod", "Shop Counter", Use.Limited,
             "The heart of the bathhouse: customers come to it from 6:00 to 22:00 while it stands in a building with a warm tub. Keep towels"
             + " and soap in it or in the building's stores, have someone stand by it (Bathhouse clerk: panel button, or Shift + right click the counter), and set prices and open it"
@@ -216,25 +214,9 @@ static class FurnitureRecords
     ];
 
     /// <summary>
-    /// The massage station's functionality, then every piece.
+    /// Every piece.
     /// </summary>
-    public static IEnumerable<FcsRecord> Build(GameDatabase game) => [MassageWork(game), .. Specs.Select(s => Piece(game, s))];
-
-    /// <summary>
-    /// The massage station's functionality: a production machine for one attendant that turns towels into dirty towels (one an hour's work), so
-    /// characters and Fiefdom residents work it. What it earns is the mod's code.
-    /// </summary>
-    static FcsRecord MassageWork(GameDatabase game)
-    {
-        var model = RecordKit.Model(game, FcsRecordType.BuildingFunctionality, "2018-gamedata.base", "Textiles hemp");
-        var record = RecordKit.Copy(model, Ids.MassageWork, "massage", "consumes", "produces");
-
-        record.Ints["max operators"] = 1;
-        record.Floats["use range"] = WorkSpots.OperatorReach;
-        RecordKit.Links(record, "consumes", (Ids.Towel, 5, 100));
-        RecordKit.Links(record, "produces", (Ids.DirtyTowel, 5, 0));
-        return record;
-    }
+    public static IEnumerable<FcsRecord> Build(GameDatabase game) => Specs.Select(s => Piece(game, s));
 
     /// <summary>
     /// One piece: the model's look and size, the functionality its use asks for, in the bathhouse build-menu list with its text.
@@ -378,7 +360,6 @@ static class FurnitureRecords
             record.Ints["storage size height"] = StorageHeight;
         }
 
-        if (use == Use.Massage) RecordKit.Links(record, "functionality", (Ids.MassageWork, 0, 0));
         if (use == Use.Water) SetWater(record);
         if (use == Use.JobPost) SetJobPost(record);
         if (use is Use.Limited or Use.LockedLimited) SetLimited(record, Limits[spec.Id], Capacity.GetValueOrDefault(spec.Id, 1));

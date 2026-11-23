@@ -66,7 +66,7 @@ public static class Ids
     /// The machines' functionalities (<c>BUILDING_FUNCTIONALITY</c>), in the order of <see cref="TowelLoom"/> and the machines after it.
     /// </summary>
     public const string TowelLoomWork = "20-" + FileName, SoapPressWork = "21-" + FileName, WasherWork = "22-" + FileName,
-        TeaDryerWork = "23-" + FileName, KilnWork = "24-" + FileName, TeaBenchWork = "25-" + FileName, MassageWork = "26-" + FileName;
+        TeaDryerWork = "23-" + FileName, KilnWork = "24-" + FileName, TeaBenchWork = "25-" + FileName;
 
     /// <summary>
     /// The production machines and the tea bench (<c>BUILDING</c>).
@@ -172,7 +172,7 @@ public static class Ids
     /// <summary>
     /// The staff job types (docs/bathhouse.md "Staff"): clerk, scrubber, laundry runner and tea server, each also its errands' row.
     /// </summary>
-    public const int ClerkJob = 4403, ScrubberJob = 4404, LaundryJob = 4405, TeaJob = 4406;
+    public const int ClerkJob = 4403, ScrubberJob = 4404, LaundryJob = 4405, TeaJob = 4406, MassageJob = 4407;
 
     #endregion
 
