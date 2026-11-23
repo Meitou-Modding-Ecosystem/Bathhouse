@@ -13,7 +13,7 @@ for its look (a stand-in until the mod's models land) and links game items by id
 | Items | Towel, Dirty Towel, Soap, Greenfruit Tea, Teaware, Tea Set, Used Tea Set, Dirty Robe | Fabrics, Fabrics, Foodcube, Greenfruit, Cup, Ceramic Bowl, Ceramic Bowl, Fabrics |
 | Armour | Bathhouse Robe (`slot` 5, body: it replaces body armour; the Monk Robe sits in the belt slot, 14, under body armour; `part coverage` 20 on each arm and the stomach, 27 on the chest, so its total coverage is 100 and the clothing bench makes it from one Fabrics) | Monk Robe |
 | Production (function 4) | Towel Loom (Fabrics to 2 Towels), Soap Press (Hemp to Soap), Tea Dryer (Greenfruit to Greenfruit Tea), Pottery Kiln (Raw Stone to Teaware) | Fabric Loom (hemp), Hemp Processor, Biofuel Distillery (Hemp), Cooking Stove |
-| Crafting (function 10) | Tea Bench: Tea Set from Teaware + Greenfruit Tea (the Tea Set's `ingredients`); Washing Machine: a queue of Towel (Dirty Towel + 1/4 Soap), Bathhouse Robe (Dirty Robe + 1/4 Soap) and Teaware (Used Tea Set + 1/4 Soap) washes, 1 h each (the items' `ingredients` and `production time`; output holds 10 towels, 1 robe or 5 teaware) | Cooking Stove, Sake Still |
+| Crafting (function 10) | Tea Bench: Tea Set from Teaware + Greenfruit Tea + Water (the Tea Set's `ingredients`; only while the building is hot, Tea works); Washing Machine: a queue of Towel (Dirty Towel + 1/4 Soap) and Bathhouse Robe (Dirty Robe + 1/4 Soap) washes, 1 h each (the items' `ingredients` and `production time`; output holds 10 towels or 1 robe) | Cooking Stove, Sake Still |
 | Power | Steam Boiler: draws 10, functionality the game's Lights (a consumer with no operator, so the Power switch shows) | Boiler Tank |
 | Water | Bathhouse Water Tank: Resource storage limited to Water, as the game's Water Tower | Small Water Tank |
 | Tubs (Resource storage that takes nothing: `itemtype limit` BUILDING, so only a Shift + right click uses it) | Small Tub (1 seat), Medium Tub (2), Large Bath (4), Oil Bath, Blood Bath (+10 Raw Meat to build) | own model (below), Large Barrels, Booze Barrels, Booze Barrel, Cannibal Butcher Table |
@@ -33,9 +33,9 @@ Machine hours an item: 24 / (`output rate` x `production mult`).
 | Towel | 1/2 Fabrics (towel loom) | 0.5 | 27 (as washed: Dirty Towel + 1/4 Soap, 1 h) |
 | Dirty Towel | a Towel less its wash | | 22 |
 | Greenfruit Tea | 1 Greenfruit (tea dryer) | 0.4 | 27 |
-| Teaware | 1 Raw Stone (kiln), or washed: Used Tea Set + 1/4 Soap, 1 h | 0.5 | 38 |
-| Tea Set | Teaware + Greenfruit Tea (tea bench) | 4 | 69 |
-| Used Tea Set | Teaware less its wash | | 32 |
+| Teaware | 1 Raw Stone (kiln), or rinsed from a Used Tea Set (Tea works) | 0.5 | 37 |
+| Tea Set | Teaware + Greenfruit Tea + Water (tea bench) | 4 | 100 |
+| Used Tea Set | Teaware less its rinse | | 32 |
 | Bathhouse Robe | 1 Fabrics (clothing bench) | 3 at quality 50 | 60 at quality 50 (`relative price mult` 0.11; 5 to 237 by quality) |
 | Dirty Robe | a robe less its wash | | 54 |
 
@@ -117,6 +117,14 @@ with the item icons). The systems use the base game's `kenshi_smoke1` material (
 runs a player building's effects whenever it is complete (engine `docs/formats/lights.md` "Effects on buildings"), so a cold tub steams too:
 following the water's heat needs an engine hook.
 
+## Tea works
+
+`Bathing/TeaWorks`, stepped in the slow check right after the heat. Both pieces work only in a hot or lukewarm building (Heating), like the tubs.
+
+- **Used tea rack**: rinses one Used Tea Set an hour into Teaware on a teaware shelf in the same building with room; no shelf with room, it waits.
+- **Tea bench**: its first queued craft does not advance while the building is cold (its progress is held at the last check's value).
+- Neither the rinse hours nor the held progress is saved: a load restarts the current rinse hour.
+
 ## Customers
 
 `Customers/Clientele`, stepped in the same check after the soaks.
@@ -151,8 +159,10 @@ following the water's heat needs an engine hook.
   clean tub. After a good enough soak it may have tea, may take a massage, then pays what it owes (added to the player's money and posted).
 - **Tea**: after a good enough soak, when a tea table in the tub's building holds a Tea Set no other customer drinks at and the customer takes the
   tea price (the same chance rule, ratio = percent / 100), the visit goal walks it to the table's work spot, where it sits on the floor facing the
-  table (`CharacterTask.Rest` on row 4402, as in a tub) for 0.5 h. Then the set becomes a Used Tea Set on the table, the tea's price (69 cats
-  suggested) is owed, and it gets up for a massage or to pay. Not sitting there within 1 h, or the table or its set gone, it goes on without tea.
+  table (`CharacterTask.Rest` on row 4402, as in a tub) for 0.5 h. Then the set becomes a Used Tea Set on the table, the tea's price (100 cats
+  suggested) is owed, and it gets up for a massage or to pay. 15% of drinks (seeded per customer and tick) breaks the set
+  instead: no Used Tea Set is left, a message names the customer, and after a full-pay soak (quality 0.8 or more) the customer also offers to
+  pay 37 cats for it (added to what it owes). Not sitting there within 1 h, or the table or its set gone, it goes on without tea.
 - **Massage** (`Massage`): each massage bed is paired with the nearest massage station in its building within 50 units (5 m) of it. With a free
   bed (one whose bed fixture no other visit holds) and the massage price taken, the customer walks to the bed (visit goal) and lies in it
   (`EnterBed`). While the station's Massage attendant (Staff) stands within 40 units of it and it holds a Towel, each hour pays 300 cats suggested x the attendant's pay
@@ -215,13 +225,12 @@ saved: a loaded staff member plans again.
   the counter), so a dirty tub empties and gets scrubbed; with nobody, a dirty tub is used and the visit is worse. Like any job, it runs only
   when no job above it in the list has work: hauling jobs above it keep a hauler from scrubbing.
 - **Laundry runner** (washing machine): loads what it carries that the current wash takes; puts carried clean goods away (towels to the first
-  towel rack, else the counter, robes to the first lockers, teaware to the first teaware shelf, with room) and dirty goods it cannot load back in their hamper (used tea
-  sets: the used tea rack); takes finished goods
-  out of the washer to those places; fetches from a hamper or used tea rack only as many dirty goods (up to 10) as the queued washes of the current kind still
+  towel rack, else the counter, robes to the first lockers, with room) and dirty goods it cannot load back in their hamper; takes finished goods
+  out of the washer to those places; fetches from a hamper only as many dirty goods (up to 10) as the queued washes of the current kind still
   need, since the washer drops what is left in its sections when the next wash takes another item; keeps 3 Soap in the washer from a store in
   the building (not a hamper or the counter). Queue the washes and set Repeat Queue at the washer; it also needs an operator.
 - **Tea server** (tea table): puts carried Used Tea Sets in a used tea rack; brings a Tea Set (from a tea set cabinet first) to an empty table; takes a
-  table's Used Tea Set to a used tea rack. The washing machine washes them back into Teaware (the laundry runner fetches them like dirty towels).
+  table's Used Tea Set to a used tea rack. The used tea rack rinses them back into Teaware (Tea works).
 
 ## Research
 

@@ -698,6 +698,21 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     public const double TeaMostWait = 1;
 
     /// <summary>
+    /// The chance a customer breaks the tea set it drank from.
+    /// </summary>
+    public const double BreakChance = 0.15;
+
+    /// <summary>
+    /// What a customer who had a good soak (quality <see cref="Quality.FullPay"/> or better) pays for a tea set it broke: the Teaware's worth.
+    /// </summary>
+    public const long BrokenSetPrice = 37;
+
+    /// <summary>
+    /// The roll's counter salt for a broken tea set.
+    /// </summary>
+    const ulong BreakSalt = 0xB2EA;
+
+    /// <summary>
     /// Offers a soaked customer tea: a tea table in the building holding a Tea Set that no other customer drinks at, and the tea price taken, send
     /// it to the table. False for none.
     /// </summary>
@@ -778,17 +793,35 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     }
 
     /// <summary>
-    /// The tea is drunk: the table's Tea Set becomes a Used Tea Set on it and the tea's price is owed.
+    /// The tea is drunk: the tea's price is owed and the table's Tea Set becomes a Used Tea Set on it, unless the customer breaks it
+    /// (<see cref="Broke"/>).
     /// </summary>
     void Serve(World world, int slot, Visit visit, BuildSite table)
     {
         if (Goods.StoreOf(world, table) is { } store && Goods.Take(store, Ids.TeaSet))
         {
-            if (Goods.Make(world, Ids.UsedTeaSet) is { } used) store.Add(used);
             visit.Owed += Prices.Price(Service.Tea, TubKind.Small);
+            if (!Broke(world, slot, visit) && Goods.Make(world, Ids.UsedTeaSet) is { } used) store.Add(used);
         }
 
         AfterTea(world, slot, visit, "tea");
+    }
+
+    /// <summary>
+    /// Whether the customer broke its tea set (<see cref="BreakChance"/>, by the world's random numbers): the player is told, and one that had a good
+    /// soak offers to pay for it (<see cref="BrokenSetPrice"/>, added to what it owes).
+    /// </summary>
+    bool Broke(World world, int slot, Visit visit)
+    {
+        var who = world.Characters.IdOf(slot);
+        double roll = Rng.Float(Rng.Hash(world.Seed, Rng.Key(who), purpose, BreakSalt ^ (ulong)world.Tick));
+        if (roll >= BreakChance) return false;
+
+        string name = world.Characters.NameOf(who);
+        bool pays = visit.Quality >= Quality.FullPay;
+        if (pays) visit.Owed += BrokenSetPrice;
+        Note(world, pays ? $"{name} broke a tea set and offered to pay {BrokenSetPrice} cats for it." : $"{name} broke a tea set.");
+        return true;
     }
 
     /// <summary>

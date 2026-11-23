@@ -93,7 +93,7 @@ public sealed class Pricing
     {
         Service.Towel => 27,
         Service.Soap => 18,
-        Service.Tea => 69,
+        Service.Tea => 100,
         Service.Massage => 300,
         _ => tub switch
         {

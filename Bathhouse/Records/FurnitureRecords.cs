@@ -205,12 +205,13 @@ static class FurnitureRecords
         new(Ids.SoapShelf, "Soap Shelf", "3470-otto.mod", "Shelf", Use.Limited,
             "Holds only soap, up to 100 bars. Haulers bring it from the soap press; check-ins and the Laundry runner take soap from it."),
         new(Ids.TeawareShelf, "Teaware Shelf", "3470-otto.mod", "Shelf", Use.Limited,
-            "Holds only clean teaware, up to 20. Haulers bring it from the pottery kiln and the washing machine; the tea bench's worker takes"
-            + " it from here."),
+            "Holds only clean teaware, up to 20. Haulers bring it from the pottery kiln, used tea racks put rinsed teaware here, and the tea"
+            + " bench's worker takes it from here."),
         new(Ids.TeaSetCabinet, "Tea Set Cabinet", "3470-otto.mod", "Shelf", Use.Limited,
             "Holds only tea sets, up to 20. Haulers bring them from the tea bench; the Tea server takes them to the tea tables."),
         new(Ids.UsedTeaRack, "Used Tea Rack", "3470-otto.mod", "Shelf", Use.Limited,
-            "Holds only used tea sets, up to 20. The Tea server clears the tea tables into it; the washing machine's worker takes them to wash."),
+            "Holds only used tea sets, up to 20. The Tea server clears the tea tables into it. In a building with a lit steam boiler and Water"
+            + " it rinses one set an hour into teaware on a teaware shelf with room."),
     ];
 
     /// <summary>
