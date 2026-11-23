@@ -64,7 +64,8 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   When the chooser starts the goal the bather walks to the tub's approach point (15 units in front, local +Z), is placed in its seat (one at the
   centre, two side by side, four on a square, 6 units out) and rests there (`CharacterTask.Rest`, sitting on the ground) on row 4401. Warm
   hours count while it sits; it stands up in front of the tub when the soak's length is reached or the water goes cold. A fight or another goal
-  gets it out and the goal starts again later; an order, leaving the world, a gone tub, being knocked down or not getting in within 3 hours
+  gets it out and the goal starts again later (one still in its seat, or whose rest something else ended while the goal held, rests again where it
+  sits, without standing up first); an order, leaving the world, a gone tub, being knocked down or not getting in within 3 hours
   (plus the hours soaked) calls it off with nothing earned. Soaks are saved by lasting id; a loaded bather walks back in.
 - **After a soak** (full or cut short by cold): the Soothed buff (`bathhouse.soothed`, Good, Toughness +5, Athletics +5, refreshed by a new
   soak) for the buff days, every registered Bad status effect removed except those switched off, and a towel used.
