@@ -229,6 +229,7 @@ static class FurnitureRecords
         record.Bools["creates player town"] = true;
 
         if (spec.Id == Ids.BloodBath) AddMeat(record);
+        EffectRecords.Attach(record, spec.Id);
         if (spec.Id == Ids.Counter) SetGrid(record, CounterWidth, CounterHeight);
         return record;
     }

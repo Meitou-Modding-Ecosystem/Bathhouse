@@ -196,6 +196,7 @@ static class MachineRecords
             + " from the building's stores, so build a bathhouse water tank beside it."
             + $" Each boiler heats {BathhouseSettings.DefaultSeatsPerBoiler} bathers' seats.";
         record.Bools["creates player town"] = true;
+        EffectRecords.Attach(record, Ids.Boiler);
         return record;
     }
 

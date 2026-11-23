@@ -506,6 +506,8 @@ meitou.user.json
 *.level
 *.path
 *.pu
+# The mod's own particle scripts (written for it, not the game's).
+!Bathhouse/items/particles/*.pu
 *.raw
 *.bod2
 *.phs

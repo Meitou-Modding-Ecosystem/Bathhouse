@@ -114,6 +114,16 @@ public static class Ids
 
     #endregion
 
+    #region Effects
+
+    /// <summary>
+    /// The steam effects (<c>EFFECT</c>, Records/EffectRecords.cs): one over each kind of tub's water, and the boiler's plume.
+    /// </summary>
+    public const string SmallTubSteam = "70-" + FileName, MediumTubSteam = "71-" + FileName, LargeTubSteam = "72-" + FileName,
+        OilBathSteam = "73-" + FileName, BloodBathSteam = "74-" + FileName, BoilerSteam = "75-" + FileName;
+
+    #endregion
+
     #region Models
 
     /// <summary>

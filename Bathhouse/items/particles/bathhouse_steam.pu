@@ -1,0 +1,433 @@
+// Bathhouse steam (docs/bathhouse.md "Steam"). ParticleUniverse systems the mod's EFFECT records name (Records/EffectRecords.cs): a faint
+// steam over each tub's water (a Box emitter the size of its water, in world units of 0.1 m) and a plume from the boiler's top. They use the
+// base game's kenshi_smoke1 material (alpha-blended smoke, not cut inside buildings), tinted white.
+system bathhouse_steam_small
+{
+    category                                    bathhouse
+    technique
+    {
+        material                                kenshi_smoke1
+        default_particle_width                  1
+        default_particle_height                 1
+        default_particle_depth                  1
+        renderer                                Billboard
+        {
+            billboard_rotation_type             vertex
+        }
+        emitter                                 Box Surface
+        {
+            box_width                           9
+            box_height                          1
+            box_depth                           8
+            emission_rate                       4
+            time_to_live                        dyn_random
+            {
+                min                             3
+                max                             5
+            }
+            velocity                            dyn_random
+            {
+                min                             1
+                max                             2.5
+            }
+            all_particle_dimensions             dyn_random
+            {
+                min                             3
+                max                             6
+            }
+            colour                              0.9 0.9 0.92 1
+        }
+        affector                                Colour Fade
+        {
+            time_colour                         0    1 1 1 0
+            time_colour                         0.3  1 1 1 0.16
+            time_colour                         1    1 1 1 0
+            colour_operation                    multiply
+        }
+        affector                                Scale Grow
+        {
+            xyz_scale                           dyn_curved_linear
+            {
+                control_point                   0 0.5
+                control_point                   1 2
+            }
+        }
+        affector                                TextureRotator Turn
+        {
+            rotation                            dyn_random
+            {
+                min                             0
+                max                             360
+            }
+            rotation_speed                      dyn_random
+            {
+                min                             -0.3
+                max                             0.3
+            }
+        }
+        affector                                Randomiser Drift
+        {
+            max_deviation_x                     0.05
+            max_deviation_y                     0
+            max_deviation_z                     0.05
+        }
+    }
+}
+system bathhouse_steam_medium
+{
+    category                                    bathhouse
+    technique
+    {
+        material                                kenshi_smoke1
+        default_particle_width                  1
+        default_particle_height                 1
+        default_particle_depth                  1
+        renderer                                Billboard
+        {
+            billboard_rotation_type             vertex
+        }
+        emitter                                 Box Surface
+        {
+            box_width                           18
+            box_height                          1
+            box_depth                           9
+            emission_rate                       9
+            time_to_live                        dyn_random
+            {
+                min                             3
+                max                             5
+            }
+            velocity                            dyn_random
+            {
+                min                             1
+                max                             2.5
+            }
+            all_particle_dimensions             dyn_random
+            {
+                min                             3
+                max                             6
+            }
+            colour                              0.9 0.9 0.92 1
+        }
+        affector                                Colour Fade
+        {
+            time_colour                         0    1 1 1 0
+            time_colour                         0.3  1 1 1 0.16
+            time_colour                         1    1 1 1 0
+            colour_operation                    multiply
+        }
+        affector                                Scale Grow
+        {
+            xyz_scale                           dyn_curved_linear
+            {
+                control_point                   0 0.5
+                control_point                   1 2
+            }
+        }
+        affector                                TextureRotator Turn
+        {
+            rotation                            dyn_random
+            {
+                min                             0
+                max                             360
+            }
+            rotation_speed                      dyn_random
+            {
+                min                             -0.3
+                max                             0.3
+            }
+        }
+        affector                                Randomiser Drift
+        {
+            max_deviation_x                     0.05
+            max_deviation_y                     0
+            max_deviation_z                     0.05
+        }
+    }
+}
+system bathhouse_steam_large
+{
+    category                                    bathhouse
+    technique
+    {
+        material                                kenshi_smoke1
+        default_particle_width                  1
+        default_particle_height                 1
+        default_particle_depth                  1
+        renderer                                Billboard
+        {
+            billboard_rotation_type             vertex
+        }
+        emitter                                 Box Surface
+        {
+            box_width                           34
+            box_height                          1
+            box_depth                           20
+            emission_rate                       38
+            time_to_live                        dyn_random
+            {
+                min                             3
+                max                             5
+            }
+            velocity                            dyn_random
+            {
+                min                             1
+                max                             2.5
+            }
+            all_particle_dimensions             dyn_random
+            {
+                min                             3
+                max                             6
+            }
+            colour                              0.9 0.9 0.92 1
+        }
+        affector                                Colour Fade
+        {
+            time_colour                         0    1 1 1 0
+            time_colour                         0.3  1 1 1 0.16
+            time_colour                         1    1 1 1 0
+            colour_operation                    multiply
+        }
+        affector                                Scale Grow
+        {
+            xyz_scale                           dyn_curved_linear
+            {
+                control_point                   0 0.5
+                control_point                   1 2
+            }
+        }
+        affector                                TextureRotator Turn
+        {
+            rotation                            dyn_random
+            {
+                min                             0
+                max                             360
+            }
+            rotation_speed                      dyn_random
+            {
+                min                             -0.3
+                max                             0.3
+            }
+        }
+        affector                                Randomiser Drift
+        {
+            max_deviation_x                     0.05
+            max_deviation_y                     0
+            max_deviation_z                     0.05
+        }
+    }
+}
+system bathhouse_steam_oil
+{
+    category                                    bathhouse
+    technique
+    {
+        material                                kenshi_smoke1
+        default_particle_width                  1
+        default_particle_height                 1
+        default_particle_depth                  1
+        renderer                                Billboard
+        {
+            billboard_rotation_type             vertex
+        }
+        emitter                                 Box Surface
+        {
+            box_width                           15
+            box_height                          1
+            box_depth                           13
+            emission_rate                       11
+            time_to_live                        dyn_random
+            {
+                min                             3
+                max                             5
+            }
+            velocity                            dyn_random
+            {
+                min                             1
+                max                             2.5
+            }
+            all_particle_dimensions             dyn_random
+            {
+                min                             3
+                max                             6
+            }
+            colour                              0.9 0.9 0.92 1
+        }
+        affector                                Colour Fade
+        {
+            time_colour                         0    1 1 1 0
+            time_colour                         0.3  1 1 1 0.16
+            time_colour                         1    1 1 1 0
+            colour_operation                    multiply
+        }
+        affector                                Scale Grow
+        {
+            xyz_scale                           dyn_curved_linear
+            {
+                control_point                   0 0.5
+                control_point                   1 2
+            }
+        }
+        affector                                TextureRotator Turn
+        {
+            rotation                            dyn_random
+            {
+                min                             0
+                max                             360
+            }
+            rotation_speed                      dyn_random
+            {
+                min                             -0.3
+                max                             0.3
+            }
+        }
+        affector                                Randomiser Drift
+        {
+            max_deviation_x                     0.05
+            max_deviation_y                     0
+            max_deviation_z                     0.05
+        }
+    }
+}
+system bathhouse_steam_blood
+{
+    category                                    bathhouse
+    technique
+    {
+        material                                kenshi_smoke1
+        default_particle_width                  1
+        default_particle_height                 1
+        default_particle_depth                  1
+        renderer                                Billboard
+        {
+            billboard_rotation_type             vertex
+        }
+        emitter                                 Box Surface
+        {
+            box_width                           22
+            box_height                          1
+            box_depth                           8
+            emission_rate                       10
+            time_to_live                        dyn_random
+            {
+                min                             3
+                max                             5
+            }
+            velocity                            dyn_random
+            {
+                min                             1
+                max                             2.5
+            }
+            all_particle_dimensions             dyn_random
+            {
+                min                             3
+                max                             6
+            }
+            colour                              0.9 0.9 0.92 1
+        }
+        affector                                Colour Fade
+        {
+            time_colour                         0    1 1 1 0
+            time_colour                         0.3  1 1 1 0.16
+            time_colour                         1    1 1 1 0
+            colour_operation                    multiply
+        }
+        affector                                Scale Grow
+        {
+            xyz_scale                           dyn_curved_linear
+            {
+                control_point                   0 0.5
+                control_point                   1 2
+            }
+        }
+        affector                                TextureRotator Turn
+        {
+            rotation                            dyn_random
+            {
+                min                             0
+                max                             360
+            }
+            rotation_speed                      dyn_random
+            {
+                min                             -0.3
+                max                             0.3
+            }
+        }
+        affector                                Randomiser Drift
+        {
+            max_deviation_x                     0.05
+            max_deviation_y                     0
+            max_deviation_z                     0.05
+        }
+    }
+}
+system bathhouse_steam_boiler
+{
+    category                                    bathhouse
+    technique
+    {
+        material                                kenshi_smoke1
+        default_particle_width                  1
+        default_particle_height                 1
+        default_particle_depth                  1
+        renderer                                Billboard
+        {
+            billboard_rotation_type             vertex
+        }
+        emitter                                 Point Vent
+        {
+            emission_rate                       14
+            angle                               12
+            time_to_live                        dyn_random
+            {
+                min                             2.5
+                max                             4
+            }
+            velocity                            dyn_random
+            {
+                min                             6
+                max                             10
+            }
+            all_particle_dimensions             dyn_random
+            {
+                min                             3
+                max                             6
+            }
+            colour                              0.95 0.95 0.97 1
+        }
+        affector                                Colour Fade
+        {
+            time_colour                         0    1 1 1 0.35
+            time_colour                         0.4  1 1 1 0.18
+            time_colour                         1    1 1 1 0
+            colour_operation                    multiply
+        }
+        affector                                Scale Grow
+        {
+            xyz_scale                           dyn_curved_linear
+            {
+                control_point                   0 1
+                control_point                   1 4
+            }
+        }
+        affector                                TextureRotator Turn
+        {
+            rotation                            dyn_random
+            {
+                min                             0
+                max                             360
+            }
+            rotation_speed                      dyn_random
+            {
+                min                             -0.5
+                max                             0.5
+            }
+        }
+        affector                                Randomiser Drift
+        {
+            max_deviation_x                     0.1
+            max_deviation_y                     0
+            max_deviation_z                     0.1
+        }
+    }
+}
