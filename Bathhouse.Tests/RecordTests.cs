@@ -3,7 +3,9 @@ using Bathhouse.Records;
 using Meitou.Content;
 using Meitou.Data;
 using Meitou.Data.Fcs;
+using Meitou.Data.Gameplay;
 using Meitou.Data.Gameplay.Construction;
+using Meitou.Simulation.Factions;
 
 namespace Bathhouse.Tests;
 
@@ -70,6 +72,19 @@ public sealed class RecordTests
 
         Assert.Equal([item], data.StorageLimit);
         Assert.Equal(capacity, data.StackBonusMult);
+    }
+
+    [Theory]
+    [InlineData("3950-gamedata.base", 1)]
+    [InlineData("1161-gamedata.base", 3)]
+    [InlineData("51336-rebirth.mod", 5)]
+    public void A_bather_template_makes_its_size_whatever_the_squad_size_setting(string source, int size)
+    {
+        var record = Game().Find(SquadRecords.Id(source, size)!)!;
+
+        var plan = SquadFactory.Plan(Game(), SquadTemplate.From(record), multiplier: 3, seed: 1, key: 2, checkWorldState: false);
+
+        Assert.Equal(size, plan.TotalMembers);
     }
 
     [Fact]

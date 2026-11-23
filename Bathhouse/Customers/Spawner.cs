@@ -79,15 +79,17 @@ public static class Spawner
     }
 
     /// <summary>
-    /// Spawns a held group of a kind around the counter, homed at the nearest town, tagged and sent to the counter; false when the game refused.
+    /// Spawns a held group of a kind and size (its bather template, <see cref="SquadRecords"/>) around the counter, homed at the nearest town,
+    /// tagged and sent to the counter; false when the game refused.
     /// </summary>
-    public static bool Spawn(World world, PopulationData data, CustomerType kind, BuildSite counter, string tag)
+    public static bool Spawn(World world, PopulationData data, CustomerType kind, int size, BuildSite counter, string tag)
     {
         var population = world.Systems.OfType<PopulationSystem>().FirstOrDefault();
         if (population is null || Home(data, counter.Position) is not { } home) return false;
 
         var around = Flat(counter.Position);
-        int id = population.SpawnPlatoon(world, data.FactionIndex(kind.Faction), kind.Template, home, around, MinRadius, MaxRadius);
+        string template = SquadRecords.Id(kind.Template, size) ?? kind.Template;
+        int id = population.SpawnPlatoon(world, data.FactionIndex(kind.Faction), template, home, around, MinRadius, MaxRadius);
         if (id < 0 || world.Platoons.Find(id) is not { } platoon) return false;
 
         platoon.ModTag = tag;

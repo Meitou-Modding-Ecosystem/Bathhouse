@@ -222,7 +222,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     {
         if (Spawner.OpenCounter(world, b => Warm(tubs, b)) is not { } counter || !kind.Spawnable) return false;
 
-        return SpawnGroup(world, kind, counter);
+        return SpawnGroup(world, kind, counter, tubs, BathhouseSettings.Current);
     }
 
     /// <summary>
@@ -234,16 +234,18 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
         if (!Spawner.Daytime(world.GameHours) || Spawner.OpenCounter(world, b => Warm(tubs, b)) is not { } counter) return;
 
         NextGroupAt = world.GameHours + settings.HoursBetweenGroups;
-        if (Spawner.Pick(world, data, Serial, purpose) is { } kind) SpawnGroup(world, kind, counter);
+        if (Spawner.Pick(world, data, Serial, purpose) is { } kind) SpawnGroup(world, kind, counter, tubs, settings);
     }
 
     /// <summary>
-    /// Spawns a group and keeps it; false when the game refused the spawn.
+    /// Spawns a group, as many as <see cref="GroupSize"/> rolls for the counter's building, and keeps it; false when the game refused the spawn.
     /// </summary>
-    bool SpawnGroup(World world, CustomerType kind, BuildSite counter)
+    bool SpawnGroup(World world, CustomerType kind, BuildSite counter, IReadOnlyList<Tub> tubs, BathhouseSettings settings)
     {
         string tag = $"bathhouse.customers.{Serial}";
-        if (!Spawner.Spawn(world, data, kind, counter, tag)) return false;
+        int seats = tubs.Where(t => t.Building == counter.Parent).Sum(t => t.Seats);
+        int size = GroupSize.Roll(world, Serial, purpose, GroupSize.Cap(CustomerTypes.Reputation, seats, settings.StartGroupSize));
+        if (!Spawner.Spawn(world, data, kind, size, counter, tag)) return false;
 
         Serial++;
         _groups[tag] = new CustomerGroup { Tag = tag, Kind = kind.Key, Counter = counter.Id, SpawnedAt = world.GameHours };

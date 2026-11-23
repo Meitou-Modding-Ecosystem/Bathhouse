@@ -33,6 +33,16 @@ public sealed class CustomerTests
         Assert.Equal(50, Pricing.Next(200));
     }
 
+    [Theory]
+    [InlineData(1, 8, 3, 3)]
+    [InlineData(1, 1, 3, 3)]
+    [InlineData(1, 0, 3, 2)]
+    [InlineData(3, 8, 3, 7)]
+    [InlineData(5, 4, 3, 6)]
+    [InlineData(9, 40, 3, 12)]
+    public void A_group_is_capped_by_reputation_and_the_tub_seats_plus_two(int reputation, int seats, int start, int cap) =>
+        Assert.Equal(cap, GroupSize.Cap(reputation, seats, start));
+
     [Fact]
     public void A_visit_at_suggested_prices_costs_its_base_prices()
     {
