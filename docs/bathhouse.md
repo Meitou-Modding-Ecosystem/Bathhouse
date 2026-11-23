@@ -62,7 +62,8 @@ nodes (NODE_USE 1183-gamedata.base, node type 4): a bed without one is lain in a
 from anywhere within its functionality's `use range` of its origin. The game's Bed lies along local X with a node beside each long side
 (z ±12.2, the second turned 180°) and a sleeper lies along X (**Observed**, Matthew's game: on the model turned along Z the customer lay
 across it); the two nodes face opposite ways (node yaw - 90), so the side a sleeper comes from decides where its head goes. So the massage bed's model lies along
-local X (`yaw` 0, head rest at -X) and keeps only the Bed's -Z node (`KeepUseNodes`; Forgotten Buildings' Bed with Pillow keeps the same one), so every sleeper lies the same way. 
+local X (`yaw` 0, head rest at -X) and keeps only the Bed's -Z node (`KeepUseNodes`; Forgotten Buildings' Bed with Pillow keeps the same one), so every sleeper lies the same way. The node sits 0.5 m above the Bed's
+(`LieRaise`): at the Bed's height the customer lay sunk into the higher mattress (**Observed**, Matthew's game). 
 - **Work spots** (`WorkSpots`): every tub, machine and service store on its own model gets one use node in front of it (local +Z, the model's
   front), 6 units (0.6 m) past its front face as measured on the model at its finished height, turned -90° as the game's own front nodes are (the
   Shop Counter's and Cooking Stove's at +Z), so its marker (local -X) points back at the piece: the build ghost's green arrow. The machines'
@@ -73,7 +74,8 @@ by default (`textureSize`), so a 4096 source only grows the repo.
 The Tea Set Cabinet model came from a 2.3 million triangle export, cut to 55,000 triangles keeping its UV seams (meshoptimizer's
 `gltfpack -si 0.003 -noq`; collapsing across seams smears the textures), then its textures were shrunk to 2048. The Teaware Shelf
 (29,000 triangles) and Used Tea Rack (9,400) are the generator's own remeshes, textures shrunk to 2048; cutting them ourselves melted
-their small pots and cups. The Used Tea Rack is sized by its width (art prompt 1.2 m x 1.2), so its height is 0.73 m.
+their small pots and cups. The Used Tea Rack is sized by its width (art prompt 1.2 m x 1.2), so its height was 0.73 m; Matthew asked for it 20% bigger (0.88 m). He also asked for the Tea Table 15% (0.55 m), Tea Bench 30%
+(1.56 m) and Washing Machine 10% (2.11 m) bigger; their work-spot faces scale with them.
 
 Tubs have no functionality so that no game or mod AI (a town bar's, Fiefdom's residents) sits in them; bathing is the mod's code.
 

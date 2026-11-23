@@ -312,22 +312,35 @@ static class FurnitureRecords
     const string UseNodeRecord = "1183-gamedata.base";
 
     /// <summary>
+    /// How far above the game Bed's node a massage bed's sleeper lies, in ground units (0.1 m): the model's mattress is higher than the Bed's, and
+    /// at the Bed's height the customer lay sunk into it (**Observed**, Matthew's game).
+    /// </summary>
+    const float LieRaise = 5;
+
+    /// <summary>
     /// Gives the massage bed on its own model one of the game Bed's use nodes, scaled as the Bed scales it. The Bed lies along local X with a node
     /// beside each long side (z +11.18 and -11.05, the second turned 180 degrees, so they face opposite ways), and the side a sleeper comes from
     /// decides where its head goes. The model lies along X (its .json <c>yaw</c> 0) with its head rest at -X and keeps only the -Z node, so every
-    /// sleeper lies the same way (Forgotten Buildings' Bed with Pillow keeps the same one).
+    /// sleeper lies the same way (Forgotten Buildings' Bed with Pillow keeps the same one), raised by <see cref="LieRaise"/>.
     /// </summary>
     static void KeepUseNodes(GameRecord standIn, FcsRecord record)
     {
-        float scale = standIn.GetFloat("scale", 1) / record.Floats.GetValueOrDefault("scale", 1);
+        float own = record.Floats.GetValueOrDefault("scale", 1);
+        float scale = standIn.GetFloat("scale", 1) / own;
         var node = standIn.Instances.Values
             .Where(i => i.Target == UseNodeRecord)
             .OrderBy(i => i.Position.Z)
             .FirstOrDefault();
         if (node is null) return;
 
-        record.Instances.Add(new FcsInstance { Id = node.Id, Target = UseNodeRecord, Position = node.Position * scale, Rotation = node.Rotation });
+        var at = node.Position * scale + Raised(own);
+        record.Instances.Add(new FcsInstance { Id = node.Id, Target = UseNodeRecord, Position = at, Rotation = node.Rotation });
     }
+
+    /// <summary>
+    /// <see cref="LieRaise"/> in the record's own units (the game multiplies node positions by the building's <c>scale</c>).
+    /// </summary>
+    static Vector3 Raised(float scale) => new(0, LieRaise / scale, 0);
 
     /// <summary>
     /// Adds a use node at <paramref name="at"/> (building units), turned <paramref name="yaw"/> radians about Y.
