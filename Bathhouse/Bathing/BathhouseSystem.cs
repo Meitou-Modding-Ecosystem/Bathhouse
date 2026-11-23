@@ -309,6 +309,16 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     public CounterView Counter => _counter.Value;
 
     /// <summary>
+    /// The latest of what each counter's check-in lacks, by site id; a ready counter is absent (written in the tick, read on the host's thread).
+    /// </summary>
+    volatile Dictionary<string, CheckInNeed> _checkIns = [];
+
+    /// <summary>
+    /// What a counter's check-in lacks; null when it is ready.
+    /// </summary>
+    public CheckInNeed? CheckIn(string? site) => site is not null && _checkIns.TryGetValue(site, out var need) ? need : null;
+
+    /// <summary>
     /// The debug row's view: each building's heat, then each soak.
     /// </summary>
     public string View => _view;
@@ -330,6 +340,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
 
         _pieces = pieces;
         _counter = new StrongBox<CounterView>(CounterNow());
+        _checkIns = CheckInsNow(world, tubs);
         _view = Describe(world, tubs);
     }
 
@@ -342,6 +353,20 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
         int running = _clientele.Visits.Count(v => v.Phase != VisitPhase.Done);
         int[] percents = Enum.GetValues<Service>().Select(prices.Percent).ToArray();
         return new CounterView(_clientele.Open, percents, prices.Visit(TubKind.Medium).Price, _clientele.Groups.Count, running, _clientele.Latest);
+    }
+
+    /// <summary>
+    /// What each counter's check-in lacks now.
+    /// </summary>
+    Dictionary<string, CheckInNeed> CheckInsNow(World world, List<Tub> tubs)
+    {
+        var needs = new Dictionary<string, CheckInNeed>(StringComparer.Ordinal);
+        foreach (var counter in world.Buildings.All.Where(Spawner.IsCounter))
+        {
+            if (_clientele.Waiting(world, counter, tubs) is { } need) needs[counter.Id] = need;
+        }
+
+        return needs;
     }
 
     /// <summary>

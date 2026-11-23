@@ -31,19 +31,22 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system) : IUiExtension
         var building = context.Building;
         if (!building.Owned || system() is not { } bathhouse) return [];
 
-        var lines = PieceLines(context, bathhouse).ToList();
+        // The staff button first: the panel clips lines past its lower edge, and a storage piece's own lines push ours down.
+        var lines = new List<UiBuildingAction>();
         if (StaffRoles.OfferedBy(building.Record) is { } role && building.SiteId is { } site) lines.Add(AssignLine(context, site, role));
+
+        lines.AddRange(PieceLines(context, bathhouse));
         return lines;
     }
 
     /// <summary>
-    /// The piece's own lines, before its staff button.
+    /// The piece's own lines, after its staff button.
     /// </summary>
     static IEnumerable<UiBuildingAction> PieceLines(UiBuildingContext context, BathhouseSystem bathhouse)
     {
         var building = context.Building;
         var counter = bathhouse.Counter;
-        if (building.Record == Ids.Counter) return CounterLines(context, counter);
+        if (building.Record == Ids.Counter) return [CheckInLine(bathhouse.CheckIn(building.SiteId)), .. CounterLines(context, counter)];
         if (building.Record == Ids.TeaTable) return [PriceLine(context, Service.Tea, counter.Percent(Service.Tea), Tooltip(Service.Tea))];
         if (building.Record == Ids.MassageStation)
             return [PriceLine(context, Service.Massage, counter.Percent(Service.Massage), Tooltip(Service.Massage))];
@@ -126,6 +129,34 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system) : IUiExtension
     /// </summary>
     static Action Switch(UiBuildingContext context, string effect, bool keep) =>
         () => context.Enqueue(new KeepDebuffCommand(effect, keep) { Tick = context.Tick });
+
+    /// <summary>
+    /// The counter's check-in line: ready, or the first thing it lacks, with what to do about it as the tooltip.
+    /// </summary>
+    static UiBuildingAction CheckInLine(CheckInNeed? need)
+    {
+        if (need is not { } lack) return new UiBuildingAction("Check-in: ready", "A customer at the counter checks in now.", Nothing);
+
+        string tooltip = lack switch
+        {
+            CheckInNeed.Clerk => "Keep one of your people beside the counter: press Assign selected: Bathhouse clerk with them selected.",
+            CheckInNeed.Towel => "Put Towels in the counter or a towel rack in this building.",
+            CheckInNeed.Soap => "Put Soap in the counter or a store in this building (the soap press makes it).",
+            _ => "No tub in this building is warm with a free seat: switch a powered steam boiler on and keep Water in a store here.",
+        };
+        return new UiBuildingAction($"Check-in needs: {Need(lack)}", tooltip, Nothing);
+    }
+
+    /// <summary>
+    /// A check-in need's name on the counter's line.
+    /// </summary>
+    static string Need(CheckInNeed need) => need switch
+    {
+        CheckInNeed.Clerk => "a clerk",
+        CheckInNeed.Towel => "a Towel",
+        CheckInNeed.Soap => "Soap",
+        _ => "a warm tub",
+    };
 
     /// <summary>
     /// A counter's lines: the open switch (its tooltip the customers under way and the latest payment), then one price line per service.

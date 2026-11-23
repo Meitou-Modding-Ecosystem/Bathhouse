@@ -25,10 +25,22 @@ public static class Stock
     public static Supplies? Of(World world, BuildSite counter)
     {
         var own = world.Machines.Find(counter.Id)?.Storage;
-        var stores = counter.Parent is null ? [] : Heating.StoresIn(world, counter.Parent).ToList();
+        var stores = StoresOf(world, counter);
         if (Source(own, stores, Ids.Towel) is not { } towels || Source(own, stores, Ids.Soap) is not { } soap) return null;
 
         return new Supplies(towels, soap);
+    }
+
+    /// <summary>
+    /// The first of Towel and Soap that neither the counter nor a store in its building holds (its record id); null when both are there.
+    /// </summary>
+    public static string? Missing(World world, BuildSite counter)
+    {
+        var own = world.Machines.Find(counter.Id)?.Storage;
+        var stores = StoresOf(world, counter);
+        if (Source(own, stores, Ids.Towel) is null) return Ids.Towel;
+
+        return Source(own, stores, Ids.Soap) is null ? Ids.Soap : null;
     }
 
     /// <summary>
@@ -42,6 +54,11 @@ public static class Stock
         var fresh = world.Systems.OfType<ProductionSystem>().FirstOrDefault()?.Items.Create(Ids.Towel);
         if (fresh is not null && world.Characters.Cold(slot)?.Inventory is { } bag) bag.Add(fresh);
     }
+
+    /// <summary>
+    /// The stores in the counter's building; none for a counter outdoors.
+    /// </summary>
+    static List<Inventory> StoresOf(World world, BuildSite counter) => counter.Parent is null ? [] : Heating.StoresIn(world, counter.Parent).ToList();
 
     /// <summary>
     /// The counter's own storage when it holds a record, else the first of the stores that does; null for none.

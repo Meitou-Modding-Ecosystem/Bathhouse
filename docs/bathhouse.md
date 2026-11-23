@@ -126,15 +126,16 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   picks a fight: its squad gets a TEMP_ENEMY tag for each of the player's people within 300 units, never the faction.
 - **Barks** (`Barks`): two lines per kind for getting into a tub, cold water, a complaint, leaving happy, the price and a fight. English only (the
   engine has no translation catalog for mods).
-- **Panels**: the counter has an open switch (tooltip: groups and customers under way, the latest payment or complaint) and the bath, towel and
-  soap price lines; the tea table and the massage station have their price line.
+- **Panels**: the counter has its clerk button, a check-in line ("ready", or the first of clerk, Towel, Soap, warm tub it lacks; tooltip: the
+  fix), an open switch (tooltip: groups and customers under way, the latest payment or complaint) and the bath, towel and soap price lines; the
+  tea table and the massage station have their price line.
 - **Debug rows**: "Bathhouse: tubs and bathers" lists groups, visits, staff errands and dirty tubs; "Bathhouse: send customers (kind)" sends a
   group now.
 
 ## Staff
 
 `Staffing/`. Four mod job types (`AddJobType`, 4403 to 4406), each in the character's job list on the piece it was given at: the piece's panel
-button "Assign selected: <job>" gives it to the selected characters (one job of a type each); the jobs panel shows and removes it and the game
+button "Assign selected: <job>" (the panel's first mod line, as lines past the panel's edge are clipped) gives it to the selected characters (one job of a type each); the jobs panel shows and removes it and the game
 saves it. `Staff` is the jobs' `IJobSource`: when the chooser asks, the job's plan (`Plans`) gives an errand of stops (walk there, work for a
 time, then move goods, re-checking they are there); the errand runs on the job's row until done, then the chooser picks again. Errands are not
 saved: a loaded staff member plans again.
