@@ -52,6 +52,11 @@ public readonly record struct CounterView(bool Open, int[] Percents, long VisitP
 }
 
 /// <summary>
+/// What a counter's check-in line shows: what it waits for (null: ready), and whether a customer would get a towel and soap.
+/// </summary>
+public readonly record struct CheckInView(CheckInNeed? Need, bool Towel, bool Soap);
+
+/// <summary>
 /// What the panel of a tub or boiler shows: its building's heat, and for a tub the seats taken.
 /// </summary>
 public readonly record struct PieceView(BuildingHeat Heat, int Taken, int Seats);
@@ -309,14 +314,14 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     public CounterView Counter => _counter.Value;
 
     /// <summary>
-    /// The latest of what each counter's check-in lacks, by site id; a ready counter is absent (written in the tick, read on the host's thread).
+    /// The latest check-in view of each counter by site id (written in the tick, read on the host's thread).
     /// </summary>
-    volatile Dictionary<string, CheckInNeed> _checkIns = [];
+    volatile Dictionary<string, CheckInView> _checkIns = [];
 
     /// <summary>
-    /// What a counter's check-in lacks; null when it is ready.
+    /// A counter's check-in view; null for another site.
     /// </summary>
-    public CheckInNeed? CheckIn(string? site) => site is not null && _checkIns.TryGetValue(site, out var need) ? need : null;
+    public CheckInView? CheckIn(string? site) => site is not null && _checkIns.TryGetValue(site, out var view) ? view : null;
 
     /// <summary>
     /// The debug row's view: each building's heat, then each soak.
@@ -358,15 +363,16 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     /// <summary>
     /// What each counter's check-in lacks now.
     /// </summary>
-    Dictionary<string, CheckInNeed> CheckInsNow(World world, List<Tub> tubs)
+    Dictionary<string, CheckInView> CheckInsNow(World world, List<Tub> tubs)
     {
-        var needs = new Dictionary<string, CheckInNeed>(StringComparer.Ordinal);
+        var views = new Dictionary<string, CheckInView>(StringComparer.Ordinal);
         foreach (var counter in world.Buildings.All.Where(Spawner.IsCounter))
         {
-            if (_clientele.Waiting(world, counter, tubs) is { } need) needs[counter.Id] = need;
+            var stock = Stock.Of(world, counter);
+            views[counter.Id] = new CheckInView(_clientele.Waiting(world, counter, tubs), stock.Towels is not null, stock.Soap is not null);
         }
 
-        return needs;
+        return views;
     }
 
     /// <summary>
@@ -419,7 +425,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     /// <summary>
     /// The sidecar layout's version.
     /// </summary>
-    public const int SaveVersion = 3;
+    public const int SaveVersion = 4;
 
     public void Write(Stream stream)
     {

@@ -54,6 +54,24 @@ public sealed class CustomerTests
     }
 
     [Fact]
+    public void A_visit_without_towel_or_soap_costs_only_the_bath()
+    {
+        var pricing = new Pricing();
+
+        Assert.Equal(40, pricing.Visit(TubKind.Medium, towel: false, soap: false).Price);
+        Assert.Equal(55, pricing.Visit(TubKind.Medium, towel: true, soap: false).Price);
+        Assert.Equal(50, pricing.Visit(TubKind.Medium, towel: false, soap: true).Price);
+    }
+
+    [Theory]
+    [InlineData(true, true, 1.0f)]
+    [InlineData(true, false, 0.9f)]
+    [InlineData(false, true, 0.9f)]
+    [InlineData(false, false, 0.8f)]
+    public void A_towel_and_soap_each_raise_the_quality(bool towel, bool soap, float total) =>
+        Assert.Equal(total, Quality.Of(soaked: 3, lukewarm: 0, waited: 0, cold: false, towel: towel, soap: soap).Total, 3);
+
+    [Fact]
     public void Waiting_takes_off_at_most_its_cap() =>
         Assert.Equal(Quality.MostWait, Quality.Of(soaked: 2, lukewarm: 0, waited: 10, cold: false).Wait);
 

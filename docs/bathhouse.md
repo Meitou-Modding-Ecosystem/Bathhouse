@@ -93,14 +93,15 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   A group whose platoon disappears is posted and the next may set out at once. A held stand-in takes part in Meitou's off-screen fights
   (Settings > Advanced > Fights far away, on by default), so a group can be wiped out on the road; kept on purpose (README).
 - **Check-in**: the visit goal (desire 0.7) walks the customer to the counter's front and stands it there. It checks in when one of the player's
-  people stands within 80 units of the counter, a Towel and a Soap are each found in the counter, else in a store in its building (`Stock`; they may come from different stores), and a tub in the building
-  is warm with a free seat. It takes the price (below), a Soap is used up and a Towel goes into its inventory (it dries with it), and it is sent
-  to soak. After waiting 2 hours it leaves with a complaint; closing the bathhouse sends arriving customers away.
+  people stands within 80 units of the counter and a tub in the building is warm with a free seat. It gets a Towel and a Soap when each is found
+  in the counter, else in a store in its building (`Stock`; they may come from different stores), and bathes without one that is not. It takes
+  the price (below: the bath plus the towel and soap it gets), a Soap is used up and a Towel goes into its inventory (it dries with it), and it
+  is sent to soak. After waiting 2 hours it leaves with a complaint; closing the bathhouse sends arriving customers away.
 - **Prices** (`Pricing`): bath (small 30, medium 40, large 50, oil 60, blood 80 cats), towel 15, soap 10, times the reputation factor (1 until
   milestone 5) for the suggested price. The counter's panel sets each service to 50, 75, 100, 125, 150 or 200% of it. A customer takes a visit
   price at or under tolerance x suggested; above it with chance e^(-8 (ratio / tolerance - 1)), 13% at a quarter over, else it leaves.
 - **Quality and payment** (`Quality`): 1 less 0.5 x the lukewarm share of the soak, 0.15 a game hour waited (at most 0.3), 0.3 for a soak cut
-  short by cold and 0.2 for a dirty tub. At or above 0.8 the customer owes the full price, below it price x quality / 0.8. Check-in prefers a
+  short by cold, 0.2 for a dirty tub, 0.1 without a towel and 0.1 without soap. At or above 0.8 the customer owes the full price, below it price x quality / 0.8. Check-in prefers a
   clean tub. After a good enough soak it buys tea, may take a massage, then pays what it owes (added to the player's money and posted).
 - **Tea**: when a tea table in the tub's building holds a Tea Set and the customer takes the tea price (the same chance rule, ratio = percent /
   100), the set becomes a Used Tea Set on the table and the tea's price (20 cats suggested) is owed.
@@ -126,8 +127,8 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   picks a fight: its squad gets a TEMP_ENEMY tag for each of the player's people within 300 units, never the faction.
 - **Barks** (`Barks`): two lines per kind for getting into a tub, cold water, a complaint, leaving happy, the price and a fight. English only (the
   engine has no translation catalog for mods).
-- **Panels**: the counter has its clerk button, a check-in line ("ready", or the first of clerk, Towel, Soap, warm tub it lacks; tooltip: the
-  fix), an open switch (tooltip: groups and customers under way, the latest payment or complaint) and the bath, towel and soap price lines; the
+- **Panels**: the counter has its clerk button, a check-in line ("ready" with the towel and soap it has, or the first of clerk, warm tub it lacks;
+  tooltip: the fix), an open switch (tooltip: groups and customers under way, the latest payment or complaint) and the bath, towel and soap price lines; the
   tea table and the massage station have their price line.
 - **Debug rows**: "Bathhouse: tubs and bathers" lists groups, visits, staff errands and dirty tubs; "Bathhouse: send customers (kind)" sends a
   group now.
@@ -158,7 +159,7 @@ and Oil Baths (level 2), and Blood Baths after Hot Baths (level 3).
 `BathhouseSettings`, on the Settings screen's Mods page: seats per boiler (4), Water per boiler a day (2), soak length by tub (small 2 h,
 medium 3, large 4, oil and blood 3), Soothed buff (3 days), soaks clear debuffs (on), towels kept (80%), hours between customers (6),
 relation lost per complaint (1), most relation lost a day (5), fight chance (5%). Prices and the open switch are on the counter, saved with the
-game (sidecar version 3; version 2 reads with tea and massage at 100%).
+game (sidecar version 4; version 2 reads with tea and massage at 100%, before 4 visits had a towel and soap).
 
 ## Tests
 
