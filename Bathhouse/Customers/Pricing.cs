@@ -92,7 +92,7 @@ public sealed class Pricing
     public static int Base(Service service, TubKind tub) => service switch
     {
         Service.Towel => 27,
-        Service.Soap => 37,
+        Service.Soap => 18,
         Service.Tea => 69,
         Service.Massage => 300,
         _ => tub switch
