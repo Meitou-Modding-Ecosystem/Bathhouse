@@ -80,11 +80,11 @@ static class ItemRecords
         new(Ids.GreenfruitTea, "Greenfruit Tea", "42309-changes_otto.mod", "Greenfruit", 61, 20,
             "Sliced and dried greenfruit. Brewed in teaware it makes a sweet, pale tea.", "greenfruittea"),
         new(Ids.Teaware, "Teaware", "42319-changes_otto.mod", "Cup", 61, 5,
-            "A pot and cups of fired stone. Fill it with greenfruit tea at a tea bench to make a tea set.", "teaware"),
+            "A pot and cups of fired stone. Brew greenfruit tea in it with Water at a tea bench to make a tea set.", "teaware"),
         new(Ids.TeaSet, "Tea Set", "42316-changes_otto.mod", "Ceramic Bowl", 115, 5,
             "A tray of hot greenfruit tea, ready to serve. Drunk, it leaves a used tea set behind.", "teaset"),
         new(Ids.UsedTeaSet, "Used Tea Set", "42316-changes_otto.mod", "Ceramic Bowl", 53, 5,
-            "A tray of empty, stained cups. A washing machine and a little soap make it clean teaware again.", "usedteaset"),
+            "A tray of empty, stained cups. A used tea rack rinses it back into teaware with hot water.", "usedteaset"),
         new(Ids.DirtyRobe, "Dirty Robe", "584-gamedata.base", "Fabrics", 90, 5,
             "A robe a bather has worn. A washing machine and a little soap make it clean again.", "dirtyrobe"),
     ];
@@ -109,12 +109,17 @@ static class ItemRecords
         record.Strings["description"] = spec.Text;
         SetIcon(record, spec.Icon);
 
-        if (spec.Id == Ids.TeaSet) RecordKit.Links(record, "ingredients", (Ids.Teaware, 100, 0), (Ids.GreenfruitTea, 100, 0));
+        if (spec.Id == Ids.TeaSet) Brewed(record);
         if (spec.Id == Ids.Towel) Washed(record, Ids.DirtyTowel);
-        if (spec.Id == Ids.Teaware) Washed(record, Ids.UsedTeaSet);
         if (record.References.ContainsKey("ingredients")) Markup(record);
         return record;
     }
+
+    /// <summary>
+    /// A tea set's recipe: teaware, greenfruit tea and the game's Water.
+    /// </summary>
+    static void Brewed(FcsRecord record) =>
+        RecordKit.Links(record, "ingredients", (Ids.Teaware, 100, 0), (Ids.GreenfruitTea, 100, 0), (FurnitureRecords.Water, 100, 0));
 
     /// <summary>
     /// Prices a crafted item at its ingredients' worth plus <see cref="WorkMarkup"/> per hour of its <c>production time</c>.

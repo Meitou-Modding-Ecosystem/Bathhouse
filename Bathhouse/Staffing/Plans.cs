@@ -117,7 +117,6 @@ public sealed class Plans(Soaks soaks, TubCare care)
     [
         (Ids.Towel, Ids.DirtyTowel, Ids.Hamper),
         (Ids.Robe, Ids.DirtyRobe, Ids.RobeHamper),
-        (Ids.Teaware, Ids.UsedTeaSet, Ids.UsedTeaRack),
     ];
 
     /// <summary>
@@ -194,15 +193,12 @@ public sealed class Plans(Soaks soaks, TubCare care)
     }
 
     /// <summary>
-    /// Where clean goods go: towels to the first rack, else counter, robes to the first lockers, teaware to the first teaware shelf, in the
-    /// building with room for one.
+    /// Where clean goods go: towels to the first rack, else counter, robes to the first lockers, in the building with room for one.
     /// </summary>
-    static BuildSite? CleanTarget(World world, string building, string clean) => clean switch
-    {
-        Ids.Robe => WithRoom(world, building, Ids.Lockers, Ids.Robe),
-        Ids.Teaware => WithRoom(world, building, Ids.TeawareShelf, Ids.Teaware),
-        _ => WithRoom(world, building, Ids.TowelRack, Ids.Towel) ?? WithRoom(world, building, Ids.Counter, Ids.Towel),
-    };
+    static BuildSite? CleanTarget(World world, string building, string clean) =>
+        clean == Ids.Robe
+            ? WithRoom(world, building, Ids.Lockers, Ids.Robe)
+            : WithRoom(world, building, Ids.TowelRack, Ids.Towel) ?? WithRoom(world, building, Ids.Counter, Ids.Towel);
 
     /// <summary>
     /// The first piece of a record in the building with room for one of an item; null for none.

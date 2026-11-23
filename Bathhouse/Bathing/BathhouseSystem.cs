@@ -91,6 +91,11 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     readonly Heating _heating = new();
 
     /// <summary>
+    /// The used tea racks' rinsing and the tea benches' hold on hot water.
+    /// </summary>
+    readonly TeaWorks _teaWorks;
+
+    /// <summary>
     /// The soaks and the bath goal.
     /// </summary>
     readonly Soaks _soaks;
@@ -147,6 +152,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     {
         _purpose = purpose;
         _soaks = new Soaks(_heating, Finished, data);
+        _teaWorks = new TeaWorks(_heating);
         _clientele = new Clientele(_heating, _soaks, _care, data, purpose);
         _staff = new Staff(new Plans(_soaks, _care));
         _privateBeds = new PrivateBeds(data.Relations);
@@ -201,6 +207,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
 
         var tubs = Tubs.All(world);
         _heating.Check(world, tubs, settings);
+        _teaWorks.Step(world, hours);
         SendPlayers(world, tubs);
         SendCustomers(world, tubs);
         _soaks.Step(world, hours, tub => Length(tub.Kind, settings));

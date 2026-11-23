@@ -141,15 +141,15 @@ static class MachineRecords
     }
 
     /// <summary>
-    /// The washing machine's functionality: the cooking stove's crafting, with a queue of towel, robe and teaware washes (each from its
-    /// <c>ingredients</c>, a dirty one and a quarter of a soap). The output holds 10 towels, one robe (armour never stacks) and 5 teaware.
+    /// The washing machine's functionality: the cooking stove's crafting, with a queue of towel and robe washes (each from its <c>ingredients</c>, a
+    /// dirty one and a quarter of a soap). The output holds 10 towels, and one robe (armour never stacks).
     /// </summary>
     static FcsRecord WasherWork(GameDatabase game)
     {
         var model = RecordKit.Model(game, FcsRecordType.BuildingFunctionality, "43954-rebirth.mod", "cooking general");
         var record = RecordKit.Copy(model, Ids.WasherWork, "Washing Machine", "item crafts");
 
-        RecordKit.Links(record, "item crafts", (Ids.Towel, 10, 0), (Ids.Robe, 1, 0), (Ids.Teaware, 5, 0));
+        RecordKit.Links(record, "item crafts", (Ids.Towel, 10, 0), (Ids.Robe, 1, 0));
         record.Floats["production mult"] = WashSpeed;
         record.Floats["use range"] = WorkSpots.OperatorReach;
         return record;
@@ -161,10 +161,9 @@ static class MachineRecords
     static FcsRecord Washer(GameDatabase game)
     {
         var spec = new Spec(Ids.WashingMachine, Ids.WasherWork, "Washing Machine", "52162-rebirth.mod", "Sake Still", "", "", [], [],
-            "Washes dirty towels, robes and used tea sets clean, one bar of soap for four. Queue Towel, Robe and Teaware washes at it like a"
-            + " crafting bench (Repeat Queue keeps it going) and give one of your people its operate job. A Laundry runner (panel button)"
-            + " fetches dirty goods from the hampers and the used tea rack for the queued washes, keeps it in soap and takes towels to the"
-            + " racks, robes to the lockers and teaware to the teaware shelf.");
+            "Washes dirty towels and robes clean, one bar of soap for four. Queue Towel and Robe washes at it like a crafting bench (Repeat"
+            + " Queue keeps it going) and give one of your people its operate job. A Laundry runner (panel button) fetches dirty goods from the"
+            + " hampers for the queued washes, keeps it in soap and takes towels to the racks and robes to the lockers.");
         return Building(game, spec, Ids.WasherWork);
     }
 
@@ -174,7 +173,8 @@ static class MachineRecords
     static FcsRecord TeaBench(GameDatabase game)
     {
         var spec = new Spec(Ids.TeaBench, Ids.TeaBenchWork, "Tea Bench", "1944-gamedata.base", "Cooking Stove", "", "", [], [],
-            "Brews greenfruit tea in teaware into tea sets for the tea tables. Craft at it like a cooking stove and store the sets on a tea shelf.");
+            "Brews greenfruit tea and Water in teaware into tea sets for the tea tables. It only brews in a building with a lit steam boiler"
+            + " and Water, like the tubs. Craft at it like a cooking stove; haulers take the sets to a tea set cabinet.");
         return Building(game, spec, Ids.TeaBenchWork);
     }
 

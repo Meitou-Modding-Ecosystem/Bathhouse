@@ -86,7 +86,7 @@ public sealed class StaffTests
         prices.Set(Service.Massage, 50);
 
         Assert.Equal(before, prices.Visit(TubKind.Medium));
-        Assert.Equal(138, prices.Price(Service.Tea, TubKind.Medium));
+        Assert.Equal(200, prices.Price(Service.Tea, TubKind.Medium));
         Assert.Equal(150, prices.Price(Service.Massage, TubKind.Medium));
     }
 
