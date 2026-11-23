@@ -10,7 +10,8 @@ heated tubs and paying bathers. GPL-3.0-or-later. What it does: [docs/bathhouse.
   `.claude/skills/meitou-engine-release`.
 - Checking a built mod against the newest Meitou release (CI does it on every PR): [docs/refcheck.md](docs/refcheck.md).
 - Publishing the mod to the Steam Workshop for the first time, then on every release: [docs/steam-workshop.md](docs/steam-workshop.md).
-- Turning `.glb` models (Meshy, Hi3D, Blender) into buildable structures, no FCS needed: [docs/structures.md](docs/structures.md).
+- Turning `.glb` models (Meshy, Hi3D, Blender) into buildable structures and items, no FCS needed: [docs/structures.md](docs/structures.md);
+  getting a generated model's polycount, size and textures right first: [docs/model-prep.md](docs/model-prep.md).
 
 ## Customers can be attacked on the road
 
