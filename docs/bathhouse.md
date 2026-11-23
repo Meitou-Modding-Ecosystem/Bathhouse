@@ -37,8 +37,10 @@ times 1.2, since pieces at the prompt's size looked small in game. Off-size expo
 room for more statues. A machine on its own look keeps its stand-in's build cost and power draw
 (`MachineRecords.KeepCost`). The massage bed and the counter keep their stand-in's functionality, inventory and `output rate` (`KeepWork`). A copied model carries no use
 nodes (NODE_USE 1183-gamedata.base, node type 4): a bed without one is lain in at its origin facing its way, a machine without one is worked
-from anywhere within its functionality's `use range` of its origin. So the massage bed's model is turned to lie along local Z (`yaw` 90) as the
-game's Bed does, at the same length, and takes the Bed's two end nodes (`KeepUseNodes`, z ±12.2): a sleeper lies on it from the nearer end. The
+from anywhere within its functionality's `use range` of its origin. The game's Bed lies along local X with a node beside each long side
+(z ±12.2, the second turned 180°) and a sleeper lies along X (**Observed**, Matthew's game: on the model turned along Z the customer lay
+across it); the two nodes face opposite ways (node yaw - 90), so the side a sleeper comes from decides where its head goes. So the massage bed's model lies along
+local X (`yaw` 0, head rest at -X) and keeps only the Bed's -Z node (`KeepUseNodes`; Forgotten Buildings' Bed with Pillow keeps the same one), so every sleeper lies the same way. The
 massage station gets one node 7 units in front (local +Z, `StationFront`) and `use range` 10, so its attendant stands at its front.
 Model textures are kept at 2048 (base colour and metal/roughness as JPEG quality 92, normal map as lossless PNG): the import bakes 2048 DDS
 by default (`textureSize`), so a 4096 source only grows the repo.
