@@ -41,9 +41,9 @@ public sealed record AssignStaffCommand(string Site, StaffRole Role) : SimComman
 
 /// <summary>
 /// What a counter's panel shows: whether the bathhouse is open, each service's percent (in <see cref="Service"/> order) and a medium tub's visit
-/// price, the groups and visits under way, and the latest payment or complaint.
+/// price, the groups and visits under way, the latest payment or complaint and the recent ones (newest first).
 /// </summary>
-public readonly record struct CounterView(bool Open, int[] Percents, long VisitPrice, int Groups, int Visits, string Latest)
+public readonly record struct CounterView(bool Open, int[] Percents, long VisitPrice, int Groups, int Visits, string Latest, string[] Recent)
 {
     /// <summary>
     /// A service's percent.
@@ -306,7 +306,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     /// <summary>
     /// The latest view of the counters (written in the tick, read on the host's thread).
     /// </summary>
-    volatile StrongBox<CounterView> _counter = new(new CounterView(true, [100, 100, 100, 100, 100], 0, 0, 0, "No customers yet."));
+    volatile StrongBox<CounterView> _counter = new(new CounterView(true, [100, 100, 100, 100, 100], 0, 0, 0, "No customers yet.", []));
 
     /// <summary>
     /// What a counter's panel shows.
@@ -357,7 +357,8 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
         var prices = _clientele.Prices;
         int running = _clientele.Visits.Count(v => v.Phase != VisitPhase.Done);
         int[] percents = Enum.GetValues<Service>().Select(prices.Percent).ToArray();
-        return new CounterView(_clientele.Open, percents, prices.Visit(TubKind.Medium).Price, _clientele.Groups.Count, running, _clientele.Latest);
+        long visit = prices.Visit(TubKind.Medium).Price;
+        return new CounterView(_clientele.Open, percents, visit, _clientele.Groups.Count, running, _clientele.Latest, [.. _clientele.Recent]);
     }
 
     /// <summary>

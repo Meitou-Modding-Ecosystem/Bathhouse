@@ -70,6 +70,16 @@ public sealed class Pricing
     public static int Next(int percent) => Steps.FirstOrDefault(s => s > percent, Steps[0]);
 
     /// <summary>
+    /// The step below <paramref name="percent"/> (the lowest stays).
+    /// </summary>
+    public static int Previous(int percent) => Steps.LastOrDefault(s => s < percent, Steps[0]);
+
+    /// <summary>
+    /// The step above <paramref name="percent"/> (the highest stays).
+    /// </summary>
+    public static int Higher(int percent) => Steps.FirstOrDefault(s => s > percent, Steps[^1]);
+
+    /// <summary>
     /// The reputation factor of the suggested prices: 1 until reputation lands (milestone 5).
     /// </summary>
     public static double ReputationFactor => 1;

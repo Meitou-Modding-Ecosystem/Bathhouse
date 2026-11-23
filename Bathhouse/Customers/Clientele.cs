@@ -139,6 +139,21 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     public string Latest { get; private set; } = "No customers yet.";
 
     /// <summary>
+    /// The most entries <see cref="Recent"/> keeps.
+    /// </summary>
+    public const int RecentKept = 6;
+
+    /// <summary>
+    /// The latest payments and complaints, newest first, for the counter's ledger (not saved).
+    /// </summary>
+    readonly List<string> _recent = [];
+
+    /// <summary>
+    /// The latest payments and complaints, newest first (at most <see cref="RecentKept"/>).
+    /// </summary>
+    public IReadOnlyList<string> Recent => _recent;
+
+    /// <summary>
     /// The groups, for saving, hashing and the views.
     /// </summary>
     public IReadOnlyCollection<CustomerGroup> Groups => _groups.Values;
@@ -545,8 +560,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     void Pay(World world, int slot, Visit visit, CustomerType kind, string why)
     {
         world.Player.Money += visit.Owed;
-        Latest = $"{world.Characters.NameOf(world.Characters.IdOf(slot))} ({kind.Name}) paid {visit.Owed} cats, {why}.";
-        world.Post(Latest);
+        Note(world, $"{world.Characters.NameOf(world.Characters.IdOf(slot))} ({kind.Name}) paid {visit.Owed} cats, {why}.");
 
         Barks.Say(world, world.Characters.IdOf(slot), visit.Kind, BarkEvent.Happy, purpose);
         visit.Phase = VisitPhase.Done;
@@ -576,8 +590,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
         Barks.Say(world, world.Characters.IdOf(slot), visit.Kind, fight ? BarkEvent.Fight : BarkEvent.Complaint, purpose);
 
         string name = world.Characters.NameOf(world.Characters.IdOf(slot));
-        Latest = $"{name} ({kind?.Name ?? visit.Kind}) left without paying: {why}{(fight ? ", and picked a fight" : "")}.";
-        world.Post(Latest);
+        Note(world, $"{name} ({kind?.Name ?? visit.Kind}) left without paying: {why}{(fight ? ", and picked a fight" : "")}.");
         Leave(world, slot, visit);
     }
 
@@ -588,9 +601,20 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     {
         var who = world.Characters.IdOf(slot);
         Barks.Say(world, who, visit.Kind, BarkEvent.Pricey, purpose);
-        Latest = $"{world.Characters.NameOf(who)} ({CustomerTypes.Find(visit.Kind)?.Name ?? visit.Kind}) would not pay {price} cats.";
-        world.Post(Latest);
+        Note(world, $"{world.Characters.NameOf(who)} ({CustomerTypes.Find(visit.Kind)?.Name ?? visit.Kind}) would not pay {price} cats.");
         Leave(world, slot, visit);
+    }
+
+    /// <summary>
+    /// A payment or complaint: the latest one, at the top of the recent ones, and a message to the player.
+    /// </summary>
+    void Note(World world, string text)
+    {
+        Latest = text;
+        _recent.Insert(0, text);
+        if (_recent.Count > RecentKept) _recent.RemoveAt(RecentKept);
+
+        world.Post(text);
     }
 
     /// <summary>
