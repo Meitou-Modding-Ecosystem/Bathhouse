@@ -83,6 +83,12 @@ static class FurnitureRecords
     const int StorageWidth = 8, StorageHeight = 8;
 
     /// <summary>
+    /// The check-in counter's storage grid, in inventory cells: room for its towels and soap. The game's Shop Counter's grid is a trader's, and its
+    /// window ran off a 1920 x 1200 screen (Matthew's game).
+    /// </summary>
+    const int CounterWidth = 12, CounterHeight = 10;
+
+    /// <summary>
     /// The only items each <see cref="Use.Limited"/> and <see cref="Use.LockedLimited"/> piece takes.
     /// </summary>
     static readonly Dictionary<string, string[]> Limits = new()
@@ -219,6 +225,7 @@ static class FurnitureRecords
         record.Bools["creates player town"] = true;
 
         if (spec.Id == Ids.BloodBath) AddMeat(record);
+        if (spec.Id == Ids.Counter) SetGrid(record, CounterWidth, CounterHeight);
         return record;
     }
 
@@ -316,6 +323,15 @@ static class FurnitureRecords
     {
         var turn = Quaternion.CreateFromAxisAngle(Vector3.UnitY, yaw);
         record.Instances.Add(new FcsInstance { Id = $"usenode{record.Instances.Count + 1}", Target = UseNodeRecord, Position = at, Rotation = turn });
+    }
+
+    /// <summary>
+    /// Sets the piece's storage grid to <paramref name="width"/> by <paramref name="height"/> cells.
+    /// </summary>
+    static void SetGrid(FcsRecord record, int width, int height)
+    {
+        record.Ints["storage size width"] = width;
+        record.Ints["storage size height"] = height;
     }
 
     /// <summary>
