@@ -155,8 +155,8 @@ static class FurnitureRecords
             + " wounds four times as fast while someone works the station. Your own people only use it when ordered to."),
         new(Ids.MassageStation, "Massage Station", "3471-otto.mod", "Small Table", Use.Massage,
             "Give one of your people its operate job and keep towels in it: the attendant only works while it has some, using one an hour."
-            + " While a customer lies on the nearest massage bed in the same building, each hour pays by the worker's Massage skill (up to 300"
-            + " an hour), which the work slowly trains. Set the massage"
+            + " While a customer lies on the nearest massage bed in the same building, each hour pays by the worker's Dexterity (up to 300"
+            + " an hour at 100), which the work trains a little. Set the massage"
             + " price on its panel."),
         new(Ids.Counter, "Check-in Counter", "3469-otto.mod", "Shop Counter", Use.Limited,
             "The heart of the bathhouse: customers come to it from 6:00 to 22:00 while it stands in a building with a warm tub. Keep towels"

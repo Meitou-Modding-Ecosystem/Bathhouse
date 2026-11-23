@@ -140,9 +140,8 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
 - **Massage** (`Massage`): each massage bed is paired with the nearest massage station in its building. With a free bed (one whose bed fixture
   no other visit holds) and the massage price taken, the customer walks to the bed (visit goal) and lies in it (`EnterBed`). While one of the
   player's people operates the station (it needs Towels in it to be worked) (a vanilla operate-machinery job, within 40 units), each hour pays 300 cats suggested x the attendant's pay
-  factor: 0.1 at Massage 0 rising evenly to 1 at 100, x 1.2 in a Bathhouse Robe, never past 1. **Massage** is the mod's skill (`AddSkill`,
-  stats window, Sciences column, starts at 1): each hour worked with a customer on the bed trains it by 1 on the game's curve (slower as it
-  rises: about 10 after 10 hours, 50 after 100). After 1 hour massaged, or 1 hour lying with nobody at the station (or waiting for the bed), it gets up and pays
+  factor: 0.1 at Dexterity 0 rising evenly to 1 at 100, x 1.2 in a Bathhouse Robe, never past 1. Each hour worked with a customer
+  on the bed trains the attendant's Dexterity by 0.5 on the game's curve (about a third of a level an hour at 20). After 1 hour massaged, or 1 hour lying with nobody at the station (or waiting for the bed), it gets up and pays
   the soak, the tea and the massage so far.
 - **Limited storage** (`FurnitureRecords.Limits`): the hamper, towel rack, soap shelf, tea table and tea shelf are the game's Resource storage with a
   `limit inventory`, so haulers (who fill the nearest store that `Accepts` an item) never put other goods in them. The game sizes a store limited to

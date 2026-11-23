@@ -2,7 +2,7 @@ using Bathhouse.Bathing;
 using Bathhouse.Records;
 using Meitou.Data.Gameplay.Ai;
 using Meitou.Simulation;
-using Meitou.Simulation.Bodies;
+using Meitou.Data.Gameplay.Bodies;
 using Meitou.Simulation.Construction;
 using Meitou.Simulation.Items;
 using Meitou.Simulation.Locks;
@@ -11,8 +11,8 @@ namespace Bathhouse.Customers;
 
 /// <summary>
 /// Massage (docs/bathhouse.md "Massage"): each massage bed is paired with the nearest massage station in its building. A customer lies in the bed;
-/// while someone works the station (operating it, as any production machine), the massage counts, pays by time and the attendant's Massage skill,
-/// and slowly trains that skill.
+/// while someone works the station (operating it, as any production machine), the massage counts, pays by time and the attendant's Dexterity,
+/// and trains it a little.
 /// </summary>
 public static class Massage
 {
@@ -37,24 +37,15 @@ public static class Massage
     public const double RobeBonus = 1.2;
 
     /// <summary>
-    /// The pay factor of an untrained attendant (Massage 0): a tenth of the price.
+    /// The pay factor of an attendant with Dexterity 0: a tenth of the price.
     /// </summary>
     public const double UntrainedPay = 0.1;
 
     /// <summary>
-    /// The Massage skill an hour of massage gives at level 1, on the game's curve (slower towards 100): about 50 after 100 hours' work, 80 after 400.
+    /// The Dexterity an hour of massage trains, on the game's curve (slower as it rises): about a third of a level an hour at Dexterity 20, so a
+    /// little next to fighting.
     /// </summary>
-    public const float TrainingPerHour = 1;
-
-    /// <summary>
-    /// The attendant's skill (docs/bathhouse.md "Massage"), on the stats window's Sciences column.
-    /// </summary>
-    public static readonly ModSkill Skill = new("bathhouse.massage", "Massage", SkillColumn.Sciences)
-    {
-        Description = "Kneading tired travellers back into shape.",
-        Affects = ["What a massage pays: a tenth of the massage price at 0, all of it at 100 (sooner in a bathhouse robe)"],
-        Training = ["Working a massage station while a customer lies on its bed"],
-    };
+    public const float TrainingPerHour = 0.5f;
 
     /// <summary>
     /// A free massage bed with a station in the building; null for none. Beds other visits hold are taken, and so is one somebody lies in (one of
@@ -95,7 +86,7 @@ public static class Massage
             if (Soaks.Flat(table.Next[slot].Position, station.Position) > AttendantReach) continue;
 
             bool robed = cold.Inventory?.Items.Any(i => i.Record == Ids.Robe && InventoryCommands.IsEquipmentSection(i.Section)) ?? false;
-            double pay = Pay(cold.Stats is { } stats ? Skill.Level(stats) : 0, robed);
+            double pay = Pay(cold.Stats?.Dexterity ?? 0, robed);
             if (best is null || pay > best.Value.Pay) best = (slot, pay);
         }
 
@@ -103,7 +94,7 @@ public static class Massage
     }
 
     /// <summary>
-    /// The pay factor of an attendant's Massage level: <see cref="UntrainedPay"/> at 0 rising evenly to 1 at 100, times <see cref="RobeBonus"/> in a
+    /// The pay factor of an attendant's Dexterity: <see cref="UntrainedPay"/> at 0 rising evenly to 1 at 100, times <see cref="RobeBonus"/> in a
     /// bathhouse robe, never past 1 (the massage price, 300 cats an hour as suggested).
     /// </summary>
     public static double Pay(float level, bool robed = false)
@@ -113,13 +104,13 @@ public static class Massage
     }
 
     /// <summary>
-    /// Trains the attendant's Massage for <paramref name="hours"/> of work.
+    /// Trains the attendant's Dexterity for <paramref name="hours"/> of work.
     /// </summary>
     public static void Train(World world, int slot, double hours)
     {
         if (world.Characters.Cold(slot)?.Stats is not { } stats || hours <= 0) return;
 
-        Skill.Gain(stats, (float)(TrainingPerHour * hours));
+        stats.Gain(StatsEnumerated.Dexterity, (float)(TrainingPerHour * hours));
     }
 
     /// <summary>

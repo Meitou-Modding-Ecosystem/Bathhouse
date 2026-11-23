@@ -36,7 +36,7 @@ public sealed class StaffTests
     [InlineData(100f, 1.0)]
     [InlineData(150f, 1.0)]
     [InlineData(-10f, 0.1)]
-    public void Massage_pay_scales_with_the_massage_skill_from_a_tenth_to_all_of_the_price(float level, double factor) =>
+    public void Massage_pay_scales_with_dexterity_from_a_tenth_to_all_of_the_price(float level, double factor) =>
         Assert.Equal(factor, Massage.Pay(level), 6);
 
     [Fact]
@@ -47,19 +47,17 @@ public sealed class StaffTests
     }
 
     [Fact]
-    public void A_master_masseur_earns_300_an_hour_at_the_suggested_price() =>
+    public void An_attendant_with_dexterity_100_earns_300_an_hour_at_the_suggested_price() =>
         Assert.Equal(300, new Pricing().Price(Service.Massage, TubKind.Small) * Massage.Pay(100f));
 
     [Fact]
-    public void Massage_trains_slowly()
+    public void Massage_trains_dexterity_a_little()
     {
         var stats = new Meitou.Simulation.Bodies.CharacterStats();
-        for (int hour = 0; hour < 10; hour++) Massage.Skill.Gain(stats, Massage.TrainingPerHour);
-        float afterTen = Massage.Skill.Level(stats);
-        for (int hour = 10; hour < 100; hour++) Massage.Skill.Gain(stats, Massage.TrainingPerHour);
+        stats[Meitou.Data.Gameplay.Bodies.StatsEnumerated.Dexterity] = 20;
+        for (int hour = 0; hour < 10; hour++) stats.Gain(Meitou.Data.Gameplay.Bodies.StatsEnumerated.Dexterity, Massage.TrainingPerHour);
 
-        Assert.InRange(afterTen, 5, 12);
-        Assert.InRange(Massage.Skill.Level(stats), 40, 60);
+        Assert.InRange(stats.Dexterity, 22, 24);
     }
 
     [Fact]
