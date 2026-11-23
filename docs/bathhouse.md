@@ -11,7 +11,7 @@ for its look (a stand-in until the mod's models land) and links game items by id
 | Kind | Records | Copies (look) |
 | --- | --- | --- |
 | Items | Towel, Dirty Towel, Soap, Greenfruit Tea, Teaware, Tea Set, Used Tea Set, Dirty Robe | Fabrics, Fabrics, Foodcube, Greenfruit, Cup, Ceramic Bowl, Ceramic Bowl, Fabrics |
-| Armour | Bathhouse Robe (`slot` 5, body: it replaces body armour; the Monk Robe sits in the belt slot, 14, under body armour) | Monk Robe |
+| Armour | Bathhouse Robe (`slot` 5, body: it replaces body armour; the Monk Robe sits in the belt slot, 14, under body armour; `part coverage` 20 on each arm and the stomach, 27 on the chest, so its total coverage is 100 and the clothing bench makes it from one Fabrics) | Monk Robe |
 | Production (function 4) | Towel Loom (Fabrics to 2 Towels), Soap Press (2 Hemp to Soap), Tea Dryer (Greenfruit to Greenfruit Tea), Pottery Kiln (Raw Stone to Teaware) | Fabric Loom (hemp), Hemp Processor, Biofuel Distillery (Hemp), Cooking Stove |
 | Crafting (function 10) | Tea Bench: Tea Set from Teaware + Greenfruit Tea (the Tea Set's `ingredients`); Washing Machine: a queue of Towel (Dirty Towel + 1/4 Soap) and Bathhouse Robe (Dirty Robe + 1/4 Soap) washes, 1 h each (the items' `ingredients` and `production time`; output holds 10 towels or 1 robe) | Cooking Stove, Sake Still |
 | Power | Steam Boiler: draws 10, functionality the game's Lights (a consumer with no operator, so the Power switch shows) | Boiler Tank |
@@ -19,6 +19,25 @@ for its look (a stand-in until the mod's models land) and links game items by id
 | Tubs (no functionality) | Small Tub (1 seat), Medium Tub (2), Large Bath (4), Oil Bath, Blood Bath (+10 Raw Meat to build) | own model (below), Large Barrels, Booze Barrels, Booze Barrel, Cannibal Butcher Table |
 | Service | Massage Bed (bed), Massage Station (production: Towel to Dirty Towel, 1 operator), Check-in Counter (shop counter, its grid 12 x 10 instead of the Shop Counter's trader grid), Lockers (locks; haulers store only Robes: `itemtype limit` ARMOUR and `limit inventory` Robe and Dirty Robe, two items so the grid stays 8 x 8 instead of one robe's footprint), Laundry Hamper (Dirty Towels only), Robe Hamper (Dirty Robes only), Towel Rack (Towels only), Soap Shelf (Soap only), Tea Table (Tea Sets and Used Tea Sets only), Tea Shelf (Greenfruit Tea, Teaware, Tea Sets, Used Tea Sets only), Review Board | Bed, Small Table, Shop Counter, Crossbow Locker, Small Barrel, Small Barrel, Shelf, Shelf, Small Table, Shelf, banner_traders |
 | Decorations | Zen Garden, Wall Art, Tapestry, Statue, Towel Hanger, Tea Set Display | Carpet: Rusty Rug, banner_empire, banner_holy, Emperor Statue, Wall Shelf 1, Wall Shelf 2 |
+
+### Values
+
+Matthew's rule: an item is worth its ingredients plus 2% per hour worked. Worth is the game's trade value (`ItemValue`, value x the category
+mult: 0.6, greenfruit tea 0.45); an item with `ingredients` is worth theirs times 1 + `profitability`, so a crafted item's profitability is
+0.02 x its `production time`. Base game (**Verified**, `ItemValue` over the load order): Hemp 17, Fabrics 56, Greenfruit 27, Raw Stone 36.
+Machine hours an item: 24 / (`output rate` x `production mult`).
+
+| Item | From | Hours | Worth |
+| --- | --- | --- | --- |
+| Soap | 2 Hemp (soap press) | 4 | 37 |
+| Towel | 1/2 Fabrics (towel loom) | 0.5 | 27 (as washed: Dirty Towel + 1/4 Soap, 1 h) |
+| Dirty Towel | a Towel less its wash | | 18 |
+| Greenfruit Tea | 1 Greenfruit (tea dryer) | 0.4 | 27 |
+| Teaware | 1 Raw Stone (kiln) | 0.5 | 37 |
+| Tea Set | Teaware + Greenfruit Tea (tea bench) | 4 | 69 |
+| Used Tea Set | Teaware to rinse | | 36 |
+| Bathhouse Robe | 1 Fabrics (clothing bench) | 3 at quality 50 | 60 at quality 50 (`relative price mult` 0.11; 5 to 237 by quality) |
+| Dirty Robe | a robe less its wash | | 49 |
 
 The items and the robe show the mod's own icons, not the copied item's: `tools/make-icons.py` fits each `concept-art/<name>-inventory.png`
 (transparent background) into the item's inventory footprint at 50 px a cell as `Bathhouse/items/icons/bathhouse-<name>.png`, and the
@@ -106,17 +125,17 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   in the counter, else in a store in its building (`Stock`; they may come from different stores), and bathes without one that is not. It takes
   the price (below: the bath plus the towel and soap it gets), a Soap is used up and a Towel goes into its inventory (it dries with it), and it
   is sent to soak. After waiting 2 hours it leaves with a complaint; closing the bathhouse sends arriving customers away.
-- **Prices** (`Pricing`): bath (small 30, medium 40, large 50, oil 60, blood 80 cats), towel 15, soap 10, times the reputation factor (1 until
+- **Prices** (`Pricing`): bath (small 45, medium 60, large 75, oil 90, blood 120 cats), towel 27, soap 37 (the items' worth, [Values](#values)), times the reputation factor (1 until
   milestone 5) for the suggested price. The counter's panel sets each service to 50, 75, 100, 125, 150 or 200% of it. A customer takes a visit
   price at or under tolerance x suggested; above it with chance e^(-8 (ratio / tolerance - 1)), 13% at a quarter over, else it leaves.
 - **Quality and payment** (`Quality`): 1 less 0.5 x the lukewarm share of the soak, 0.15 a game hour waited (at most 0.3), 0.3 for a soak cut
   short by cold, 0.2 for a dirty tub, 0.1 without a towel, 0.1 without soap and 0.1 without a robe. At or above 0.8 the customer owes the full price, below it price x quality / 0.8. Check-in prefers a
   clean tub. After a good enough soak it buys tea, may take a massage, then pays what it owes (added to the player's money and posted).
 - **Tea**: when a tea table in the tub's building holds a Tea Set and the customer takes the tea price (the same chance rule, ratio = percent /
-  100), the set becomes a Used Tea Set on the table and the tea's price (20 cats suggested) is owed.
+  100), the set becomes a Used Tea Set on the table and the tea's price (69 cats suggested, the Tea Set's worth) is owed.
 - **Massage** (`Massage`): each massage bed is paired with the nearest massage station in its building. With a free bed (one whose bed fixture
   no other visit holds) and the massage price taken, the customer walks to the bed (visit goal) and lies in it (`EnterBed`). While one of the
-  player's people operates the station (it needs Towels in it to be worked) (a vanilla operate-machinery job, within 40 units), each hour pays 30 cats suggested x skill (0.5 + 0.5 x
+  player's people operates the station (it needs Towels in it to be worked) (a vanilla operate-machinery job, within 40 units), each hour pays 45 cats suggested x skill (0.5 + 0.5 x
   Dexterity / 50, 0.5 to 1.5; x 1.2 for an attendant wearing a Bathhouse Robe). After 1 hour massaged, or 1 hour lying with nobody at the station (or waiting for the bed), it gets up and pays
   the soak, the tea and the massage so far.
 - **Limited storage** (`FurnitureRecords.Limits`): the hamper, towel rack, soap shelf, tea table and tea shelf are the game's Resource storage with a

@@ -38,8 +38,8 @@ public sealed class CustomerTests
     {
         var (price, suggested) = new Pricing().Visit(TubKind.Medium);
 
-        Assert.Equal(65, price);
-        Assert.Equal(65, suggested);
+        Assert.Equal(124, price);
+        Assert.Equal(124, suggested);
     }
 
     [Fact]
@@ -58,9 +58,9 @@ public sealed class CustomerTests
     {
         var pricing = new Pricing();
 
-        Assert.Equal(40, pricing.Visit(TubKind.Medium, towel: false, soap: false).Price);
-        Assert.Equal(55, pricing.Visit(TubKind.Medium, towel: true, soap: false).Price);
-        Assert.Equal(50, pricing.Visit(TubKind.Medium, towel: false, soap: true).Price);
+        Assert.Equal(60, pricing.Visit(TubKind.Medium, towel: false, soap: false).Price);
+        Assert.Equal(87, pricing.Visit(TubKind.Medium, towel: true, soap: false).Price);
+        Assert.Equal(97, pricing.Visit(TubKind.Medium, towel: false, soap: true).Price);
     }
 
     [Theory]
