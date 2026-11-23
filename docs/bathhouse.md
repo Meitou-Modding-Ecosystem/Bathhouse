@@ -127,10 +127,15 @@ following the water's heat needs an engine hook.
   until milestone 5, so drifters and traders come. Demand (the least quality a kind leaves without complaining) is tolerance / 4.
 - **Groups** (`Spawner`): while the bathhouse is open, every hours-between-customers setting, from 6:00 to 22:00, at most 2 groups at once, when
   a finished counter stands in a building with a warm tub. A kind whose faction is not hostile to the player's either way is picked with
-  `Rng.Hash`, spawned with `SpawnPlatoon` 800 to 1500 units from the counter (homed at the nearest town), tagged `Platoon.ModTag`
+  `Rng.Hash`, sized (below), spawned with `SpawnPlatoon` 800 to 1500 units from the counter (homed at the nearest town), tagged `Platoon.ModTag`
   `bathhouse.customers.<n>` (saved by the game: a group finds its platoon again by it), held and sent to the counter's front (20 units along its
   local +Z). Once the platoon loads its living people get visits. A group is let go (hold off, `ModSpawned` off, tag cleared, so the game's
   travel takes it on and may despawn it) when every visit is done, its counter is gone, or after 24 game hours.
+- **Group size** (`GroupSize`, `SquadRecords`): 1 to a cap, rolled with `Rng.Hash`. The cap is the most-bathers-per-group setting (3) plus 2 a
+  reputation level past 1, at most the tub seats in the counter's building plus 2 and at most 12. Each spawnable kind's game template has a copy
+  per size 1 to 12 (ids 1000 + 100 x kind + size): its leader, AI packages, faction and dialogue, plus size - 1 of its first `squad` member (the
+  leader's record for the Shek duelist, which has none), no animals or other lists, and `dont multiply`, so the world's Squad size setting does
+  not change it (engine `SquadFactory.Count`).
   A group whose platoon disappears is posted and the next may set out at once. A held stand-in takes part in Meitou's off-screen fights
   (Settings > Advanced > Fights far away, on by default), so a group can be wiped out on the road; kept on purpose (README).
 - **Check-in**: the visit goal (desire 0.7) walks the customer to the counter's front and stands it there. It checks in when one of the player's
@@ -225,16 +230,16 @@ and Oil Baths (level 2), and Blood Baths after Hot Baths (level 3).
 ## Settings
 
 `BathhouseSettings`, on the Settings screen's Mods page: seats per boiler (4), Water per boiler a day (2), soak length by tub (small 2 h,
-medium 3, large 4, oil and blood 3), Soothed buff (3 days), soaks clear debuffs (on), towels kept (80%), hours between customers (6),
+medium 3, large 4, oil and blood 3), Soothed buff (3 days), soaks clear debuffs (on), towels kept (80%), hours between customers (6), most bathers per group (3),
 relation lost per complaint (1), most relation lost a day (5), fight chance (5%). Prices and the open switch are on the counter, saved with the
 game (sidecar version 6, which adds the guest book; version 2 reads with tea and massage at 100%, before 4 visits had a towel and soap).
 
 ## Tests
 
 `Bathhouse.Tests/RecordTests` applies the records to the installed game (`KENSHI_PATH`; skipped without one) and checks links, machine data,
-research, the goals' lists and the customer kinds' squads and factions.
+research, the goals' lists, the customer kinds' squads and factions and that each bather template makes its size at any Squad size.
 `BathingTests` checks the heat rule, seats, the towel roll's split, which effects a soak clears, soak lengths and the sidecar round trip.
 `GuestBookTests` checks the record's pruning, summary and round trip; `LedgerTests` the ledger's tabs, pages and fit.
-`CustomerTests` checks price acceptance, the price steps, quality and pay, the complaints' cap, demand and the barks.
+`CustomerTests` checks price acceptance, the group size cap, the price steps, quality and pay, the complaints' cap, demand and the barks.
 `StaffTests` checks dirty tubs, the massage skill, the dirty tub's quality part, tea and massage prices and the staff roles. `BathingTests`
 also reads a version 2 sidecar.
