@@ -357,6 +357,11 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     public string View => _view;
 
     /// <summary>
+    /// Whether a customer sits at a tea table (<see cref="Clientele.SitsAtTea"/>).
+    /// </summary>
+    public bool SitsAtTea(CharacterId id) => _clientele.SitsAtTea(id);
+
+    /// <summary>
     /// The latest guest list (written in the tick, read on the host's thread).
     /// </summary>
     volatile GuestsNow _guests = new([], []);

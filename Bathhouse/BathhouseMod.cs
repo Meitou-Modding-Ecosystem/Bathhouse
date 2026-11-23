@@ -2,6 +2,7 @@ using Bathhouse.Bathing;
 using Bathhouse.Customers;
 using Bathhouse.Records;
 using Bathhouse.Staffing;
+using Meitou.Data.Gameplay.Combat;
 using Meitou.Modding;
 using Meitou.Simulation;
 
@@ -24,11 +25,23 @@ public sealed class BathhouseMod : IMod, IModDataPhase
     BathhouseSystem? _latest;
 
     /// <summary>
+    /// The tea sit's COMBAT_TECHNIQUE (<see cref="AnimationRecords"/>); null when the data phase did not add it (customers then sit as the game
+    /// rests).
+    /// </summary>
+    CombatTechnique? _teaSit;
+
+    /// <summary>
+    /// The tea sit clip's length, in seconds: it loops.
+    /// </summary>
+    const float TeaSitSeconds = 2.5f;
+
+    /// <summary>
     /// Adds the mod's items, machines, furniture, research and bath goal to the merged game data.
     /// </summary>
     public void EditData(ModDataContext context)
     {
         foreach (var record in BathhouseData.Records(context.Data)) context.Apply(record);
+        AnimationRecords.LinkRaces(context);
     }
 
     /// <summary>
@@ -48,10 +61,23 @@ public sealed class BathhouseMod : IMod, IModDataPhase
 
         var purpose = context.RngPurpose;
         context.AddItemUse(Ids.Towel, use => Towels.Use(use, purpose));
+        _teaSit = context.Data.Find(Ids.TeaSitMove) is { } sit ? CombatTechnique.From(sit) : null;
+        context.AddCombatMove(TeaSitMove);
         context.AddSystem("bathhouse", build => _latest = new BathhouseSystem(purpose, build.Data), SystemAnchor.End);
         context.AddUi(new BathhouseUi(() => _latest, new CounterLedger(() => _latest, context.Enqueue, () => context.Tick)));
         context.AddDebugCommand("Bathhouse: tubs and bathers", _ => Told(context, _latest?.View ?? "no world yet"));
         context.AddDebugCommand("Bathhouse: send customers (kind)", SendCustomers, hasField: true);
+    }
+
+    /// <summary>
+    /// The tea sit, looping, for a customer sitting at a tea table (a mod combat move: read-only, from the last serial step's view).
+    /// </summary>
+    CombatMove? TeaSitMove(World world, CharacterId id, long tick)
+    {
+        if (_teaSit is null || _latest?.SitsAtTea(id) != true) return null;
+
+        float seconds = tick * world.TickSeconds;
+        return new CombatMove(_teaSit, seconds % TeaSitSeconds / TeaSitSeconds);
     }
 
     /// <summary>

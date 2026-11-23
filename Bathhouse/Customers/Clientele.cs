@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Numerics;
 using System.Text;
 using Bathhouse.Bathing;
@@ -110,6 +111,11 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     Dictionary<CharacterId, Visit> _present = [];
 
     /// <summary>
+    /// The customers sitting at a tea table, published after each serial step for <see cref="SitsAtTea"/> (read from the animation's parallel step).
+    /// </summary>
+    volatile FrozenSet<CharacterId> _teaSitters = FrozenSet<CharacterId>.Empty;
+
+    /// <summary>
     /// The price list. Saved and hashed.
     /// </summary>
     public Pricing Prices { get; } = new();
@@ -214,7 +220,17 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
 
             StepVisit(world, slot, visit, tubs, hours);
         }
+
+        _teaSitters = _present
+            .Where(p => p.Value.Phase == VisitPhase.Tea && p.Value.Sitting)
+            .Select(p => p.Key)
+            .ToFrozenSet();
     }
+
+    /// <summary>
+    /// Whether a customer sits at a tea table (as of the last serial step): it then plays the tea sit (<see cref="AnimationRecords.TeaSitClip"/>).
+    /// </summary>
+    public bool SitsAtTea(CharacterId id) => _teaSitters.Contains(id);
 
     /// <summary>
     /// Sends a group of a kind to the open counter now, whatever the schedule and reputation say (the debug row); false when it could not.

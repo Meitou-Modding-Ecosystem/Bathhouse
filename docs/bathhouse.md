@@ -165,7 +165,7 @@ following the water's heat needs an engine hook.
   clean tub. After a good enough soak it may have tea, may take a massage, then pays what it owes (added to the player's money and posted).
 - **Tea**: after a good enough soak, when a tea table in the tub's building holds a Tea Set no other customer drinks at and the customer takes the
   tea price (the same chance rule, ratio = percent / 100), the visit goal walks it to the table's work spot, where it sits on the floor facing the
-  table (`CharacterTask.Rest` on row 4402, as in a tub) for 0.5 h. Then the set becomes a Used Tea Set on the table, the tea's price (100 cats
+  table (`CharacterTask.Rest` on row 4402, as in a tub; drawn cross-legged, see Animations) for 0.5 h. Then the set becomes a Used Tea Set on the table, the tea's price (100 cats
   suggested) is owed, and it gets up for a massage or to pay. 15% of drinks (seeded per customer and tick) breaks the set
   instead: no Used Tea Set is left, a message names the customer, and after a full-pay soak (quality 0.8 or more) the customer also offers to
   pay 37 cats for it (added to what it owes). Not sitting there within 1 h, or the table or its set gone, it goes on without tea.
@@ -238,6 +238,15 @@ saved: a loaded staff member plans again.
   the building (not a hamper or the counter). Queue the washes and set Repeat Queue at the washer; it also needs an operator.
 - **Tea server** (tea table): puts carried Used Tea Sets in a used tea rack; brings a Tea Set (from a tea set cabinet first) to an empty table; takes a
   table's Used Tea Set to a used tea rack. The used tea rack rinses them back into Teaware (Tea works).
+
+## Animations
+
+`items/animations/bathhouse_male.skeleton` / `bathhouse_female.skeleton` hold the mod's clips on male_skeleton / female_skeleton bones. The data
+phase adds an ANIMATION_FILE (`96-`) naming them and links it to every race whose `male mesh` is under `data/character/meshes/` (humans, shek,
+hivers, skeletons, fishmen; not the Hive Queen), and a disabled COMBAT_TECHNIQUE per clip, so no fight picks it (`AnimationRecords`).
+- `bathhouse_tea_sit` (`95-`, 2.5 s loop): a customer sitting at a tea table plays it as a mod combat move (`BathhouseMod.TeaSitMove`, from the
+  sitters `Clientele` publishes each step), cross-legged facing the table. Meshy's Sit_Cross_Legged_on_Floor retargeted onto both skeletons
+  with the Motion Lab (Meitou-Modding-Ecosystem/PZAKenshiMotionLab, `rig --reference`, then `motionlab.kenshi_export`), played in place.
 
 ## Research
 

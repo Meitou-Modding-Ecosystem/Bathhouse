@@ -186,4 +186,13 @@ public static class Ids
         TeaResearch = "83-" + FileName, OilBathResearch = "84-" + FileName, BloodBathResearch = "85-" + FileName;
 
     #endregion
+
+    #region Animations
+
+    /// <summary>
+    /// The tea table sit's <c>COMBAT_TECHNIQUE</c> and the mod's <c>ANIMATION_FILE</c> (<see cref="AnimationRecords"/>).
+    /// </summary>
+    public const string TeaSitMove = "95-" + FileName, Animations = "96-" + FileName;
+
+    #endregion
 }
