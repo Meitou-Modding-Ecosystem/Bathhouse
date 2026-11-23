@@ -470,7 +470,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     /// <summary>
     /// The sidecar layout's version.
     /// </summary>
-    public const int SaveVersion = 6;
+    public const int SaveVersion = 7;
 
     public void Write(Stream stream)
     {

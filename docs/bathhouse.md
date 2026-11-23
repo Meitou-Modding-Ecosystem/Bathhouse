@@ -148,9 +148,11 @@ following the water's heat needs an engine hook.
   price at or under tolerance x suggested; above it with chance e^(-8 (ratio / tolerance - 1)), 13% at a quarter over, else it leaves.
 - **Quality and payment** (`Quality`): 1 less 0.5 x the lukewarm share of the soak, 0.15 a game hour waited (at most 0.3), 0.3 for a soak cut
   short by cold, 0.2 for a dirty tub, 0.1 without a towel, 0.1 without soap and 0.1 without a robe. At or above 0.8 the customer owes the full price, below it price x quality / 0.8. Check-in prefers a
-  clean tub. After a good enough soak it buys tea, may take a massage, then pays what it owes (added to the player's money and posted).
-- **Tea**: when a tea table in the tub's building holds a Tea Set and the customer takes the tea price (the same chance rule, ratio = percent /
-  100), the set becomes a Used Tea Set on the table and the tea's price (69 cats suggested, the Tea Set's worth) is owed.
+  clean tub. After a good enough soak it may have tea, may take a massage, then pays what it owes (added to the player's money and posted).
+- **Tea**: after a good enough soak, when a tea table in the tub's building holds a Tea Set no other customer drinks at and the customer takes the
+  tea price (the same chance rule, ratio = percent / 100), the visit goal walks it to the table's work spot, where it sits on the floor facing the
+  table (`CharacterTask.Rest` on row 4402, as in a tub) for 0.5 h. Then the set becomes a Used Tea Set on the table, the tea's price (69 cats
+  suggested) is owed, and it gets up for a massage or to pay. Not sitting there within 1 h, or the table or its set gone, it goes on without tea.
 - **Massage** (`Massage`): each massage bed is paired with the nearest massage station in its building within 50 units (5 m) of it. With a free
   bed (one whose bed fixture no other visit holds) and the massage price taken, the customer walks to the bed (visit goal) and lies in it
   (`EnterBed`). While the station's Massage attendant (Staff) stands within 40 units of it and it holds a Towel, each hour pays 300 cats suggested x the attendant's pay
@@ -232,7 +234,7 @@ and Oil Baths (level 2), and Blood Baths after Hot Baths (level 3).
 `BathhouseSettings`, on the Settings screen's Mods page: seats per boiler (4), Water per boiler a day (2), soak length by tub (small 2 h,
 medium 3, large 4, oil and blood 3), Soothed buff (3 days), soaks clear debuffs (on), towels kept (80%), hours between customers (6), most bathers per group (3),
 relation lost per complaint (1), most relation lost a day (5), fight chance (5%). Prices and the open switch are on the counter, saved with the
-game (sidecar version 6, which adds the guest book; version 2 reads with tea and massage at 100%, before 4 visits had a towel and soap).
+game (sidecar version 7, which adds the visits' tea; 6 added the guest book; version 2 reads with tea and massage at 100%, before 4 visits had a towel and soap).
 
 ## Tests
 
