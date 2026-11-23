@@ -248,7 +248,7 @@ public sealed class Soaks(Heating heating, Action<World, int, Soak, SoakEnd> fin
     void Count(World world, int slot, Tub tub, Soak soak, double hours, double length)
     {
         var heat = heating.Of(tub.Building);
-        if (!ModGoals.Holds(world, slot, Row) || world.Characters.Next[slot].Task != (byte)CharacterTask.Rest)
+        if (!ModGoals.Holds(world, slot, Row) || !StillSitting(world, slot, tub, soak))
         {
             soak.Seated = false;
             return;
@@ -271,11 +271,33 @@ public sealed class Soaks(Heating heating, Action<World, int, Soak, SoakEnd> fin
     bool SitDown(World world, int slot, Tub tub, Soak soak)
     {
         soak.Robed ??= Robes.PutOn(world, slot, tub.Building, soak, data);
-        Place(world, slot, Tubs.SeatAt(tub, soak.Seat));
-        var started = TaskStart.Start(world, slot, new TaskRequest(CharacterTask.Rest, Row, TaskSource.Goal));
-        soak.Seated = started == StartResult.Started;
+        if (!InSeat(world, slot, tub, soak)) Place(world, slot, Tubs.SeatAt(tub, soak.Seat));
+
+        soak.Seated = Rest(world, slot);
         return soak.Seated;
     }
+
+    /// <summary>
+    /// Whether a seated bather still sits: resting, or put back to resting in its seat when something else ended the rest while the goal held, so
+    /// it stays down instead of standing up and sitting again.
+    /// </summary>
+    static bool StillSitting(World world, int slot, Tub tub, Soak soak)
+    {
+        if (world.Characters.Next[slot].Task == (byte)CharacterTask.Rest) return true;
+
+        return InSeat(world, slot, tub, soak) && Rest(world, slot);
+    }
+
+    /// <summary>
+    /// Starts the bather resting where it is, on the goal's row; true when it rests.
+    /// </summary>
+    static bool Rest(World world, int slot) =>
+        TaskStart.Start(world, slot, new TaskRequest(CharacterTask.Rest, Row, TaskSource.Goal)) == StartResult.Started;
+
+    /// <summary>
+    /// Whether the bather is in its seat already (on the ground plane, within a unit).
+    /// </summary>
+    static bool InSeat(World world, int slot, Tub tub, Soak soak) => Flat(world.Characters.Next[slot].Position, Tubs.SeatAt(tub, soak.Seat)) <= 1;
 
     /// <summary>
     /// Ends a soak that ran: the bather steps out in front of the tub, the goal lets it go, and the owner hands out what the soak earned.
