@@ -113,7 +113,7 @@ public sealed class Plans(Soaks soaks, TubCare care)
 
         var carried = Goods.Carried(world, slot);
         if (Washes.Any(w => Goods.Count(carried, w.Dirty) > 0 && Room(machine, w.Dirty) > 0) || Goods.Count(carried, Ids.Soap) > 0 && Room(machine, Ids.Soap) > 0)
-            return [new Leg(washer.Position, Handling, (w, s) => Load(w, s, washer))];
+            return [new Leg(WorkSpots.Front(washer), Handling, (w, s) => Load(w, s, washer))];
 
         return PutAway(world, carried, building) ?? Unload(world, washer, state, building) ?? Fetch(world, washer, machine, state, building);
     }
@@ -126,9 +126,9 @@ public sealed class Plans(Soaks soaks, TubCare care)
         foreach (var (clean, dirty, hamper) in Washes)
         {
             if (Goods.Count(carried, clean) > 0 && CleanTarget(world, building, clean) is { } shelf)
-                return [new Leg(shelf.Position, Handling, (w, s) => Put(w, s, shelf, clean))];
+                return [new Leg(WorkSpots.Front(shelf), Handling, (w, s) => Put(w, s, shelf, clean))];
             if (Goods.Count(carried, dirty) > 0 && WithRoom(world, building, hamper, dirty) is { } back)
-                return [new Leg(back.Position, Handling, (w, s) => Put(w, s, back, dirty))];
+                return [new Leg(WorkSpots.Front(back), Handling, (w, s) => Put(w, s, back, dirty))];
         }
 
         return null;
@@ -145,8 +145,8 @@ public sealed class Plans(Soaks soaks, TubCare care)
 
             return
             [
-                new Leg(washer.Position, Handling, (w, s) => TakeClean(w, s, washer, clean)),
-                new Leg(shelf.Position, Handling, (w, s) => Put(w, s, shelf, clean)),
+                new Leg(WorkSpots.Front(washer), Handling, (w, s) => TakeClean(w, s, washer, clean)),
+                new Leg(WorkSpots.Front(shelf), Handling, (w, s) => Put(w, s, shelf, clean)),
             ];
         }
 
@@ -167,13 +167,13 @@ public sealed class Plans(Soaks soaks, TubCare care)
             int run = state.Queue.TakeWhile(j => j.Option.Key == current.Key).Count();
             int most = Math.Min(Armful, Math.Min(Room(machine, dirty), run - InputCount(machine, dirty)));
             var hamper = Goods.PiecesIn(world, building, hamperRecord).FirstOrDefault(h => Goods.Count(Goods.StoreOf(world, h), dirty) > 0);
-            if (most > 0 && hamper is not null) return [Pick(hamper, dirty, most), new Leg(washer.Position, Handling, (w, s) => Load(w, s, washer))];
+            if (most > 0 && hamper is not null) return [Pick(hamper, dirty, most), new Leg(WorkSpots.Front(washer), Handling, (w, s) => Load(w, s, washer))];
         }
 
         var store = SoapStore(world, building);
         if (store is null || InputCount(machine, Ids.Soap) >= SoapKept || Room(machine, Ids.Soap) == 0) return null;
 
-        return [Pick(store, Ids.Soap, SoapKept), new Leg(washer.Position, Handling, (w, s) => Load(w, s, washer))];
+        return [Pick(store, Ids.Soap, SoapKept), new Leg(WorkSpots.Front(washer), Handling, (w, s) => Load(w, s, washer))];
     }
 
     /// <summary>
@@ -258,15 +258,15 @@ public sealed class Plans(Soaks soaks, TubCare care)
         var tables = Goods.PiecesIn(world, building, Ids.TeaTable).ToList();
         var bare = tables.FirstOrDefault(t => Goods.Count(Goods.StoreOf(world, t), Ids.TeaSet) == 0);
         if (Goods.Count(Goods.Carried(world, slot), Ids.TeaSet) > 0 && bare is not null)
-            return [new Leg(bare.Position, Handling, (w, s) => Put(w, s, bare, Ids.TeaSet, 1))];
+            return [new Leg(WorkSpots.Front(bare), Handling, (w, s) => Put(w, s, bare, Ids.TeaSet, 1))];
 
         var used = tables.FirstOrDefault(t => Goods.Count(Goods.StoreOf(world, t), Ids.UsedTeaSet) > 0);
         if (used is not null && TeaStore(world, building, Ids.Teaware, room: true) is { } shelf)
-            return [Pick(used, Ids.UsedTeaSet, Armful), new Leg(shelf.Position, Handling, (w, s) => Rinse(w, s, shelf))];
+            return [Pick(used, Ids.UsedTeaSet, Armful), new Leg(WorkSpots.Front(shelf), Handling, (w, s) => Rinse(w, s, shelf))];
 
         if (bare is null || TeaStore(world, building, Ids.TeaSet, room: false) is not { } stock) return null;
 
-        return [Pick(stock, Ids.TeaSet, 1), new Leg(bare.Position, Handling, (w, s) => Put(w, s, bare, Ids.TeaSet, 1))];
+        return [Pick(stock, Ids.TeaSet, 1), new Leg(WorkSpots.Front(bare), Handling, (w, s) => Put(w, s, bare, Ids.TeaSet, 1))];
     }
 
     /// <summary>
@@ -314,7 +314,7 @@ public sealed class Plans(Soaks soaks, TubCare care)
     /// <summary>
     /// A stop that takes up to <paramref name="most"/> of a record from a piece's storage into the staff member's inventory.
     /// </summary>
-    static Leg Pick(BuildSite from, string record, int most) => new(from.Position, Handling, (w, s) => Take(w, s, from, record, most));
+    static Leg Pick(BuildSite from, string record, int most) => new(WorkSpots.Front(from), Handling, (w, s) => Take(w, s, from, record, most));
 
     /// <summary>
     /// Takes up to <paramref name="most"/> of a record from a piece's storage into the staff member's inventory.

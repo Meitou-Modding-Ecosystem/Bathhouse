@@ -81,8 +81,26 @@ public sealed class RecordTests
     [InlineData(Ids.LargeTub)]
     [InlineData(Ids.OilBath)]
     [InlineData(Ids.BloodBath)]
-    public void A_tub_has_no_functionality_for_other_AI_to_sit_in(string tub) =>
-        Assert.Empty(Game().Find(tub)!.GetReferences("functionality"));
+    public void A_tub_is_a_storage_that_takes_nothing_so_only_shift_clicks_use_it(string tub)
+    {
+        var data = Machine(tub);
+
+        Assert.True(data.IsStorage);
+        Assert.False(data.Operable);
+        Assert.False(data.Accepts(Ids.Towel, FcsRecordType.Item));
+        Assert.False(data.Accepts("1914-gamedata.base", FcsRecordType.Item));
+    }
+
+    [Fact]
+    public void The_counter_stores_only_towels_and_soap()
+    {
+        var data = Machine(Ids.Counter);
+
+        Assert.True(data.IsStorage);
+        Assert.True(data.Accepts(Ids.Towel, FcsRecordType.Item));
+        Assert.True(data.Accepts(Ids.Soap, FcsRecordType.Item));
+        Assert.False(data.Accepts(Ids.DirtyTowel, FcsRecordType.Item));
+    }
 
     [Fact]
     public void The_water_tank_stores_only_water()

@@ -1,5 +1,6 @@
 using Bathhouse.Customers;
 using Bathhouse.Bathing;
+using Bathhouse.Records;
 using Meitou.Data;
 using Meitou.Data.Gameplay.Bodies;
 using Meitou.Simulation;
@@ -41,7 +42,7 @@ public sealed class BathingTests
 
         Assert.Equal(seats, spots.Count);
         Assert.Equal(seats, spots.Distinct().Count());
-        Assert.All(spots, spot => Assert.True(spot.Length() < Tubs.Approach));
+        Assert.All(spots, spot => Assert.True(spot.Length() < WorkSpots.Out(Ids.SmallTub)));
     }
 
     [Fact]

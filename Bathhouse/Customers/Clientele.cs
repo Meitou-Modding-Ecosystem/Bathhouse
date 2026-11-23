@@ -477,7 +477,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     /// </summary>
     bool CheckIn(World world, int slot, Visit visit, BuildSite counter, IReadOnlyList<Tub> tubs)
     {
-        if (!Staffed(world, counter) || FreeTub(counter, tubs) is not { } tub) return false;
+        if (!Staffed(world, counter) || FreeTub(world, counter, tubs) is not { } tub) return false;
 
         var stock = Stock.Of(world, counter);
         bool towel = stock.Towels is not null;
@@ -513,12 +513,15 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     }
 
     /// <summary>
-    /// The first clean tub, else the first dirty one, with a free seat and warm water in the counter's building; null for none.
+    /// The first clean tub with a free seat and warm water in the counter's building; without a scrubber there, else the first dirty one. With
+    /// one, customers wait for it, so a dirty tub empties and gets scrubbed. Null for none.
     /// </summary>
-    Tub? FreeTub(BuildSite counter, IReadOnlyList<Tub> tubs)
+    Tub? FreeTub(World world, BuildSite counter, IReadOnlyList<Tub> tubs)
     {
         var free = tubs.Where(t => t.Building == counter.Parent && heating.Of(t.Building).Warm && soaks.FreeSeat(t) is not null).ToList();
-        return free.FirstOrDefault(t => !care.IsDirty(t.Site.Id)) ?? free.FirstOrDefault();
+        if (free.FirstOrDefault(t => !care.IsDirty(t.Site.Id)) is { } clean) return clean;
+
+        return StaffRoles.Staffs(world, counter.Parent, StaffRole.Scrubber) ? null : free.FirstOrDefault();
     }
 
     /// <summary>
@@ -768,19 +771,21 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     }
 
     /// <summary>
-    /// An hour of massage pays the massage price times the attendant's pay factor (Dexterity, robe); time with nobody at the station is waiting.
+    /// An hour of massage pays the massage price times the attendant's pay factor (Massage skill, robe) and trains the attendant; time with nobody
+    /// at the station is waiting.
     /// </summary>
     void Rub(World world, Visit visit, BuildSite bed, double hours)
     {
-        double? attendant = Massage.Station(world, bed) is { } station ? Massage.Attendant(world, station) : null;
-        if (attendant is not { } skill)
+        var attendant = Massage.Station(world, bed) is { } station ? Massage.Attendant(world, station) : null;
+        if (attendant is not { } at)
         {
             visit.BedWait += hours;
             return;
         }
 
         visit.Massaged += hours;
-        visit.MassagePay += Prices.Price(Service.Massage, TubKind.Small) * hours * skill;
+        visit.MassagePay += Prices.Price(Service.Massage, TubKind.Small) * hours * at.Pay;
+        Massage.Train(world, at.Slot, hours);
     }
 
     /// <summary>
@@ -820,7 +825,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     {
         if (!Staffed(world, counter)) return CheckInNeed.Clerk;
 
-        return FreeTub(counter, tubs) is null ? CheckInNeed.WarmTub : null;
+        return FreeTub(world, counter, tubs) is null ? CheckInNeed.WarmTub : null;
     }
 
     /// <summary>

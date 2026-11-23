@@ -93,7 +93,7 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system, CounterLedger led
     static string Tooltip(Service service)
     {
         long price = (long)Math.Round(Pricing.Suggested(service, TubKind.Small));
-        string what = service == Service.Tea ? "a Tea Set after the soak" : "an hour of massage, times the attendant's skill";
+        string what = service == Service.Tea ? "a Tea Set after the soak" : "an hour of massage by a master: from a tenth at Massage 0 to all of it at 100";
         return $"Suggested {price} cats for {what}. Press for the next step.";
     }
 
