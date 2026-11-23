@@ -107,15 +107,35 @@ static class FurnitureRecords
         [Ids.Lockers] = [Ids.Robe, Ids.DirtyRobe],
         [Ids.TowelRack] = [Ids.Towel],
         [Ids.SoapShelf] = [Ids.Soap],
+        // Two items in a grid of one tea set's footprint: the table holds one set, fresh or used.
         [Ids.TeaTable] = [Ids.TeaSet, Ids.UsedTeaSet],
-        [Ids.TeaShelf] = [Ids.GreenfruitTea, Ids.Teaware, Ids.TeaSet, Ids.UsedTeaSet],
+        [Ids.TeaShelf] = [Ids.GreenfruitTea],
+        [Ids.TeawareShelf] = [Ids.Teaware],
+        [Ids.TeaSetCabinet] = [Ids.TeaSet],
+        [Ids.UsedTeaRack] = [Ids.UsedTeaSet],
     };
 
     /// <summary>
-    /// The <c>stackable bonus mult</c> of a piece limited to one item: the game sizes such a storage to one stack of it, so this many stacks fit
-    /// (50 towels).
+    /// How many units each piece limited to one item holds, its <c>stackable bonus mult</c>: the game makes such a storage one cell of the item's
+    /// footprint, whose stack starts from 1 in a limited storage and is multiplied by the mult (engine <c>Inventory.LimitOf</c>), as the game's
+    /// own stores (Storage: Hemp 250, Water Tank 100).
     /// </summary>
-    const float OneItemStacks = 5;
+    static readonly Dictionary<string, int> Capacity = new()
+    {
+        [Ids.Hamper] = 50,
+        [Ids.RobeHamper] = 20,
+        [Ids.TowelRack] = 50,
+        [Ids.SoapShelf] = 100,
+        [Ids.TeaShelf] = 50,
+        [Ids.TeawareShelf] = 20,
+        [Ids.TeaSetCabinet] = 20,
+        [Ids.UsedTeaRack] = 20,
+    };
+
+    /// <summary>
+    /// The tea table's grid, in inventory cells: one tea set's footprint, so it holds one set.
+    /// </summary>
+    const int TeaTableCells = 2;
 
     /// <summary>
     /// The game's Raw Meat, the blood bath's extra build cost.
@@ -170,10 +190,10 @@ static class FurnitureRecords
         new(Ids.TowelRack, "Towel Rack", "3470-otto.mod", "Shelf", Use.Limited,
             "Holds only clean towels, up to 50. Check-ins and soaks take towels from it, and a Laundry runner refills it from the washing machine."),
         new(Ids.TeaTable, "Tea Table", "3471-otto.mod", "Small Table", Use.Limited,
-            "Holds only tea sets. Bathers in the same building buy tea here after a soak. A Tea server (panel button) brings tea sets from a"
-            + " tea shelf and clears used ones. Set the tea price on its panel."),
+            "Holds one tea set. Bathers in the same building buy tea here after a soak and leave the used set on it. A Tea server (panel button)"
+            + " brings a tea set from a tea set cabinet and takes the used one to a used tea rack. Set the tea price on its panel."),
         new(Ids.TeaShelf, "Tea Shelf", "3470-otto.mod", "Shelf", Use.Limited,
-            "Holds only greenfruit tea, teaware and tea sets. The Tea server takes tea sets from it and rinses used ones back into teaware here."),
+            "Holds only greenfruit tea, up to 50. Haulers bring it from the tea dryer; the tea bench's worker takes it from here."),
         new(Ids.RobeHamper, "Robe Hamper", "5355-furniture_otto.mod", "Small Barrel", Use.Limited,
             "Holds only dirty robes. Bathers drop their robe here after a soak (on the floor without one)."),
         new(Ids.ReviewBoard, "Review Board", "54552-Newwworld.mod", "banner_traders", Use.None,
@@ -186,6 +206,13 @@ static class FurnitureRecords
         new(Ids.TeaDisplay, "Tea Set Display", "12618-nodes_otto.mod", "Wall Shelf 2", Use.None, "Decoration: a shelf of teaware on show."),
         new(Ids.SoapShelf, "Soap Shelf", "3470-otto.mod", "Shelf", Use.Limited,
             "Holds only soap, up to 100 bars. Haulers bring it from the soap press; check-ins and the Laundry runner take soap from it."),
+        new(Ids.TeawareShelf, "Teaware Shelf", "3470-otto.mod", "Shelf", Use.Limited,
+            "Holds only clean teaware, up to 20. Haulers bring it from the pottery kiln and the washing machine; the tea bench's worker takes"
+            + " it from here."),
+        new(Ids.TeaSetCabinet, "Tea Set Cabinet", "3470-otto.mod", "Shelf", Use.Limited,
+            "Holds only tea sets, up to 20. Haulers bring them from the tea bench; the Tea server takes them to the tea tables."),
+        new(Ids.UsedTeaRack, "Used Tea Rack", "3470-otto.mod", "Shelf", Use.Limited,
+            "Holds only used tea sets, up to 20. The Tea server clears the tea tables into it; the washing machine's worker takes them to wash."),
     ];
 
     /// <summary>
@@ -231,6 +258,7 @@ static class FurnitureRecords
         if (spec.Id == Ids.BloodBath) AddMeat(record);
         EffectRecords.Attach(record, spec.Id);
         if (spec.Id == Ids.Counter) SetGrid(record, CounterWidth, CounterHeight);
+        if (spec.Id == Ids.TeaTable) SetGrid(record, TeaTableCells, TeaTableCells);
         return record;
     }
 
@@ -353,21 +381,21 @@ static class FurnitureRecords
         if (use == Use.Massage) RecordKit.Links(record, "functionality", (Ids.MassageWork, 0, 0));
         if (use == Use.Water) SetWater(record);
         if (use == Use.JobPost) SetJobPost(record);
-        if (use is Use.Limited or Use.LockedLimited) SetLimited(record, Limits[spec.Id]);
+        if (use is Use.Limited or Use.LockedLimited) SetLimited(record, Limits[spec.Id], Capacity.GetValueOrDefault(spec.Id, 1));
         if (spec.Id == Ids.Lockers) record.Ints["itemtype limit"] = (int)FcsRecordType.Armour;
     }
 
     /// <summary>
-    /// Makes the piece a store for its own goods only; one limited to a single item holds <see cref="OneItemStacks"/> stacks of it.
+    /// Makes the piece a store for its own goods only; one limited to a single item holds <paramref name="capacity"/> of it.
     /// </summary>
-    static void SetLimited(FcsRecord record, string[] items)
+    static void SetLimited(FcsRecord record, string[] items, int capacity)
     {
         record.Bools["has inventory"] = true;
         RecordKit.Links(record, "functionality", (ResourceStorage, 0, 0));
         RecordKit.Links(record, "limit inventory", items.Select(i => (i, 0, 100)).ToArray());
         record.Ints["storage size width"] = StorageWidth;
         record.Ints["storage size height"] = StorageHeight;
-        if (items.Length == 1) record.Floats["stackable bonus mult"] = OneItemStacks;
+        if (items.Length == 1) record.Floats["stackable bonus mult"] = capacity;
     }
 
     /// <summary>
