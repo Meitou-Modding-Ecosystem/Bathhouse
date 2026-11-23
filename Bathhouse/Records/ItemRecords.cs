@@ -10,14 +10,21 @@ namespace Bathhouse.Records;
 static class ItemRecords
 {
     /// <summary>
-    /// One item: its id and name, the game item it looks like (string id, then name), its value in cats, how many stack, and its text.
+    /// One item: its id and name, the game item it looks like (string id, then name), its value in cats, how many stack, its text and its icon
+    /// (null: the model's, until the mod's own lands).
     /// </summary>
-    sealed record Spec(string Id, string Name, string ModelId, string ModelName, int Value, int Stack, string Text, string Icon);
+    sealed record Spec(string Id, string Name, string ModelId, string ModelName, int Value, int Stack, string Text, string? Icon);
 
     /// <summary>
     /// The game's item functions used: 0, none (a plain trade good).
     /// </summary>
     const int NoFunction = 0;
+
+    /// <summary>
+    /// The armour slot ATTACH_BODY (the worn <c>armour</c> section): the robe goes on over the body as other robes do, in place of the bather's
+    /// body armour. The Monk Robe it copies sits in ATTACH_BELT (14) in the merged test-install data, under body armour.
+    /// </summary>
+    const int BodySlot = 5;
 
     /// <summary>
     /// The mod's folder under the game's <c>mods</c> folder.
@@ -42,6 +49,8 @@ static class ItemRecords
             "A tray of hot greenfruit tea, ready to serve. Drunk, it leaves a used tea set behind.", "teaset"),
         new(Ids.UsedTeaSet, "Used Tea Set", "42316-changes_otto.mod", "Ceramic Bowl", 30, 5,
             "A tray of empty, stained cups. The tea server rinses it back into teaware.", "usedteaset"),
+        new(Ids.DirtyRobe, "Dirty Robe", "584-gamedata.base", "Fabrics", 10, 5,
+            "A robe a bather has worn. A washing machine and a little soap make it clean again.", null),
     ];
 
     /// <summary>
@@ -61,21 +70,23 @@ static class ItemRecords
         record.Ints["stackable"] = spec.Stack;
         record.Ints["item function"] = NoFunction;
         record.Strings["description"] = spec.Text;
-        SetIcon(record, spec.Icon);
+        if (spec.Icon is not null) SetIcon(record, spec.Icon);
 
         if (spec.Id == Ids.TeaSet) RecordKit.Links(record, "ingredients", (Ids.Teaware, 100, 0), (Ids.GreenfruitTea, 100, 0));
         return record;
     }
 
     /// <summary>
-    /// The staff robe: a copy of the game's Monk Robe (its look, slot and cover) under its own name.
+    /// The bathhouse robe: a copy of the game's Monk Robe (its look and cover) under its own name, worn in the body slot.
     /// </summary>
     static FcsRecord Robe(GameDatabase game)
     {
         var model = RecordKit.Model(game, FcsRecordType.Armour, "2189-gamedata.base", "Monk Robe");
         var record = RecordKit.Copy(model, Ids.Robe, "Bathhouse Robe");
+        record.Ints["slot"] = BodySlot;
 
-        record.Strings["description"] = "A plain cotton robe. Bathhouse staff who wear one give better service.";
+        record.Strings["description"] = "A plain cotton robe. Bathers change into one from the bathhouse lockers; staff who wear one give better"
+            + " service.";
         SetIcon(record, "robe");
         return record;
     }

@@ -40,6 +40,9 @@ public sealed class StaffTests
         Assert.Equal(factor, Massage.Skill(dexterity), 6);
 
     [Fact]
+    public void A_robed_attendant_earns_more() => Assert.Equal(1.2, Massage.Skill(50f, robed: true), 6);
+
+    [Fact]
     public void A_dirty_tub_takes_a_fifth_off_quality()
     {
         var clean = Quality.Of(2, 0, 0, cold: false);
