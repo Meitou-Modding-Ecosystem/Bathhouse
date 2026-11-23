@@ -4,8 +4,9 @@ using Meitou.Simulation;
 namespace Bathhouse.Customers;
 
 /// <summary>
-/// The customers' part of the sidecar (layout versions 2 to 4) and of the state hash: open, prices, schedule, the complaints' day, groups, visits
-/// and, from version 3, the tea and massage prices, the visits' massage and the dirty tubs; from version 4, the visits' towel and soap.
+/// The customers' part of the sidecar (layout versions 2 to 6) and of the state hash: open, prices, schedule, the complaints' day, groups, visits
+/// and, from version 3, the tea and massage prices, the visits' massage and the dirty tubs; from version 4, the visits' towel and soap; from
+/// version 6, the guest book (not hashed).
 /// </summary>
 public static class ClienteleSave
 {
@@ -23,6 +24,7 @@ public static class ClienteleSave
         WriteVisits(w, clientele.Visits);
         w.Write(care.Dirty.Count);
         foreach (string tub in care.Dirty) w.Write(tub);
+        clientele.Book.Write(w);
     }
 
     /// <summary>
@@ -42,6 +44,8 @@ public static class ClienteleSave
         int count = version >= 3 ? r.ReadInt32() : 0;
         for (int k = 0; k < count; k++) dirty.Add(r.ReadString());
         care.Restore(dirty);
+        if (version >= 6) clientele.Book.Read(r);
+        else clientele.Book.Clear();
     }
 
     /// <summary>

@@ -67,6 +67,7 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system, CounterLedger led
         var building = context.Building;
         var counter = bathhouse.Counter;
         if (building.Record == Ids.Counter && building.SiteId is { } site) return [CheckInLine(bathhouse.CheckIn(site)), LedgerLine(site)];
+        if (building.Record == Ids.ReviewBoard) return ReviewLines(bathhouse.Reviews.Summary);
         if (building.Record == Ids.TeaTable) return [PriceLine(context, Service.Tea, counter.Percent(Service.Tea), Tooltip(Service.Tea))];
         if (building.Record == Ids.MassageStation)
             return [PriceLine(context, Service.Massage, counter.Percent(Service.Massage), Tooltip(Service.Massage))];
@@ -181,9 +182,25 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system, CounterLedger led
     /// </summary>
     UiBuildingAction LedgerLine(string counter)
     {
-        string caption = ledger.Shows(counter) ? "Close the bathhouse ledger" : "Open the bathhouse ledger";
-        string tooltip = "Check-in, opening, prices and the latest customers, in a window of their own.";
-        return new UiBuildingAction(caption, tooltip, () => ledger.Toggle(counter));
+        string caption = ledger.Shows(LedgerPage.Counter) ? "Close the bathhouse ledger" : "Open the bathhouse ledger";
+        string tooltip = "Check-in, opening, prices, the guests now and the last three days' reviews, in a window of their own.";
+        return new UiBuildingAction(caption, tooltip, () => ledger.Toggle(LedgerPage.Counter, counter));
+    }
+
+    /// <summary>
+    /// The review board's lines: the last three days' guests and failed arrivals, and the button that opens the reviews.
+    /// </summary>
+    UiBuildingAction[] ReviewLines(GuestSummary summary)
+    {
+        string guests = $"Guests: {summary.Recent} in 3 days ({summary.PerDay:0.0} a day), {summary.Total} in all";
+        string failed = $"Failed to arrive: {summary.Failed} in 3 days";
+        string read = ledger.Shows(LedgerPage.Reviews) ? "Close the reviews" : "Read the reviews";
+        return
+        [
+            new UiBuildingAction(guests, "Guests who soaked, paid or not.", Nothing),
+            new UiBuildingAction(failed, "Gave up on the way, attacked on the road, found it closed or waited too long at the counter.", Nothing),
+            new UiBuildingAction(read, "Every guest of the last three game days, with how their visit went.", () => ledger.Toggle(LedgerPage.Reviews)),
+        ];
     }
 
     /// <summary>
