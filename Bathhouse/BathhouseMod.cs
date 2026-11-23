@@ -64,6 +64,8 @@ public sealed class BathhouseMod : IMod, IModDataPhase
         _teaSit = context.Data.Find(Ids.TeaSitMove) is { } sit ? CombatTechnique.From(sit) : null;
         context.AddCombatMove(TeaSitMove);
         context.AddSystem("bathhouse", build => _latest = new BathhouseSystem(purpose, build.Data), SystemAnchor.End);
+        ConditionBars.System = () => _latest;
+        context.Harmony.PatchAll(typeof(BathhouseMod).Assembly);
         context.AddUi(new BathhouseUi(() => _latest, new CounterLedger(() => _latest, context.Enqueue, () => context.Tick)));
         context.AddDebugCommand("Bathhouse: tubs and bathers", _ => Told(context, _latest?.View ?? "no world yet"));
         context.AddDebugCommand("Bathhouse: send customers (kind)", SendCustomers, hasField: true);

@@ -69,7 +69,7 @@ public sealed record ReviewsNow(GuestSummary Summary, GuestRecord[] Records);
 /// <summary>
 /// What the panel of a tub or boiler shows: its building's heat, and for a tub the seats taken.
 /// </summary>
-public readonly record struct PieceView(BuildingHeat Heat, int Taken, int Seats);
+public readonly record struct PieceView(BuildingHeat Heat, int Taken, int Seats, bool Dirty = false);
 
 /// <summary>
 /// The bathhouse in one world (docs/bathhouse.md "Heated tubs", "Customers", "Staff"): heating checked, bathers sent, soaks, customers and staff
@@ -390,7 +390,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
         foreach (var tub in tubs)
         {
             int taken = _soaks.All.Count(s => s.Tub == tub.Site.Id);
-            pieces[tub.Site.Id] = new PieceView(_heating.Of(tub.Building), taken, tub.Seats);
+            pieces[tub.Site.Id] = new PieceView(_heating.Of(tub.Building), taken, tub.Seats, _care.IsDirty(tub.Site.Id));
         }
 
         foreach (var site in world.Buildings.All.Where(s => s.Record == Records.Ids.Boiler))
