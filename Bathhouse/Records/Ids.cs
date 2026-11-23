@@ -128,7 +128,7 @@ public static class Ids
         LockersLook = "901500-" + FileName, TowelRackLook = "901600-" + FileName, TeaDryerLook = "901700-" + FileName,
         KilnLook = "901800-" + FileName, ReviewBoardLook = "902100-" + FileName, StatueLook = "902200-" + FileName,
         ZenGardenLook = "902300-" + FileName, TeaDisplayLook = "902400-" + FileName, TeaShelfLook = "902500-" + FileName,
-        RobeHamperLook = "902600-" + FileName;
+        RobeHamperLook = "902600-" + FileName, SoapShelfLook = "902700-" + FileName;
 
     #endregion
 
