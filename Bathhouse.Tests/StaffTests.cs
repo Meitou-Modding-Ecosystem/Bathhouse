@@ -31,16 +31,41 @@ public sealed class StaffTests
     }
 
     [Theory]
-    [InlineData(0f, 0.5)]
-    [InlineData(50f, 1.0)]
-    [InlineData(100f, 1.5)]
-    [InlineData(150f, 1.5)]
-    [InlineData(-10f, 0.5)]
-    public void Massage_pay_scales_with_dexterity_from_half_to_one_and_a_half(float dexterity, double factor) =>
-        Assert.Equal(factor, Massage.Skill(dexterity), 6);
+    [InlineData(0f, 0.1)]
+    [InlineData(50f, 0.55)]
+    [InlineData(100f, 1.0)]
+    [InlineData(150f, 1.0)]
+    [InlineData(-10f, 0.1)]
+    public void Massage_pay_scales_with_dexterity_from_a_tenth_to_all_of_the_price(float level, double factor) =>
+        Assert.Equal(factor, Massage.Pay(level), 6);
 
     [Fact]
-    public void A_robed_attendant_earns_more() => Assert.Equal(1.2, Massage.Skill(50f, robed: true), 6);
+    public void A_robed_attendant_earns_more_but_never_past_the_price()
+    {
+        Assert.Equal(0.66, Massage.Pay(50f, robed: true), 6);
+        Assert.Equal(1.0, Massage.Pay(90f, robed: true), 6);
+    }
+
+    [Fact]
+    public void An_attendant_with_dexterity_100_earns_300_an_hour_at_the_suggested_price() =>
+        Assert.Equal(300, new Pricing().Price(Service.Massage, TubKind.Small) * Massage.Pay(100f));
+
+    [Fact]
+    public void Massage_trains_dexterity_a_little()
+    {
+        var stats = new Meitou.Simulation.Bodies.CharacterStats();
+        stats[Meitou.Data.Gameplay.Bodies.StatsEnumerated.Dexterity] = 20;
+        for (int hour = 0; hour < 10; hour++) stats.Gain(Meitou.Data.Gameplay.Bodies.StatsEnumerated.Dexterity, Massage.TrainingPerHour);
+
+        Assert.InRange(stats.Dexterity, 22, 24);
+    }
+
+    [Fact]
+    public void Every_work_spot_stands_clear_of_its_piece()
+    {
+        foreach (string piece in (string[])[Ids.WashingMachine, Ids.TowelLoom, Ids.SmallTub, Ids.LargeTub, Ids.MassageStation, Ids.Hamper])
+            Assert.True(WorkSpots.Out(piece) >= WorkSpots.Clearance + 2.5f, piece);
+    }
 
     [Fact]
     public void A_dirty_tub_takes_a_fifth_off_quality()
@@ -61,8 +86,8 @@ public sealed class StaffTests
         prices.Set(Service.Massage, 50);
 
         Assert.Equal(before, prices.Visit(TubKind.Medium));
-        Assert.Equal(40, prices.Price(Service.Tea, TubKind.Medium));
-        Assert.Equal(15, prices.Price(Service.Massage, TubKind.Medium));
+        Assert.Equal(138, prices.Price(Service.Tea, TubKind.Medium));
+        Assert.Equal(150, prices.Price(Service.Massage, TubKind.Medium));
     }
 
     [Fact]
@@ -82,6 +107,7 @@ public sealed class StaffTests
         Assert.Equal(StaffRole.Scrubber, StaffRoles.OfferedBy(Ids.BloodBath));
         Assert.Equal(StaffRole.Laundry, StaffRoles.OfferedBy(Ids.WashingMachine));
         Assert.Equal(StaffRole.Tea, StaffRoles.OfferedBy(Ids.TeaTable));
+        Assert.Equal(StaffRole.Massage, StaffRoles.OfferedBy(Ids.MassageStation));
         Assert.Null(StaffRoles.OfferedBy(Ids.Boiler));
     }
 }

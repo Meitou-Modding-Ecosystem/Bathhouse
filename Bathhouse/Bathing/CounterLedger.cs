@@ -7,33 +7,34 @@ using Meitou.Simulation;
 namespace Bathhouse.Bathing;
 
 /// <summary>
-/// The check-in counter's ledger window (docs/bathhouse.md "Panels"): what check-in needs and how to fix it, the open switch and the customers under
-/// way, each service's price with buttons to lower and raise it, and the latest payments and complaints. The counter's "Bathhouse ledger" button
-/// opens and closes it; it reads only the system's published views on the host's thread and changes the world through commands.
+/// A page of the bathhouse ledger.
+/// </summary>
+public enum LedgerPage
+{
+    /// <summary>
+    /// Check-in, opening, prices and the latest customers.
+    /// </summary>
+    Counter,
+
+    /// <summary>
+    /// The groups on their way and the guests now.
+    /// </summary>
+    Guests,
+
+    /// <summary>
+    /// The review board: the last three days' guests.
+    /// </summary>
+    Reviews,
+}
+
+/// <summary>
+/// The bathhouse ledger window (docs/bathhouse.md "Panels"), with a tab per <see cref="LedgerPage"/>: the counter's check-in, open switch, prices
+/// and latest customers; the guest list; and the review board's record. The counter's and the review board's panel buttons open it on their page;
+/// it reads only the system's published views on the host's thread and changes the world through commands.
 /// </summary>
 public sealed class CounterLedger(Func<BathhouseSystem?> system, Action<SimCommand> enqueue, Func<long> tick)
 {
     #region Window
-
-    /// <summary>
-    /// The window's width in pixels.
-    /// </summary>
-    const float Width = 640;
-
-    /// <summary>
-    /// One line's height in pixels.
-    /// </summary>
-    const float Line = 28;
-
-    /// <summary>
-    /// The window's inner margin in pixels.
-    /// </summary>
-    const float Margin = 14;
-
-    /// <summary>
-    /// A small button's width in pixels (the price steps).
-    /// </summary>
-    const float Small = 36;
 
     /// <summary>
     /// The services the price lines show, in order.
@@ -41,40 +42,71 @@ public sealed class CounterLedger(Func<BathhouseSystem?> system, Action<SimComma
     static readonly Service[] Priced = [Service.Bath, Service.Towel, Service.Soap, Service.Tea, Service.Massage];
 
     /// <summary>
-    /// The counter the window shows (its site id), null while it is closed. Written and read on the host's thread.
+    /// Whether the window is open. Written and read on the host's thread, as are the fields below.
+    /// </summary>
+    bool _open;
+
+    /// <summary>
+    /// The page shown.
+    /// </summary>
+    LedgerPage _page;
+
+    /// <summary>
+    /// The counter the Counter page shows (its site id); null for the first counter.
     /// </summary>
     string? _counter;
 
     /// <summary>
+    /// The first review the Reviews page shows, from the newest.
+    /// </summary>
+    int _reviewsFrom;
+
+    /// <summary>
     /// The registered keys: the window's styles and actions.
     /// </summary>
-    Keys _keys = null!;
+    LedgerKeys _keys = null!;
 
     /// <summary>
-    /// Whether the window shows <paramref name="counter"/>.
+    /// Whether the window is open on <paramref name="page"/>.
     /// </summary>
-    public bool Shows(string counter) => _counter == counter;
+    public bool Shows(LedgerPage page) => _open && _page == page;
 
     /// <summary>
-    /// Opens the window on <paramref name="counter"/>, or closes it when it already shows that counter.
+    /// Opens the window on <paramref name="page"/> (and, for the Counter page, <paramref name="counter"/>), or closes it when it already shows
+    /// that page.
     /// </summary>
-    public void Toggle(string counter) => _counter = _counter == counter ? null : counter;
+    public void Toggle(LedgerPage page, string? counter = null)
+    {
+        if (Shows(page))
+        {
+            _open = false;
+            return;
+        }
+
+        _open = true;
+        _page = page;
+        _counter = counter ?? _counter;
+        _reviewsFrom = 0;
+    }
 
     /// <summary>
     /// Registers the window's styles, actions and control, and puts it in the HUD's overlay.
     /// </summary>
     public void Register(UiRegistration registration)
     {
-        _keys = new Keys(
+        _keys = new LedgerKeys(
             registration.RegisterStyle("ledger-window", new UiStyle { Background = new Vector4(0.07f, 0.07f, 0.06f, 0.94f) }),
             registration.RegisterStyle("ledger-title", Text(new Vector4(0.95f, 0.85f, 0.55f, 1), 1.15f)),
             registration.RegisterStyle("ledger-head", Text(new Vector4(0.85f, 0.75f, 0.5f, 1), 1)),
             registration.RegisterStyle("ledger-text", Text(new Vector4(0.92f, 0.92f, 0.88f, 1), 1)),
             registration.RegisterStyle("ledger-hint", Text(new Vector4(0.7f, 0.7f, 0.66f, 1), 0.9f)),
-            registration.RegisterStyle("ledger-button", Button()),
-            registration.RegisterAction("ledger-close", _ => _counter = null),
+            registration.RegisterStyle("ledger-button", Button(new Vector4(0.24f, 0.21f, 0.16f, 1))),
+            registration.RegisterStyle("ledger-tab", Button(new Vector4(0.45f, 0.36f, 0.2f, 1))),
+            registration.RegisterAction("ledger-close", _ => _open = false),
             registration.RegisterAction("ledger-open", Open),
             registration.RegisterAction("ledger-price", Price),
+            registration.RegisterAction("ledger-tab", Tab),
+            registration.RegisterAction("ledger-page", Page),
             registration.Key("ledger"));
 
         string control = registration.RegisterControl("ledger", _ => Window());
@@ -87,11 +119,11 @@ public sealed class CounterLedger(Func<BathhouseSystem?> system, Action<SimComma
     static UiStyle Text(Vector4 colour, float scale) => new() { Text = colour, TextScale = scale, TextAlign = "Left VCenter" };
 
     /// <summary>
-    /// The buttons' style.
+    /// A button style on <paramref name="background"/>.
     /// </summary>
-    static UiStyle Button() => new()
+    static UiStyle Button(Vector4 background) => new()
     {
-        Background = new Vector4(0.24f, 0.21f, 0.16f, 1),
+        Background = background,
         Hover = new Vector4(0.36f, 0.31f, 0.22f, 1),
         Text = new Vector4(0.95f, 0.92f, 0.85f, 1),
         TextAlign = "Center",
@@ -102,30 +134,41 @@ public sealed class CounterLedger(Func<BathhouseSystem?> system, Action<SimComma
     /// </summary>
     UiNode Window()
     {
-        if (_counter is not { } counter || system() is not { } bathhouse) return new UiNode(_keys.Window) { Visible = false };
+        if (!_open || system() is not { } bathhouse) return new UiNode(_keys.Window) { Visible = false };
 
-        var rows = new Rows(this);
-        rows.Title();
-        CheckInRows(rows, bathhouse.CheckIn(counter));
-        CustomerRows(rows, bathhouse.Counter);
-        PriceRows(rows, bathhouse.Counter);
-        RecentRows(rows, bathhouse.Counter);
-        return rows.Build(_keys.Window, _keys.WindowStyle);
+        var rows = new LedgerRows(_keys);
+        rows.Title("Bathhouse ledger", [.. Enum.GetValues<LedgerPage>().Select(p => (p.ToString(), p.ToString(), p == _page))]);
+        if (_page == LedgerPage.Counter) CounterPage(rows, bathhouse);
+        else if (_page == LedgerPage.Guests) GuestPages.Guests(rows, bathhouse.Guests);
+        else GuestPages.Reviews(rows, bathhouse.Reviews, _reviewsFrom, _keys.Page);
+
+        return rows.Build();
     }
 
     #endregion
 
-    #region Sections
+    #region Counter page
+
+    /// <summary>
+    /// The Counter page: check-in, customers, prices and the latest payments and complaints.
+    /// </summary>
+    void CounterPage(LedgerRows rows, BathhouseSystem bathhouse)
+    {
+        CheckInRows(rows, bathhouse.CheckIn(_counter ?? bathhouse.FirstCounter));
+        CustomerRows(rows, bathhouse.Counter);
+        PriceRows(rows, bathhouse.Counter);
+        RecentRows(rows, bathhouse.Counter);
+    }
 
     /// <summary>
     /// What check-in needs, and the fix.
     /// </summary>
-    static void CheckInRows(Rows rows, CheckInView? view)
+    static void CheckInRows(LedgerRows rows, CheckInView? view)
     {
         rows.Head("Check-in");
         var (status, hint) = view switch
         {
-            null => ("Starting.", ""),
+            null => ("No check-in counter yet.", ""),
             { Need: CheckInNeed.Clerk } => ("Needs a clerk.", "Select one of your people and press Assign selected: Bathhouse clerk on the counter."),
             { Need: CheckInNeed.WarmTub } => ("Needs a warm tub with a free seat.",
                 "Switch on a powered steam boiler in this building and keep Water in a store here."),
@@ -149,25 +192,26 @@ public sealed class CounterLedger(Func<BathhouseSystem?> system, Action<SimComma
     /// <summary>
     /// The open switch and the customers under way.
     /// </summary>
-    static void CustomerRows(Rows rows, CounterView view)
+    void CustomerRows(LedgerRows rows, CounterView view)
     {
         rows.Head("Customers");
         string state = view.Open ? "Open: groups come from 6:00 to 22:00." : "Closed: no new groups come.";
-        rows.Switch(state, view.Open ? "Close" : "Open", view.Open ? "0" : "1");
-        rows.Text($"{view.Groups} groups coming or visiting, {view.Visits} customers in.");
+        rows.Switch(state, view.Open ? "Close" : "Open", _keys.Open, view.Open ? "0" : "1");
+        rows.Text($"{view.Groups} groups coming or visiting, {view.Visits} customers in. See them on the Guests page.");
     }
 
     /// <summary>
     /// One line per service: its percent of the suggested price and the price now, with the buttons that step it.
     /// </summary>
-    static void PriceRows(Rows rows, CounterView view)
+    static void PriceRows(LedgerRows rows, CounterView view)
     {
         rows.Head("Prices");
         foreach (var service in Priced)
         {
             int percent = view.Percent(service);
             long cats = (long)Math.Round(Pricing.Suggested(service, TubKind.Medium) * percent / 100);
-            rows.Price(service, percent, $"{service}: {percent}% of suggested, {cats} cats{Unit(service)}");
+            string text = $"{service}: {percent}% of suggested, {cats} cats{Unit(service)}";
+            rows.Price(service.ToString(), percent, Pricing.Previous(percent), Pricing.Higher(percent), text);
         }
 
         rows.Hint($"A medium tub visit with a towel and soap costs {view.VisitPrice} cats.");
@@ -187,9 +231,9 @@ public sealed class CounterLedger(Func<BathhouseSystem?> system, Action<SimComma
     /// <summary>
     /// The latest payments and complaints.
     /// </summary>
-    static void RecentRows(Rows rows, CounterView view)
+    static void RecentRows(LedgerRows rows, CounterView view)
     {
-        rows.Head("Recent customers");
+        rows.Head("Latest customers");
         if (view.Recent.Length == 0) rows.Hint("No customers yet.");
         foreach (string entry in view.Recent) rows.Hint(entry);
     }
@@ -215,139 +259,24 @@ public sealed class CounterLedger(Func<BathhouseSystem?> system, Action<SimComma
         enqueue(new PriceCommand(service, percent) { Tick = tick() });
     }
 
-    #endregion
-
     /// <summary>
-    /// The registered style and action keys, and the window's node id.
+    /// A tab: shows the page it names.
     /// </summary>
-    sealed record Keys(string WindowStyle, string TitleStyle, string HeadStyle, string TextStyle, string HintStyle, string ButtonStyle,
-        string Close, string Open, string Price, string Window);
-
-    /// <summary>
-    /// The window's lines, laid top to bottom.
-    /// </summary>
-    sealed class Rows(CounterLedger ledger)
+    void Tab(UiActionContext context)
     {
-        /// <summary>
-        /// The nodes so far.
-        /// </summary>
-        readonly List<UiNode> _nodes = [];
+        if (!Enum.TryParse<LedgerPage>(context.Argument, out var page)) return;
 
-        /// <summary>
-        /// The top of the next line.
-        /// </summary>
-        float _top = Margin;
-
-        /// <summary>
-        /// The keys.
-        /// </summary>
-        Keys K => ledger._keys;
-
-        /// <summary>
-        /// The title and the Close button.
-        /// </summary>
-        public void Title()
-        {
-            Label("Bathhouse ledger", K.TitleStyle, Width - 2 * Margin - 90);
-            Add(new UiNode(Id("close"), UiNodeKind.Button)
-            {
-                Placement = new UiPlacement(80, Line - 4, Left: Width - Margin - 80, Top: _top + 2), Style = K.ButtonStyle, Text = "Close",
-                Action = K.Close,
-            });
-            _top += Line + 4;
-        }
-
-        /// <summary>
-        /// A section heading.
-        /// </summary>
-        public void Head(string text)
-        {
-            _top += 6;
-            Label(text, K.HeadStyle, Width - 2 * Margin);
-            _top += Line;
-        }
-
-        /// <summary>
-        /// A line of text.
-        /// </summary>
-        public void Text(string text)
-        {
-            Label(text, K.TextStyle, Width - 2 * Margin);
-            _top += Line;
-        }
-
-        /// <summary>
-        /// A dimmer, smaller line of text.
-        /// </summary>
-        public void Hint(string text)
-        {
-            Label(text, K.HintStyle, Width - 2 * Margin);
-            _top += Line - 4;
-        }
-
-        /// <summary>
-        /// A line of text with a button at its right that runs <see cref="Keys.Open"/> with <paramref name="argument"/>.
-        /// </summary>
-        public void Switch(string text, string caption, string argument)
-        {
-            Label(text, K.TextStyle, Width - 2 * Margin - 110);
-            Add(Button(caption, K.Open, argument, 100, Width - Margin - 100, true));
-            _top += Line;
-        }
-
-        /// <summary>
-        /// A price line: lower and raise buttons, then the text; a button at the end of the steps is disabled.
-        /// </summary>
-        public void Price(Service service, int percent, string text)
-        {
-            int lower = Pricing.Previous(percent), higher = Pricing.Higher(percent);
-            Add(Button("-", K.Price, $"{service}:{lower}", Small, Margin, lower != percent));
-            Add(Button("+", K.Price, $"{service}:{higher}", Small, Margin + Small + 4, higher != percent));
-
-            float left = Margin + 2 * Small + 14;
-            Add(new UiNode(Id("label"), UiNodeKind.Label)
-            {
-                Placement = new UiPlacement(Width - Margin - left, Line, Left: left, Top: _top), Style = K.TextStyle, Text = text,
-            });
-            _top += Line;
-        }
-
-        /// <summary>
-        /// The window: its lines inside a panel centred across the screen, below the top bar.
-        /// </summary>
-        public UiNode Build(string id, string style)
-        {
-            float height = _top + Margin;
-            var window = new UiNode(id) { Placement = new UiPlacement(Width, height, Left: new UiLength(-Width / 2, 0.5f), Top: 90), Style = style };
-            window.Children.AddRange(_nodes);
-            return window;
-        }
-
-        /// <summary>
-        /// A label across <paramref name="width"/> at the current line.
-        /// </summary>
-        void Label(string text, string style, float width) => Add(new UiNode(Id("label"), UiNodeKind.Label)
-        {
-            Placement = new UiPlacement(width, Line, Left: Margin, Top: _top), Style = style, Text = text,
-        });
-
-        /// <summary>
-        /// A button at the current line; a disabled one never runs its action.
-        /// </summary>
-        UiNode Button(string caption, string action, string argument, float width, float left, bool enabled) => new(Id("button"), UiNodeKind.Button)
-        {
-            Placement = new UiPlacement(width, Line - 4, Left: left, Top: _top + 2), Style = K.ButtonStyle, Text = caption, Action = action,
-            Argument = argument, Enabled = enabled,
-        };
-
-        /// <summary>
-        /// Adds a node.
-        /// </summary>
-        void Add(UiNode node) => _nodes.Add(node);
-
-        /// <summary>
-        /// A node id unique in the window.
-        /// </summary>
-        string Id(string kind) => $"{K.Window}.{kind}{_nodes.Count}";
+        _page = page;
+        _reviewsFrom = 0;
     }
+
+    /// <summary>
+    /// The Reviews page's Newer and Older buttons: shows the reviews from the one the argument numbers.
+    /// </summary>
+    void Page(UiActionContext context)
+    {
+        if (int.TryParse(context.Argument, NumberStyles.Integer, CultureInfo.InvariantCulture, out int from)) _reviewsFrom = Math.Max(0, from);
+    }
+
+    #endregion
 }

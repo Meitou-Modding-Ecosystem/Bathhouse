@@ -59,11 +59,6 @@ public sealed record Tub(BuildSite Site, TubKind Kind)
 public static class Tubs
 {
     /// <summary>
-    /// How far in front of a tub (its local +Z, ground units) a bather walks to before stepping in, and where it steps out.
-    /// </summary>
-    public const float Approach = 15;
-
-    /// <summary>
     /// The kind of a tub record; null for any other record.
     /// </summary>
     public static TubKind? KindOf(string record) => record switch
@@ -108,9 +103,9 @@ public static class Tubs
     public static Vector3 SeatAt(Tub tub, int seat) => tub.Site.Position + Vector3.Transform(SeatOffset(tub.Kind, seat), tub.Site.Rotation);
 
     /// <summary>
-    /// The point in front of a tub a bather walks to and steps out at.
+    /// The point in front of a tub a bather walks to and steps out at, and where its scrubber works (<see cref="WorkSpots"/>).
     /// </summary>
-    public static Vector3 ApproachOf(Tub tub) => tub.Site.Position + Vector3.Transform(new Vector3(0, 0, Approach), tub.Site.Rotation);
+    public static Vector3 ApproachOf(Tub tub) => WorkSpots.Front(tub.Site);
 
     /// <summary>
     /// A seat's offset from the tub's origin in the tub's own frame (ground units): the centre for one seat, side by side for two, the corners of a

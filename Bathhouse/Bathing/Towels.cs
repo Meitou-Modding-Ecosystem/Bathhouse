@@ -77,6 +77,15 @@ public static class Towels
     static ItemInstance? Dirty(World world) => world.Systems.OfType<ProductionSystem>().FirstOrDefault()?.Items.Create(Ids.DirtyTowel);
 
     /// <summary>
+    /// A towel used up by a service (the massage): a Dirty Towel in the building's first hamper with room, else on the floor at the character's
+    /// feet.
+    /// </summary>
+    public static void Soil(World world, int slot, string? building)
+    {
+        if (Dirty(world) is { } dirty) Discard(world, slot, building, dirty);
+    }
+
+    /// <summary>
     /// Puts a dirty towel in the first hamper of the building with room, else on the floor at the bather's feet.
     /// </summary>
     static void Discard(World world, int slot, string? building, ItemInstance dirty)

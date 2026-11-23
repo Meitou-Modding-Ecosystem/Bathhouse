@@ -2,6 +2,7 @@ using Bathhouse.Records;
 using Meitou.Data.Gameplay.Ai;
 using Meitou.Simulation;
 using Meitou.Simulation.Ai;
+using Meitou.Simulation.Movement;
 using Meitou.Simulation.Production;
 
 namespace Bathhouse.Staffing;
@@ -30,6 +31,11 @@ public enum StaffRole
     /// Stocks the tea tables with Tea Sets and clears their Used Tea Sets.
     /// </summary>
     Tea,
+
+    /// <summary>
+    /// Works a massage station while a customer (or anyone) lies on a massage bed paired with it.
+    /// </summary>
+    Massage,
 }
 
 /// <summary>
@@ -51,7 +57,8 @@ public static class StaffRoles
         StaffRole.Clerk => Ids.ClerkJob,
         StaffRole.Scrubber => Ids.ScrubberJob,
         StaffRole.Laundry => Ids.LaundryJob,
-        _ => Ids.TeaJob,
+        StaffRole.Tea => Ids.TeaJob,
+        _ => Ids.MassageJob,
     });
 
     /// <summary>
@@ -67,7 +74,8 @@ public static class StaffRoles
         StaffRole.Clerk => "Bathhouse clerk",
         StaffRole.Scrubber => "Tub scrubber",
         StaffRole.Laundry => "Laundry runner",
-        _ => "Tea server",
+        StaffRole.Tea => "Tea server",
+        _ => "Massage attendant",
     };
 
     /// <summary>
@@ -79,8 +87,79 @@ public static class StaffRoles
         Ids.SmallTub or Ids.MediumTub or Ids.LargeTub or Ids.OilBath or Ids.BloodBath => StaffRole.Scrubber,
         Ids.WashingMachine => StaffRole.Laundry,
         Ids.TeaTable => StaffRole.Tea,
+        Ids.MassageStation => StaffRole.Massage,
         _ => null,
     };
+
+    /// <summary>
+    /// Whether one of the player's characters holds the role's job at a piece in the building (its jobs switch on or off).
+    /// </summary>
+    public static bool Staffs(World world, string? building, StaffRole role)
+    {
+        if (building is null) return false;
+
+        var type = TypeOf(role);
+        var table = world.Characters;
+        for (int slot = 0; slot < table.HighWater; slot++)
+        {
+            if (table.Cold(slot) is not { IsPlayer: true, Jobs: { } jobs } || !table.Next[slot].Alive) continue;
+            if (jobs.Any(j => j.Type == type && j.Site is { } site && world.Buildings.Find(site)?.Parent == building)) return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Turns the game's Hauling to job (124, what a Shift + right click on a storage gives) at a piece that offers a role into that role's job, in
+    /// its place in the list: the counter, the tubs and the massage station are storages so that the click gives a job (docs/bathhouse.md
+    /// "Staff"). A haul it started stops.
+    /// </summary>
+    public static void TakeClickedJobs(World world)
+    {
+        var table = world.Characters;
+        for (int slot = 0; slot < table.HighWater; slot++)
+        {
+            if (table.Cold(slot) is not { IsPlayer: true, Jobs: { Count: > 0 } jobs } cold) continue;
+
+            for (int k = 0; k < jobs.Count; k++)
+            {
+                if (jobs[k].Type != TaskType.OperateStorage || jobs[k].Site is not { } site) continue;
+                if (OfferedBy(world.Buildings.Find(site)?.Record) is not { } role || role == StaffRole.Laundry || role == StaffRole.Tea) continue;
+
+                Convert(world, slot, cold, k, role, site);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Puts the role's job in place of the Hauling to job <paramref name="k"/>; one of the role held elsewhere goes.
+    /// </summary>
+    static void Convert(World world, int slot, CharacterCold cold, int k, StaffRole role, string site)
+    {
+        var type = TypeOf(role);
+        var job = new PermaJob(type, site);
+        if (cold.Running is { Source: TaskSource.Job, Row: TaskType.OperateStorage } run && run.Job == k) TaskStart.Stand(world.Characters, slot);
+
+        if (cold.Running is { Source: TaskSource.Job } held && held.Row == type) TaskStart.Stand(world.Characters, slot);
+
+        cold.Jobs[k] = job;
+        for (int i = cold.Jobs.Count - 1; i >= 0; i--)
+        {
+            if (i != k && cold.Jobs[i].Type == type) RemoveAt(cold, i);
+        }
+
+        DecisionSystem.Request(cold);
+    }
+
+    /// <summary>
+    /// Takes job <paramref name="index"/> out of the list; the running job's index follows, as the jobs panel's X does.
+    /// </summary>
+    static void RemoveAt(CharacterCold cold, int index)
+    {
+        cold.Jobs.RemoveAt(index);
+        if (cold.Running is { Source: TaskSource.Job, Job: >= 0 } run && run.Job >= index)
+            cold.Running = run with { Job = run.Job == index ? -1 : run.Job - 1 };
+    }
 
     /// <summary>
     /// Gives each of the player's selected characters the role's job at a piece (one job of a role per character: one held elsewhere moves here).

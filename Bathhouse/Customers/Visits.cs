@@ -26,6 +26,11 @@ public enum VisitPhase
     /// Soaked and lying on a massage bed (after <see cref="Done"/> in number, as saves keep it).
     /// </summary>
     Massage,
+
+    /// <summary>
+    /// Soaked and going to a tea table, or sitting on the floor at it drinking (from layout 7).
+    /// </summary>
+    Tea,
 }
 
 /// <summary>
@@ -117,6 +122,31 @@ public sealed class Visit
     /// What the massage has earned so far, in cats.
     /// </summary>
     public double MassagePay { get; set; }
+
+    /// <summary>
+    /// The soak's quality once it ended, for the review board; NaN before, and after a load (not saved).
+    /// </summary>
+    public float Quality { get; set; } = float.NaN;
+
+    /// <summary>
+    /// The tea table it drinks at while on <see cref="VisitPhase.Tea"/>.
+    /// </summary>
+    public string? Table { get; set; }
+
+    /// <summary>
+    /// Whether it sits at its tea table.
+    /// </summary>
+    public bool Sitting { get; set; }
+
+    /// <summary>
+    /// Game hours it has sat drinking.
+    /// </summary>
+    public double Drunk { get; set; }
+
+    /// <summary>
+    /// Game hours it has spent getting to its tea table.
+    /// </summary>
+    public double TeaWait { get; set; }
 }
 
 /// <summary>
@@ -150,3 +180,35 @@ public sealed class CustomerGroup
     /// </summary>
     public bool Enlisted { get; set; }
 }
+
+/// <summary>
+/// How a guest's visit ended, as the review board lists it.
+/// </summary>
+public enum GuestOutcome
+{
+    /// <summary>
+    /// Soaked and paid.
+    /// </summary>
+    Paid,
+
+    /// <summary>
+    /// Soaked and left without paying, complaining about the quality.
+    /// </summary>
+    Complained,
+
+    /// <summary>
+    /// Reached the counter and would not pay the price.
+    /// </summary>
+    TurnedAway,
+
+    /// <summary>
+    /// Set out for the bathhouse but never got a soak: gave up, was attacked on the way, found it closed or waited too long at the counter.
+    /// </summary>
+    Failed,
+}
+
+/// <summary>
+/// One guest's finished visit on the review board: the game hour it ended, who (a group's kind for a group lost on the road) and of what kind, how
+/// it ended, what it paid, its quality (NaN when it never soaked) and why.
+/// </summary>
+public sealed record GuestRecord(double Hour, string Name, string Kind, GuestOutcome Outcome, long Paid, float Quality, string Reason);
