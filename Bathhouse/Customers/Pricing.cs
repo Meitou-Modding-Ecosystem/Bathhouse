@@ -104,11 +104,11 @@ public sealed class Pricing
     public long Price(Service service, TubKind tub) => (long)Math.Round(Suggested(service, tub) * Percent(service) / 100);
 
     /// <summary>
-    /// A check-in's price (bath, towel and soap) and its suggested price.
+    /// A check-in's price (the bath, and the towel and soap it gets) and its suggested price.
     /// </summary>
-    public (long Price, double Suggested) Visit(TubKind tub)
+    public (long Price, double Suggested) Visit(TubKind tub, bool towel = true, bool soap = true)
     {
-        Service[] services = [Service.Bath, Service.Towel, Service.Soap];
+        Service[] services = [Service.Bath, .. towel ? [Service.Towel] : Array.Empty<Service>(), .. soap ? [Service.Soap] : Array.Empty<Service>()];
         return (services.Sum(s => Price(s, tub)), services.Sum(s => Suggested(s, tub)));
     }
 

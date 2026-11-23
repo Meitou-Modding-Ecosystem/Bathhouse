@@ -24,16 +24,6 @@ public enum CheckInNeed
     Clerk,
 
     /// <summary>
-    /// A Towel in the counter or a store in its building.
-    /// </summary>
-    Towel,
-
-    /// <summary>
-    /// A Soap in the counter or a store in its building.
-    /// </summary>
-    Soap,
-
-    /// <summary>
     /// A warm tub with a free seat in the counter's building.
     /// </summary>
     WarmTub,
@@ -434,15 +424,17 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     }
 
     /// <summary>
-    /// The check-in: a clerk at the counter, a towel and soap in its stock and a free warm tub in its building, then the price. True when the visit
+    /// The check-in: a clerk at the counter and a free warm tub in its building, then the price of the bath and the towel and soap in stock. True when the visit
     /// moved on (sent to soak, or turned away by the price); false to keep waiting.
     /// </summary>
     bool CheckIn(World world, int slot, Visit visit, BuildSite counter, IReadOnlyList<Tub> tubs)
     {
-        if (!Staffed(world, counter) || Stock.Of(world, counter) is not { } stock) return false;
-        if (FreeTub(counter, tubs) is not { } tub) return false;
+        if (!Staffed(world, counter) || FreeTub(counter, tubs) is not { } tub) return false;
 
-        var (price, suggested) = Prices.Visit(tub.Kind);
+        var stock = Stock.Of(world, counter);
+        bool towel = stock.Towels is not null;
+        bool soap = stock.Soap is not null;
+        var (price, suggested) = Prices.Visit(tub.Kind, towel, soap);
         if (!Accepts(world, slot, visit, price / suggested))
         {
             TurnedAway(world, slot, visit, price);
@@ -452,6 +444,8 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
         if (!soaks.Send(world, slot, tub, player: false)) return false;
 
         Stock.Hand(world, slot, stock);
+        visit.Towel = towel;
+        visit.Soap = soap;
         visit.Price = price;
         visit.DirtyTub = care.IsDirty(tub.Site.Id);
         visit.Phase = VisitPhase.Soaking;
@@ -531,7 +525,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
         }
 
         var kind = CustomerTypes.Find(visit.Kind);
-        var quality = Quality.Of(soak.Soaked, soak.Lukewarm, visit.Waited, end == SoakEnd.Cold, visit.DirtyTub);
+        var quality = Quality.Of(soak.Soaked, soak.Lukewarm, visit.Waited, end == SoakEnd.Cold, visit.DirtyTub, visit.Towel, visit.Soap);
         if (end == SoakEnd.Cold) Barks.Say(world, world.Characters.IdOf(slot), visit.Kind, BarkEvent.Cold, purpose);
         if (kind is null || quality.Total < kind.Demand)
         {
@@ -733,13 +727,12 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     #region Views
 
     /// <summary>
-    /// What a counter's check-in waits for, by <see cref="CheckIn"/>'s order: a clerk, a Towel, a Soap, then a warm tub with a free seat in its
-    /// building; null when a customer at it would check in now.
+    /// What a counter's check-in waits for, by <see cref="CheckIn"/>'s order: a clerk, then a warm tub with a free seat in its building; null when
+    /// a customer at it would check in now.
     /// </summary>
     public CheckInNeed? Waiting(World world, BuildSite counter, IReadOnlyList<Tub> tubs)
     {
         if (!Staffed(world, counter)) return CheckInNeed.Clerk;
-        if (Stock.Missing(world, counter) is { } item) return item == Ids.Towel ? CheckInNeed.Towel : CheckInNeed.Soap;
 
         return FreeTub(counter, tubs) is null ? CheckInNeed.WarmTub : null;
     }

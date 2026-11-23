@@ -19,6 +19,21 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system) : IUiExtension
     /// </summary>
     public const int MaxDebuffLines = 4;
 
+    /// <summary>
+    /// The tooltip of a counter without a clerk.
+    /// </summary>
+    const string ClerkTip = "Keep one of your people beside the counter: press Assign selected: Bathhouse clerk with them selected.";
+
+    /// <summary>
+    /// The tooltip of a counter without a warm tub.
+    /// </summary>
+    const string WarmTip = "No tub in this building is warm with a free seat: switch a powered steam boiler on and keep Water in a store here.";
+
+    /// <summary>
+    /// The tooltip of a ready counter.
+    /// </summary>
+    const string SuppliesTip = "Customers bathe without a towel or soap the counter and this building's stores lack, for a lower quality and price.";
+
     public string Id => BathhouseMod.Id;
 
     public void Register(UiRegistration registration) => registration.AddBuildingActions(Lines);
@@ -131,31 +146,29 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system) : IUiExtension
         () => context.Enqueue(new KeepDebuffCommand(effect, keep) { Tick = context.Tick });
 
     /// <summary>
-    /// The counter's check-in line: ready, or the first thing it lacks, with what to do about it as the tooltip.
+    /// The counter's check-in line: ready with the towel and soap a customer gets, or what it waits for, with what to do about it as the tooltip.
     /// </summary>
-    static UiBuildingAction CheckInLine(CheckInNeed? need)
+    static UiBuildingAction CheckInLine(CheckInView? view)
     {
-        if (need is not { } lack) return new UiBuildingAction("Check-in: ready", "A customer at the counter checks in now.", Nothing);
+        if (view is not { } now) return new UiBuildingAction("Check-in: starting", null, Nothing);
 
-        string tooltip = lack switch
+        return now.Need switch
         {
-            CheckInNeed.Clerk => "Keep one of your people beside the counter: press Assign selected: Bathhouse clerk with them selected.",
-            CheckInNeed.Towel => "Put Towels in the counter or a towel rack in this building.",
-            CheckInNeed.Soap => "Put Soap in the counter or a store in this building (the soap press makes it).",
-            _ => "No tub in this building is warm with a free seat: switch a powered steam boiler on and keep Water in a store here.",
+            CheckInNeed.Clerk => new UiBuildingAction("Check-in needs: a clerk", ClerkTip, Nothing),
+            CheckInNeed.WarmTub => new UiBuildingAction("Check-in needs: a warm tub", WarmTip, Nothing),
+            _ => new UiBuildingAction($"Check-in: ready, {Supplies(now)}", SuppliesTip, Nothing),
         };
-        return new UiBuildingAction($"Check-in needs: {Need(lack)}", tooltip, Nothing);
     }
 
     /// <summary>
-    /// A check-in need's name on the counter's line.
+    /// The towel and soap a customer would get, as the ready line names them.
     /// </summary>
-    static string Need(CheckInNeed need) => need switch
+    static string Supplies(CheckInView view) => (view.Towel, view.Soap) switch
     {
-        CheckInNeed.Clerk => "a clerk",
-        CheckInNeed.Towel => "a Towel",
-        CheckInNeed.Soap => "Soap",
-        _ => "a warm tub",
+        (true, true) => "towel and soap",
+        (true, false) => "towel, no soap",
+        (false, true) => "soap, no towel",
+        _ => "no towel or soap",
     };
 
     /// <summary>

@@ -8,57 +8,39 @@ using Meitou.Simulation.Production;
 namespace Bathhouse.Customers;
 
 /// <summary>
-/// Where a check-in's towel and soap come from: each from the counter's own storage, else from the first store in its building that holds one.
+/// Where a check-in's towel and soap come from: each from the counter's own storage, else from the first store in its building that holds one; null
+/// for one the counter and its building lack (the customer bathes without it).
 /// </summary>
-public readonly record struct Supplies(Inventory Towels, Inventory Soap);
+public readonly record struct Supplies(Inventory? Towels, Inventory? Soap);
 
 /// <summary>
-/// The counter's stock (docs/bathhouse.md "Check-in"): a towel and a soap, each taken from the counter's own storage, else from a store in its
-/// building (the towel rack holds towels only, so the two often come from different stores); the towel goes into the customer's inventory (it
-/// dries with it after the soak) and the soap is used up.
+/// The counter's stock (docs/bathhouse.md "Check-in"): a towel and a soap when there are any, each taken from the counter's own storage, else from a
+/// store in its building (the towel rack holds towels only, so the two often come from different stores); the towel goes into the customer's
+/// inventory (it dries with it after the soak) and the soap is used up.
 /// </summary>
 public static class Stock
 {
     /// <summary>
-    /// Where the counter's next towel and soap come from; null when the counter and its building lack either.
+    /// Where the counter's next towel and soap come from.
     /// </summary>
-    public static Supplies? Of(World world, BuildSite counter)
+    public static Supplies Of(World world, BuildSite counter)
     {
         var own = world.Machines.Find(counter.Id)?.Storage;
-        var stores = StoresOf(world, counter);
-        if (Source(own, stores, Ids.Towel) is not { } towels || Source(own, stores, Ids.Soap) is not { } soap) return null;
-
-        return new Supplies(towels, soap);
+        var stores = counter.Parent is null ? [] : Heating.StoresIn(world, counter.Parent).ToList();
+        return new Supplies(Source(own, stores, Ids.Towel), Source(own, stores, Ids.Soap));
     }
 
     /// <summary>
-    /// The first of Towel and Soap that neither the counter nor a store in its building holds (its record id); null when both are there.
-    /// </summary>
-    public static string? Missing(World world, BuildSite counter)
-    {
-        var own = world.Machines.Find(counter.Id)?.Storage;
-        var stores = StoresOf(world, counter);
-        if (Source(own, stores, Ids.Towel) is null) return Ids.Towel;
-
-        return Source(own, stores, Ids.Soap) is null ? Ids.Soap : null;
-    }
-
-    /// <summary>
-    /// Takes a towel and a soap from the supplies; the towel goes into the customer's inventory (a customer with no room for it dries without one).
+    /// Takes the supplies' towel and soap; the towel goes into the customer's inventory (a customer with no room for it dries without one).
     /// </summary>
     public static void Hand(World world, int slot, Supplies supplies)
     {
-        if (Item(supplies.Soap, Ids.Soap) is { } soap) supplies.Soap.RemoveOne(soap);
-        if (Item(supplies.Towels, Ids.Towel) is not { } towel || !supplies.Towels.RemoveOne(towel)) return;
+        if (supplies.Soap is { } soaps && Item(soaps, Ids.Soap) is { } soap) soaps.RemoveOne(soap);
+        if (supplies.Towels is not { } towels || Item(towels, Ids.Towel) is not { } towel || !towels.RemoveOne(towel)) return;
 
         var fresh = world.Systems.OfType<ProductionSystem>().FirstOrDefault()?.Items.Create(Ids.Towel);
         if (fresh is not null && world.Characters.Cold(slot)?.Inventory is { } bag) bag.Add(fresh);
     }
-
-    /// <summary>
-    /// The stores in the counter's building; none for a counter outdoors.
-    /// </summary>
-    static List<Inventory> StoresOf(World world, BuildSite counter) => counter.Parent is null ? [] : Heating.StoresIn(world, counter.Parent).ToList();
 
     /// <summary>
     /// The counter's own storage when it holds a record, else the first of the stores that does; null for none.
