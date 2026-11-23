@@ -107,6 +107,11 @@ public static class Ids
     public const string ZenGarden = "60-" + FileName, WallArt = "61-" + FileName, Tapestry = "62-" + FileName, Statue = "63-" + FileName,
         TowelHanger = "64-" + FileName, TeaDisplay = "65-" + FileName;
 
+    /// <summary>
+    /// The soap shelf: service furniture, numbered after the decorations because 50 to 59 were taken.
+    /// </summary>
+    public const string SoapShelf = "66-" + FileName;
+
     #endregion
 
     #region Models

@@ -17,7 +17,7 @@ for its look (a stand-in until the mod's models land) and links game items by id
 | Power | Steam Boiler: draws 10, functionality the game's Lights (a consumer with no operator, so the Power switch shows) | Boiler Tank |
 | Water | Bathhouse Water Tank: Resource storage limited to Water, as the game's Water Tower | Small Water Tank |
 | Tubs (no functionality) | Small Tub (1 seat), Medium Tub (2), Large Bath (4), Oil Bath, Blood Bath (+10 Raw Meat to build) | own model (below), Large Barrels, Booze Barrels, Booze Barrel, Cannibal Butcher Table |
-| Service | Massage Bed (bed), Massage Station (production: Towel to Dirty Towel, 1 operator), Check-in Counter (shop counter), Lockers (locks; haulers store only Robes: `itemtype limit` ARMOUR and `limit inventory` Robe and Dirty Robe, two items so the grid stays 8 x 8 instead of one robe's footprint), Laundry Hamper (Dirty Towels only), Robe Hamper (Dirty Robes only), Towel Rack (Towels only), Tea Table (Tea Sets and Used Tea Sets only), Tea Shelf (Greenfruit Tea, Teaware, Tea Sets, Used Tea Sets only), Review Board | Bed, Small Table, Shop Counter, Crossbow Locker, Small Barrel, Small Barrel, Shelf, Small Table, Shelf, banner_traders |
+| Service | Massage Bed (bed), Massage Station (production: Towel to Dirty Towel, 1 operator), Check-in Counter (shop counter), Lockers (locks; haulers store only Robes: `itemtype limit` ARMOUR and `limit inventory` Robe and Dirty Robe, two items so the grid stays 8 x 8 instead of one robe's footprint), Laundry Hamper (Dirty Towels only), Robe Hamper (Dirty Robes only), Towel Rack (Towels only), Soap Shelf (Soap only), Tea Table (Tea Sets and Used Tea Sets only), Tea Shelf (Greenfruit Tea, Teaware, Tea Sets, Used Tea Sets only), Review Board | Bed, Small Table, Shop Counter, Crossbow Locker, Small Barrel, Small Barrel, Shelf, Shelf, Small Table, Shelf, banner_traders |
 | Decorations | Zen Garden, Wall Art, Tapestry, Statue, Towel Hanger, Tea Set Display | Carpet: Rusty Rug, banner_empire, banner_holy, Emperor Statue, Wall Shelf 1, Wall Shelf 2 |
 
 The items and the robe show the mod's own icons, not the copied item's: `tools/make-icons.py` fits each `concept-art/<name>-inventory.png`
@@ -117,9 +117,9 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   player's people operates the station (it needs Towels in it to be worked) (a vanilla operate-machinery job, within 40 units), each hour pays 30 cats suggested x skill (0.5 + 0.5 x
   Dexterity / 50, 0.5 to 1.5; x 1.2 for an attendant wearing a Bathhouse Robe). After 1 hour massaged, or 1 hour lying with nobody at the station (or waiting for the bed), it gets up and pays
   the soak, the tea and the massage so far.
-- **Limited storage** (`FurnitureRecords.Limits`): the hamper, towel rack, tea table and tea shelf are the game's Resource storage with a
+- **Limited storage** (`FurnitureRecords.Limits`): the hamper, towel rack, soap shelf, tea table and tea shelf are the game's Resource storage with a
   `limit inventory`, so haulers (who fill the nearest store that `Accepts` an item) never put other goods in them. The game sizes a store limited to
-  one item to one stack of it, so the hamper and rack carry `stackable bonus mult` 5 (50 towels). The tea server takes from and rinses into tea
+  one item to one stack of it, so the hamper, rack and soap shelf carry `stackable bonus mult` 5 (50 towels, 100 soap). The tea server takes from and rinses into tea
   shelves first (`Plans.TeaStore`).
 - **Private beds** (`PrivateBeds`): only customers and the player's orders use a massage bed. Every game bed search (sleeping, "Sleep when
   injured", rescuing or putting someone in the nearest bed, NPC sleep, rented beds) passes over a bed `FixtureRegistry.Reachable` refuses for
@@ -161,7 +161,7 @@ saved: a loaded staff member plans again.
 ## Research
 
 All in the Crafting list, no cost: Bathhouse Basics (level 1; loom, press, washer, boiler, water tank, small tub, counter, lockers, hamper,
-rack, robe hamper, robe), then Hot Baths (medium and large tubs, review board, decorations), Massage, Tea Service (dryer, kiln, bench, tea table, tea shelf, display)
+rack, robe hamper, soap shelf, robe), then Hot Baths (medium and large tubs, review board, decorations), Massage, Tea Service (dryer, kiln, bench, tea table, tea shelf, display)
 and Oil Baths (level 2), and Blood Baths after Hot Baths (level 3).
 
 ## Settings
