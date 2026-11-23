@@ -99,48 +99,75 @@ public sealed class Plans(Soaks soaks, TubCare care)
     #region Laundry
 
     /// <summary>
-    /// The laundry runner's next errand, in order: deliver what it carries, unload clean towels to a rack or the counter, fetch dirty towels from a
-    /// hamper, top up the soap.
+    /// The washer's crafts: each clean item, the dirty one it is washed from, the hamper that holds those and where the clean ones go.
+    /// </summary>
+    static readonly (string Clean, string Dirty, string Hamper)[] Washes = [(Ids.Towel, Ids.DirtyTowel, Ids.Hamper), (Ids.Robe, Ids.DirtyRobe, Ids.RobeHamper)];
+
+    /// <summary>
+    /// The laundry runner's next errand, in order: load what the washer's current craft takes, put away carried clean goods, take dirty goods the
+    /// washer does not take now back to their hamper, unload the washer's finished goods, fetch dirty goods for the queued crafts, top up the soap.
     /// </summary>
     static Leg[]? Laundry(World world, int slot, BuildSite washer)
     {
-        if (world.Machines.Find(washer.Id) is not { } machine || washer.Parent is not { } building) return null;
+        if (world.Machines.Find(washer.Id) is not { Craft: { } state } machine || washer.Parent is not { } building) return null;
 
         var carried = Goods.Carried(world, slot);
-        var at = washer.Position;
-        if (Goods.Count(carried, Ids.DirtyTowel) + Goods.Count(carried, Ids.Soap) > 0 && Room(machine, Ids.DirtyTowel) + Room(machine, Ids.Soap) > 0)
-            return [new Leg(at, Handling, (w, s) => Load(w, s, washer))];
+        if (Washes.Any(w => Goods.Count(carried, w.Dirty) > 0 && Room(machine, w.Dirty) > 0) || Goods.Count(carried, Ids.Soap) > 0 && Room(machine, Ids.Soap) > 0)
+            return [new Leg(washer.Position, Handling, (w, s) => Load(w, s, washer))];
 
-        if (Goods.Count(carried, Ids.Towel) > 0 && CleanTarget(world, building) is { } shelf)
-            return [new Leg(shelf.Position, Handling, (w, s) => Put(w, s, shelf, Ids.Towel))];
-
-        return Unload(world, washer, machine, building) ?? Fetch(world, washer, machine, building);
+        return PutAway(world, carried, building) ?? Unload(world, washer, state, building) ?? Fetch(world, washer, machine, state, building);
     }
 
     /// <summary>
-    /// Takes the washer's clean towels to the first rack or counter with room.
+    /// Takes carried clean goods to where they go, else carried dirty goods back to a hamper with room.
     /// </summary>
-    static Leg[]? Unload(World world, BuildSite washer, Machine machine, string building)
+    static Leg[]? PutAway(World world, Inventory? carried, string building)
     {
-        if (machine.Output is not { Count: > 0 } || CleanTarget(world, building) is not { } shelf) return null;
-
-        return
-        [
-            new Leg(washer.Position, Handling, (w, s) => TakeClean(w, s, washer)),
-            new Leg(shelf.Position, Handling, (w, s) => Put(w, s, shelf, Ids.Towel)),
-        ];
-    }
-
-    /// <summary>
-    /// Fetches dirty towels from a hamper, else soap from a store, when the washer has room for them.
-    /// </summary>
-    static Leg[]? Fetch(World world, BuildSite washer, Machine machine, string building)
-    {
-        var hamper = Goods.PiecesIn(world, building, Ids.Hamper).FirstOrDefault(h => Goods.Count(Goods.StoreOf(world, h), Ids.DirtyTowel) > 0);
-        if (hamper is not null && Room(machine, Ids.DirtyTowel) > 0)
+        foreach (var (clean, dirty, hamper) in Washes)
         {
-            int most = Math.Min(Armful, Room(machine, Ids.DirtyTowel));
-            return [Pick(hamper, Ids.DirtyTowel, most), new Leg(washer.Position, Handling, (w, s) => Load(w, s, washer))];
+            if (Goods.Count(carried, clean) > 0 && CleanTarget(world, building, clean) is { } shelf)
+                return [new Leg(shelf.Position, Handling, (w, s) => Put(w, s, shelf, clean))];
+            if (Goods.Count(carried, dirty) > 0 && WithRoom(world, building, hamper, dirty) is { } back)
+                return [new Leg(back.Position, Handling, (w, s) => Put(w, s, back, dirty))];
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Takes the washer's first finished goods that have somewhere to go there.
+    /// </summary>
+    static Leg[]? Unload(World world, BuildSite washer, CraftState state, string building)
+    {
+        foreach (var (clean, _, _) in Washes)
+        {
+            if (!state.Done.Any(d => d.Record == clean) || CleanTarget(world, building, clean) is not { } shelf) continue;
+
+            return
+            [
+                new Leg(washer.Position, Handling, (w, s) => TakeClean(w, s, washer, clean)),
+                new Leg(shelf.Position, Handling, (w, s) => Put(w, s, shelf, clean)),
+            ];
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Fetches the dirty goods the queued crafts of the current kind still need from a hamper, else soap from a store. Only as many as those crafts
+    /// use: the washer drops what is left in its sections when the next craft takes another item.
+    /// </summary>
+    static Leg[]? Fetch(World world, BuildSite washer, Machine machine, CraftState state, string building)
+    {
+        if (state.Queue.Count == 0) return null;
+
+        var current = state.Queue[0].Option;
+        if (Washes.FirstOrDefault(w => w.Clean == current.Item) is { Dirty: { } dirty, Hamper: { } hamperRecord })
+        {
+            int run = state.Queue.TakeWhile(j => j.Option.Key == current.Key).Count();
+            int most = Math.Min(Armful, Math.Min(Room(machine, dirty), run - InputCount(machine, dirty)));
+            var hamper = Goods.PiecesIn(world, building, hamperRecord).FirstOrDefault(h => Goods.Count(Goods.StoreOf(world, h), dirty) > 0);
+            if (most > 0 && hamper is not null) return [Pick(hamper, dirty, most), new Leg(washer.Position, Handling, (w, s) => Load(w, s, washer))];
         }
 
         var store = SoapStore(world, building);
@@ -150,49 +177,58 @@ public sealed class Plans(Soaks soaks, TubCare care)
     }
 
     /// <summary>
-    /// The first rack, else counter, in the building with room for a towel.
+    /// Where clean goods go: towels to the first rack, else counter, robes to the first lockers, in the building with room for one.
     /// </summary>
-    static BuildSite? CleanTarget(World world, string building) =>
-        Goods.PiecesIn(world, building, Ids.TowelRack)
-            .Concat(Goods.PiecesIn(world, building, Ids.Counter))
-            .FirstOrDefault(s => Goods.StoreOf(world, s) is { } store && Goods.Make(world, Ids.Towel) is { } towel && store.HasRoomFor(towel));
+    static BuildSite? CleanTarget(World world, string building, string clean) =>
+        clean == Ids.Robe
+            ? WithRoom(world, building, Ids.Lockers, Ids.Robe)
+            : WithRoom(world, building, Ids.TowelRack, Ids.Towel) ?? WithRoom(world, building, Ids.Counter, Ids.Towel);
+
+    /// <summary>
+    /// The first piece of a record in the building with room for one of an item; null for none.
+    /// </summary>
+    static BuildSite? WithRoom(World world, string building, string piece, string item) =>
+        Goods.PiecesIn(world, building, piece)
+            .FirstOrDefault(s => Goods.StoreOf(world, s) is { } store && Goods.Make(world, item) is { } unit && store.HasRoomFor(unit));
 
     /// <summary>
     /// The first storage piece in the building (not a hamper or the counter) holding soap.
     /// </summary>
     static BuildSite? SoapStore(World world, string building) =>
-        world.Buildings.All.FirstOrDefault(s => s.Parent == building && s.Record is not Ids.Hamper and not Ids.Counter && s.Complete
-            && world.Machines.Find(s.Id) is { Data.IsStorage: true, Storage: { } store } && Goods.Count(store, Ids.Soap) > 0);
+        world.Buildings.All.FirstOrDefault(s => s.Parent == building && s.Record is not Ids.Hamper and not Ids.RobeHamper and not Ids.Counter
+            && s.Complete && world.Machines.Find(s.Id) is { Data.IsStorage: true, Storage: { } store } && Goods.Count(store, Ids.Soap) > 0);
 
     /// <summary>
-    /// Puts the carried dirty towels and soap into the washer's inputs, as many as fit.
+    /// Puts the carried goods the washer's sections take (dirty goods of the current craft, soap) into them, as many as fit.
     /// </summary>
     static bool Load(World world, int slot, BuildSite washer)
     {
         if (world.Machines.Find(washer.Id) is not { } machine || Goods.Carried(world, slot) is not { } carried) return false;
 
-        foreach (var input in machine.Inputs.Where(i => i.Item is Ids.DirtyTowel or Ids.Soap))
+        foreach (var input in machine.Inputs.Where(i => !i.Idle && i.Item is Ids.DirtyTowel or Ids.DirtyRobe or Ids.Soap))
         {
             while (input.Count < input.Recipe.Capacity && Goods.Take(carried, input.Item)) input.Count++;
         }
 
+        world.Machines.Touch();
         return true;
     }
 
     /// <summary>
-    /// Takes up to an armful of clean towels out of the washer's output into the runner's inventory.
+    /// Takes up to an armful of a clean record out of the washer's finished goods into the runner's inventory.
     /// </summary>
-    static bool TakeClean(World world, int slot, BuildSite washer)
+    static bool TakeClean(World world, int slot, BuildSite washer, string clean)
     {
-        if (world.Machines.Find(washer.Id)?.Output is not { } output || Goods.Carried(world, slot) is not { } carried) return false;
+        if (world.Machines.Find(washer.Id)?.Craft is not { } state || Goods.Carried(world, slot) is not { } carried) return false;
 
         int taken = 0;
-        while (taken < Armful && output.Count > 0 && Goods.Make(world, Ids.Towel) is { } towel && carried.Add(towel))
+        while (taken < Armful && state.Done.Find(d => d.Record == clean) is { } done && Goods.Make(world, clean) is { } unit && carried.Add(unit))
         {
-            output.Count--;
+            if (--done.Quantity <= 0) state.Done.Remove(done);
             taken++;
         }
 
+        if (taken > 0) world.Machines.Touch();
         return taken > 0;
     }
 
@@ -200,7 +236,7 @@ public sealed class Plans(Soaks soaks, TubCare care)
     /// Free places in a machine's input for a record (0 without such an input).
     /// </summary>
     static int Room(Machine machine, string record) =>
-        machine.Inputs.Where(i => i.Item == record).Sum(i => Math.Max(0, i.Recipe.Capacity - i.Count));
+        machine.Inputs.Where(i => i.Takes(record)).Sum(i => Math.Max(0, i.Recipe.Capacity - i.Count));
 
     /// <summary>
     /// The units of a record in a machine's inputs.

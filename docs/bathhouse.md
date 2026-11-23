@@ -12,8 +12,8 @@ for its look (a stand-in until the mod's models land) and links game items by id
 | --- | --- | --- |
 | Items | Towel, Dirty Towel, Soap, Greenfruit Tea, Teaware, Tea Set, Used Tea Set, Dirty Robe | Fabrics, Fabrics, Foodcube, Greenfruit, Cup, Ceramic Bowl, Ceramic Bowl, Fabrics |
 | Armour | Bathhouse Robe (`slot` 5, body: it replaces body armour; the Monk Robe sits in the belt slot, 14, under body armour) | Monk Robe |
-| Production (function 4) | Towel Loom (Fabrics to 2 Towels), Soap Press (2 Hemp to Soap), Washing Machine (Dirty Towel + 1/4 Soap to Towel), Tea Dryer (Greenfruit to Greenfruit Tea), Pottery Kiln (Raw Stone to Teaware) | Fabric Loom (hemp), Hemp Processor, Sake Still, Biofuel Distillery (Hemp), Cooking Stove |
-| Crafting (function 10) | Tea Bench: Tea Set from Teaware + Greenfruit Tea (the Tea Set's `ingredients`) | Cooking Stove |
+| Production (function 4) | Towel Loom (Fabrics to 2 Towels), Soap Press (2 Hemp to Soap), Tea Dryer (Greenfruit to Greenfruit Tea), Pottery Kiln (Raw Stone to Teaware) | Fabric Loom (hemp), Hemp Processor, Biofuel Distillery (Hemp), Cooking Stove |
+| Crafting (function 10) | Tea Bench: Tea Set from Teaware + Greenfruit Tea (the Tea Set's `ingredients`); Washing Machine: a queue of Towel (Dirty Towel + 1/4 Soap) and Bathhouse Robe (Dirty Robe + 1/4 Soap) washes, 1 h each (the items' `ingredients` and `production time`; output holds 10 towels or 1 robe) | Cooking Stove, Sake Still |
 | Power | Steam Boiler: draws 10, functionality the game's Lights (a consumer with no operator, so the Power switch shows) | Boiler Tank |
 | Water | Bathhouse Water Tank: Resource storage limited to Water, as the game's Water Tower | Small Water Tank |
 | Tubs (no functionality) | Small Tub (1 seat), Medium Tub (2), Large Bath (4), Oil Bath, Blood Bath (+10 Raw Meat to build) | own model (below), Large Barrels, Booze Barrels, Booze Barrel, Cannibal Butcher Table |
@@ -150,8 +150,11 @@ saved: a loaded staff member plans again.
 - **Clerk** (counter): stands 15 units behind the counter for an hour at a time, so it is staffed.
 - **Tub scrubber** (any tub): scrubs the building's first dirty tub nobody soaks in, 0.5 h (the blood bath 1.5 h). A tub gets dirty when a soak
   in it ends (`TubCare`, saved).
-- **Laundry runner** (washing machine): delivers what it carries; takes up to 10 clean towels from the washer to the first towel rack, else the
-  counter, with room; fetches up to 10 Dirty Towels from a hamper; keeps 3 Soap in the washer from a store in the building.
+- **Laundry runner** (washing machine): loads what it carries that the current wash takes; puts carried clean goods away (towels to the first
+  towel rack, else the counter, robes to the first lockers, with room) and dirty goods it cannot load back in their hamper; takes finished goods
+  out of the washer to those places; fetches from a hamper only as many dirty goods (up to 10) as the queued washes of the current kind still
+  need, since the washer drops what is left in its sections when the next wash takes another item; keeps 3 Soap in the washer from a store in
+  the building (not a hamper or the counter). Queue the washes and set Repeat Queue at the washer; it also needs an operator.
 - **Tea server** (tea table): brings a Tea Set from a store to a table without one; takes a table's Used Tea Sets to a store, where each is rinsed into Teaware.
 
 ## Research

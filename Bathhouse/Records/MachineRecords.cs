@@ -32,10 +32,6 @@ static class MachineRecords
         new(Ids.SoapPress, Ids.SoapPressWork, "Soap Press", "52163-rebirth.mod", "Hemp Processor", "52158-rebirth.mod", "drugs",
             [new("1965-gamedata.base", 10, 200)], [new(Ids.Soap, 10)],
             "Presses hemp into bars of soap, two hemp a bar. Give one of your people its operate job and keep it in hemp."),
-        new(Ids.WashingMachine, Ids.WasherWork, "Washing Machine", "52162-rebirth.mod", "Sake Still", "52157-rebirth.mod", "Sake",
-            [new(Ids.DirtyTowel, 10, 100), new(Ids.Soap, 10, 25)], [new(Ids.Towel, 10)],
-            "Washes dirty towels clean; one bar of soap does four towels. A Laundry runner (panel button) fetches dirty towels from the hampers,"
-            + " keeps it in soap and takes clean towels to the towel racks. It also needs an operator."),
         new(Ids.TeaDryer, Ids.TeaDryerWork, "Tea Dryer", "50922-rebirth.mod", "Biofuel Distillery (Hemp)", "50921-rebirth.mod", "hemp to fuel",
             [new("42309-changes_otto.mod", 10, 100)], [new(Ids.GreenfruitTea, 10)],
             "Slices and dries greenfruit into greenfruit tea. Give one of your people its operate job and keep it in greenfruit."),
@@ -51,8 +47,10 @@ static class MachineRecords
     [
         .. Specs.Select(s => Work(game, s)),
         TeaBenchWork(game),
+        WasherWork(game),
         .. Specs.Select(s => Building(game, s, s.WorkId)),
         TeaBench(game),
+        Washer(game),
         Boiler(game),
     ];
 
@@ -109,7 +107,7 @@ static class MachineRecords
 
     #endregion
 
-    #region Tea bench and boiler
+    #region Tea bench, washer and boiler
 
     /// <summary>
     /// The steam boiler's draw from the town's grid, in the game's power units (a weapon smith draws 8, a small generator gives 40).
@@ -122,6 +120,11 @@ static class MachineRecords
     const int BoilerPlates = 2;
 
     /// <summary>
+    /// The washer's <c>production mult</c>: about a game hour a wash for an unskilled operator (the stove's 1.5 took over three; headless, Nameless).
+    /// </summary>
+    const float WashSpeed = 5;
+
+    /// <summary>
     /// The tea bench's functionality: the cooking stove's, crafting only tea sets (from their ingredients, teaware and greenfruit tea).
     /// </summary>
     static FcsRecord TeaBenchWork(GameDatabase game)
@@ -131,6 +134,32 @@ static class MachineRecords
 
         RecordKit.Links(record, "item crafts", (Ids.TeaSet, 5, 0));
         return record;
+    }
+
+    /// <summary>
+    /// The washing machine's functionality: the cooking stove's crafting, with a queue of towel and robe washes (each from its <c>ingredients</c>, a
+    /// dirty one and a quarter of a soap). The output holds 10 towels, and one robe (armour never stacks).
+    /// </summary>
+    static FcsRecord WasherWork(GameDatabase game)
+    {
+        var model = RecordKit.Model(game, FcsRecordType.BuildingFunctionality, "43954-rebirth.mod", "cooking general");
+        var record = RecordKit.Copy(model, Ids.WasherWork, "Washing Machine", "item crafts");
+
+        RecordKit.Links(record, "item crafts", (Ids.Towel, 10, 0), (Ids.Robe, 1, 0));
+        record.Floats["production mult"] = WashSpeed;
+        return record;
+    }
+
+    /// <summary>
+    /// The washing machine: the Sake Still's look and build cost with the washer functionality.
+    /// </summary>
+    static FcsRecord Washer(GameDatabase game)
+    {
+        var spec = new Spec(Ids.WashingMachine, Ids.WasherWork, "Washing Machine", "52162-rebirth.mod", "Sake Still", "", "", [], [],
+            "Washes dirty towels and robes clean, one bar of soap for four. Queue Towel and Robe washes at it like a crafting bench (Repeat"
+            + " Queue keeps it going) and give one of your people its operate job. A Laundry runner (panel button) fetches dirty goods from the"
+            + " hampers for the queued washes, keeps it in soap and takes towels to the racks and robes to the lockers.");
+        return Building(game, spec, Ids.WasherWork);
     }
 
     /// <summary>

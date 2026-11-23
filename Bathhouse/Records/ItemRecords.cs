@@ -27,6 +27,16 @@ static class ItemRecords
     const int BodySlot = 5;
 
     /// <summary>
+    /// The soap a wash draws, in hundredths: a bar washes four towels or robes (the washing machine crafts them from their <c>ingredients</c>).
+    /// </summary>
+    const int WashSoap = 25;
+
+    /// <summary>
+    /// A wash's <c>production time</c> in game hours (an item craft's hours; the field's default 4 is a cooked meal's).
+    /// </summary>
+    const int WashHours = 1;
+
+    /// <summary>
     /// The mod's folder under the game's <c>mods</c> folder.
     /// </summary>
     const string ModFolder = "Bathhouse";
@@ -59,7 +69,8 @@ static class ItemRecords
     public static IEnumerable<FcsRecord> Build(GameDatabase game) => [.. Specs.Select(s => Item(game, s)), Robe(game)];
 
     /// <summary>
-    /// One item: the model's fields and look, without its recipe, as a plain trade good. A tea set is brewed from teaware and greenfruit tea.
+    /// One item: the model's fields and look, without its recipe, as a plain trade good. A tea set is brewed from teaware and greenfruit tea, and
+    /// a towel washed from a dirty towel and soap.
     /// </summary>
     static FcsRecord Item(GameDatabase game, Spec spec)
     {
@@ -73,7 +84,17 @@ static class ItemRecords
         if (spec.Icon is not null) SetIcon(record, spec.Icon);
 
         if (spec.Id == Ids.TeaSet) RecordKit.Links(record, "ingredients", (Ids.Teaware, 100, 0), (Ids.GreenfruitTea, 100, 0));
+        if (spec.Id == Ids.Towel) Washed(record, Ids.DirtyTowel);
         return record;
+    }
+
+    /// <summary>
+    /// Makes a clean item the washing machine's craft: from one of its dirty record and a quarter of a soap, in <see cref="WashHours"/>.
+    /// </summary>
+    static void Washed(FcsRecord record, string dirty)
+    {
+        RecordKit.Links(record, "ingredients", (dirty, 100, 0), (Ids.Soap, WashSoap, 0));
+        record.Ints["production time"] = WashHours;
     }
 
     /// <summary>
@@ -84,6 +105,7 @@ static class ItemRecords
         var model = RecordKit.Model(game, FcsRecordType.Armour, "2189-gamedata.base", "Monk Robe");
         var record = RecordKit.Copy(model, Ids.Robe, "Bathhouse Robe");
         record.Ints["slot"] = BodySlot;
+        Washed(record, Ids.DirtyRobe);
 
         record.Strings["description"] = "A plain cotton robe. Bathers change into one from the bathhouse lockers; staff who wear one give better"
             + " service.";

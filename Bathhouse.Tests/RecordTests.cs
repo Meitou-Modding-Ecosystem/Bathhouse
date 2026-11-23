@@ -45,13 +45,15 @@ public sealed class RecordTests
     }
 
     [Fact]
-    public void The_washing_machine_takes_dirty_towels_and_soap()
+    public void The_washing_machine_crafts_towels_and_robes_from_dirty_ones_and_soap()
     {
+        var game = Game();
         var data = Machine(Ids.WashingMachine);
 
-        Assert.True(data.IsProducer);
-        Assert.Equal([Ids.DirtyTowel, Ids.Soap], data.Inputs.Select(i => i.Item));
-        Assert.Equal(Ids.Towel, data.Output?.Item);
+        Assert.True(data.IsCrafting);
+        Assert.Equal([Ids.Towel, Ids.Robe], data.Craft!.Options.Select(o => o.Item));
+        Assert.Equal([Ids.DirtyTowel, Ids.Soap], game.Find(Ids.Towel)!.GetReferences("ingredients").Select(l => l.TargetStringId));
+        Assert.Equal([Ids.DirtyRobe, Ids.Soap], game.Find(Ids.Robe)!.GetReferences("ingredients").Select(l => l.TargetStringId));
     }
 
     [Fact]
