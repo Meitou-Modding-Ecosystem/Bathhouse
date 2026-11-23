@@ -79,6 +79,16 @@ public sealed class Visit
     public bool DirtyTub { get; set; }
 
     /// <summary>
+    /// Whether it got a towel at check-in.
+    /// </summary>
+    public bool Towel { get; set; } = true;
+
+    /// <summary>
+    /// Whether it got soap at check-in.
+    /// </summary>
+    public bool Soap { get; set; } = true;
+
+    /// <summary>
     /// What it owes for the soak and tea, paid when its massage ends.
     /// </summary>
     public long Owed { get; set; }

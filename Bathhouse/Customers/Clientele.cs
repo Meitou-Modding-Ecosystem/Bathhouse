@@ -14,6 +14,22 @@ using Meitou.Simulation.Population;
 namespace Bathhouse.Customers;
 
 /// <summary>
+/// What a counter's check-in still lacks (<see cref="Clientele.Waiting"/>).
+/// </summary>
+public enum CheckInNeed
+{
+    /// <summary>
+    /// One of the player's people within <see cref="Clientele.StaffReach"/> of the counter.
+    /// </summary>
+    Clerk,
+
+    /// <summary>
+    /// A warm tub with a free seat in the counter's building.
+    /// </summary>
+    WarmTub,
+}
+
+/// <summary>
 /// The bathhouse's customers (docs/bathhouse.md "Customers"): groups sent on a schedule while a counter is open, their members' visits (the visit
 /// goal walks each to the counter, where it checks in, takes a towel and soap, agrees to the price and is sent to soak), and the payment or
 /// complaint after the soak. Steps in the system's serial check; the goal's desire reads only what that step wrote.
@@ -121,6 +137,21 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     /// The latest payment or complaint, for the counter's tooltip (not saved).
     /// </summary>
     public string Latest { get; private set; } = "No customers yet.";
+
+    /// <summary>
+    /// The most entries <see cref="Recent"/> keeps.
+    /// </summary>
+    public const int RecentKept = 6;
+
+    /// <summary>
+    /// The latest payments and complaints, newest first, for the counter's ledger (not saved).
+    /// </summary>
+    readonly List<string> _recent = [];
+
+    /// <summary>
+    /// The latest payments and complaints, newest first (at most <see cref="RecentKept"/>).
+    /// </summary>
+    public IReadOnlyList<string> Recent => _recent;
 
     /// <summary>
     /// The groups, for saving, hashing and the views.
@@ -408,15 +439,17 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     }
 
     /// <summary>
-    /// The check-in: a clerk at the counter, a towel and soap in its stock and a free warm tub in its building, then the price. True when the visit
-    /// moved on (sent to soak, or turned away by the price); false to keep waiting.
+    /// The check-in: a clerk at the counter and a free warm tub in its building, then the price of the bath and the towel and soap in stock. True
+    /// when the visit moved on (sent to soak, or turned away by the price); false to keep waiting.
     /// </summary>
     bool CheckIn(World world, int slot, Visit visit, BuildSite counter, IReadOnlyList<Tub> tubs)
     {
-        if (!Staffed(world, counter) || Stock.Of(world, counter) is not { } stock) return false;
-        if (FreeTub(counter, tubs) is not { } tub) return false;
+        if (!Staffed(world, counter) || FreeTub(counter, tubs) is not { } tub) return false;
 
-        var (price, suggested) = Prices.Visit(tub.Kind);
+        var stock = Stock.Of(world, counter);
+        bool towel = stock.Towels is not null;
+        bool soap = stock.Soap is not null;
+        var (price, suggested) = Prices.Visit(tub.Kind, towel, soap);
         if (!Accepts(world, slot, visit, price / suggested))
         {
             TurnedAway(world, slot, visit, price);
@@ -426,6 +459,8 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
         if (!soaks.Send(world, slot, tub, player: false)) return false;
 
         Stock.Hand(world, slot, stock);
+        visit.Towel = towel;
+        visit.Soap = soap;
         visit.Price = price;
         visit.DirtyTub = care.IsDirty(tub.Site.Id);
         visit.Phase = VisitPhase.Soaking;
@@ -505,7 +540,8 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
         }
 
         var kind = CustomerTypes.Find(visit.Kind);
-        var quality = Quality.Of(soak.Soaked, soak.Lukewarm, visit.Waited, end == SoakEnd.Cold, visit.DirtyTub);
+        var quality = Quality.Of(soak.Soaked, soak.Lukewarm, visit.Waited, end == SoakEnd.Cold, visit.DirtyTub, visit.Towel, visit.Soap,
+            soak.Robed == true);
         if (end == SoakEnd.Cold) Barks.Say(world, world.Characters.IdOf(slot), visit.Kind, BarkEvent.Cold, purpose);
         if (kind is null || quality.Total < kind.Demand)
         {
@@ -524,8 +560,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     void Pay(World world, int slot, Visit visit, CustomerType kind, string why)
     {
         world.Player.Money += visit.Owed;
-        Latest = $"{world.Characters.NameOf(world.Characters.IdOf(slot))} ({kind.Name}) paid {visit.Owed} cats, {why}.";
-        world.Post(Latest);
+        Note(world, $"{world.Characters.NameOf(world.Characters.IdOf(slot))} ({kind.Name}) paid {visit.Owed} cats, {why}.");
 
         Barks.Say(world, world.Characters.IdOf(slot), visit.Kind, BarkEvent.Happy, purpose);
         visit.Phase = VisitPhase.Done;
@@ -555,8 +590,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
         Barks.Say(world, world.Characters.IdOf(slot), visit.Kind, fight ? BarkEvent.Fight : BarkEvent.Complaint, purpose);
 
         string name = world.Characters.NameOf(world.Characters.IdOf(slot));
-        Latest = $"{name} ({kind?.Name ?? visit.Kind}) left without paying: {why}{(fight ? ", and picked a fight" : "")}.";
-        world.Post(Latest);
+        Note(world, $"{name} ({kind?.Name ?? visit.Kind}) left without paying: {why}{(fight ? ", and picked a fight" : "")}.");
         Leave(world, slot, visit);
     }
 
@@ -567,9 +601,20 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     {
         var who = world.Characters.IdOf(slot);
         Barks.Say(world, who, visit.Kind, BarkEvent.Pricey, purpose);
-        Latest = $"{world.Characters.NameOf(who)} ({CustomerTypes.Find(visit.Kind)?.Name ?? visit.Kind}) would not pay {price} cats.";
-        world.Post(Latest);
+        Note(world, $"{world.Characters.NameOf(who)} ({CustomerTypes.Find(visit.Kind)?.Name ?? visit.Kind}) would not pay {price} cats.");
         Leave(world, slot, visit);
+    }
+
+    /// <summary>
+    /// A payment or complaint: the latest one, at the top of the recent ones, and a message to the player.
+    /// </summary>
+    void Note(World world, string text)
+    {
+        Latest = text;
+        _recent.Insert(0, text);
+        if (_recent.Count > RecentKept) _recent.RemoveAt(RecentKept);
+
+        world.Post(text);
     }
 
     /// <summary>
@@ -662,19 +707,19 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     }
 
     /// <summary>
-    /// An hour of massage pays the massage price times the attendant's skill; time with nobody at the station is waiting.
+    /// An hour of massage pays the massage price times the attendant's pay factor (Dexterity, robe); time with nobody at the station is waiting.
     /// </summary>
     void Rub(World world, Visit visit, BuildSite bed, double hours)
     {
-        float? dexterity = Massage.Station(world, bed) is { } station ? Massage.Attendant(world, station) : null;
-        if (dexterity is not { } skill)
+        double? attendant = Massage.Station(world, bed) is { } station ? Massage.Attendant(world, station) : null;
+        if (attendant is not { } skill)
         {
             visit.BedWait += hours;
             return;
         }
 
         visit.Massaged += hours;
-        visit.MassagePay += Prices.Price(Service.Massage, TubKind.Small) * hours * Massage.Skill(skill);
+        visit.MassagePay += Prices.Price(Service.Massage, TubKind.Small) * hours * skill;
     }
 
     /// <summary>
@@ -705,6 +750,17 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     #endregion
 
     #region Views
+
+    /// <summary>
+    /// What a counter's check-in waits for, by <see cref="CheckIn"/>'s order: a clerk, then a warm tub with a free seat in its building; null when
+    /// a customer at it would check in now.
+    /// </summary>
+    public CheckInNeed? Waiting(World world, BuildSite counter, IReadOnlyList<Tub> tubs)
+    {
+        if (!Staffed(world, counter)) return CheckInNeed.Clerk;
+
+        return FreeTub(counter, tubs) is null ? CheckInNeed.WarmTub : null;
+    }
 
     /// <summary>
     /// The debug row's lines: each group and each visit.

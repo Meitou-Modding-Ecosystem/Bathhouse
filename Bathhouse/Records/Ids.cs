@@ -49,9 +49,14 @@ public static class Ids
     public const string UsedTeaSet = "8-" + FileName;
 
     /// <summary>
-    /// The staff's robe (<c>ARMOUR</c>).
+    /// The bathhouse robe (<c>ARMOUR</c>): staff wear it, and bathers change into one from the lockers.
     /// </summary>
     public const string Robe = "7-" + FileName;
+
+    /// <summary>
+    /// A robe a bather has worn, washed back into a clean one.
+    /// </summary>
+    public const string DirtyRobe = "9-" + FileName;
 
     #endregion
 
@@ -94,13 +99,18 @@ public static class Ids
     /// </summary>
     public const string MassageBed = "50-" + FileName, MassageStation = "51-" + FileName, Counter = "52-" + FileName, Lockers = "53-" + FileName,
         Hamper = "54-" + FileName, TowelRack = "55-" + FileName, TeaTable = "56-" + FileName, ReviewBoard = "57-" + FileName,
-        TeaShelf = "58-" + FileName;
+        TeaShelf = "58-" + FileName, RobeHamper = "59-" + FileName;
 
     /// <summary>
     /// The decorations.
     /// </summary>
     public const string ZenGarden = "60-" + FileName, WallArt = "61-" + FileName, Tapestry = "62-" + FileName, Statue = "63-" + FileName,
         TowelHanger = "64-" + FileName, TeaDisplay = "65-" + FileName;
+
+    /// <summary>
+    /// The soap shelf: service furniture, numbered after the decorations because 50 to 59 were taken.
+    /// </summary>
+    public const string SoapShelf = "66-" + FileName;
 
     #endregion
 
@@ -116,7 +126,9 @@ public static class Ids
         HamperLook = "900900-" + FileName, SoapPressLook = "901000-" + FileName, TeaBenchLook = "901100-" + FileName,
         TeaTableLook = "901200-" + FileName, TowelLoomLook = "901300-" + FileName, WashingMachineLook = "901400-" + FileName,
         LockersLook = "901500-" + FileName, TowelRackLook = "901600-" + FileName, TeaDryerLook = "901700-" + FileName,
-        KilnLook = "901800-" + FileName, ReviewBoardLook = "902100-" + FileName, StatueLook = "902200-" + FileName, ZenGardenLook = "902300-" + FileName;
+        KilnLook = "901800-" + FileName, ReviewBoardLook = "902100-" + FileName, StatueLook = "902200-" + FileName,
+        ZenGardenLook = "902300-" + FileName, TeaDisplayLook = "902400-" + FileName, TeaShelfLook = "902500-" + FileName,
+        RobeHamperLook = "902600-" + FileName;
 
     #endregion
 

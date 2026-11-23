@@ -10,7 +10,8 @@ namespace Bathhouse.Records;
 static class ItemRecords
 {
     /// <summary>
-    /// One item: its id and name, the game item it looks like (string id, then name), its value in cats, how many stack, and its text.
+    /// One item: its id and name, the game item it looks like (string id, then name), its value in cats, how many stack, its text and its icon
+    /// (<c>Bathhouse/items/icons/bathhouse-&lt;icon&gt;.png</c>).
     /// </summary>
     sealed record Spec(string Id, string Name, string ModelId, string ModelName, int Value, int Stack, string Text, string Icon);
 
@@ -18,6 +19,22 @@ static class ItemRecords
     /// The game's item functions used: 0, none (a plain trade good).
     /// </summary>
     const int NoFunction = 0;
+
+    /// <summary>
+    /// The armour slot ATTACH_BODY (the worn <c>armour</c> section): the robe goes on over the body as other robes do, in place of the bather's
+    /// body armour. The Monk Robe it copies sits in ATTACH_BELT (14) in the merged test-install data, under body armour.
+    /// </summary>
+    const int BodySlot = 5;
+
+    /// <summary>
+    /// The soap a wash draws, in hundredths: a bar washes four towels or robes (the washing machine crafts them from their <c>ingredients</c>).
+    /// </summary>
+    const int WashSoap = 25;
+
+    /// <summary>
+    /// A wash's <c>production time</c> in game hours (an item craft's hours; the field's default 4 is a cooked meal's).
+    /// </summary>
+    const int WashHours = 1;
 
     /// <summary>
     /// The mod's folder under the game's <c>mods</c> folder.
@@ -42,6 +59,8 @@ static class ItemRecords
             "A tray of hot greenfruit tea, ready to serve. Drunk, it leaves a used tea set behind.", "teaset"),
         new(Ids.UsedTeaSet, "Used Tea Set", "42316-changes_otto.mod", "Ceramic Bowl", 30, 5,
             "A tray of empty, stained cups. The tea server rinses it back into teaware.", "usedteaset"),
+        new(Ids.DirtyRobe, "Dirty Robe", "584-gamedata.base", "Fabrics", 10, 5,
+            "A robe a bather has worn. A washing machine and a little soap make it clean again.", "dirtyrobe"),
     ];
 
     /// <summary>
@@ -50,7 +69,8 @@ static class ItemRecords
     public static IEnumerable<FcsRecord> Build(GameDatabase game) => [.. Specs.Select(s => Item(game, s)), Robe(game)];
 
     /// <summary>
-    /// One item: the model's fields and look, without its recipe, as a plain trade good. A tea set is brewed from teaware and greenfruit tea.
+    /// One item: the model's fields and look, without its recipe, as a plain trade good. A tea set is brewed from teaware and greenfruit tea, and
+    /// a towel washed from a dirty towel and soap.
     /// </summary>
     static FcsRecord Item(GameDatabase game, Spec spec)
     {
@@ -64,18 +84,31 @@ static class ItemRecords
         SetIcon(record, spec.Icon);
 
         if (spec.Id == Ids.TeaSet) RecordKit.Links(record, "ingredients", (Ids.Teaware, 100, 0), (Ids.GreenfruitTea, 100, 0));
+        if (spec.Id == Ids.Towel) Washed(record, Ids.DirtyTowel);
         return record;
     }
 
     /// <summary>
-    /// The staff robe: a copy of the game's Monk Robe (its look, slot and cover) under its own name.
+    /// Makes a clean item the washing machine's craft: from one of its dirty record and a quarter of a soap, in <see cref="WashHours"/>.
+    /// </summary>
+    static void Washed(FcsRecord record, string dirty)
+    {
+        RecordKit.Links(record, "ingredients", (dirty, 100, 0), (Ids.Soap, WashSoap, 0));
+        record.Ints["production time"] = WashHours;
+    }
+
+    /// <summary>
+    /// The bathhouse robe: a copy of the game's Monk Robe (its look and cover) under its own name, worn in the body slot.
     /// </summary>
     static FcsRecord Robe(GameDatabase game)
     {
         var model = RecordKit.Model(game, FcsRecordType.Armour, "2189-gamedata.base", "Monk Robe");
         var record = RecordKit.Copy(model, Ids.Robe, "Bathhouse Robe");
+        record.Ints["slot"] = BodySlot;
+        Washed(record, Ids.DirtyRobe);
 
-        record.Strings["description"] = "A plain cotton robe. Bathhouse staff who wear one give better service.";
+        record.Strings["description"] = "A plain cotton robe. Bathers change into one from the bathhouse lockers; staff who wear one give better"
+            + " service.";
         SetIcon(record, "robe");
         return record;
     }

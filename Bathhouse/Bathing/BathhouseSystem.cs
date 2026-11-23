@@ -41,15 +41,20 @@ public sealed record AssignStaffCommand(string Site, StaffRole Role) : SimComman
 
 /// <summary>
 /// What a counter's panel shows: whether the bathhouse is open, each service's percent (in <see cref="Service"/> order) and a medium tub's visit
-/// price, the groups and visits under way, and the latest payment or complaint.
+/// price, the groups and visits under way, the latest payment or complaint and the recent ones (newest first).
 /// </summary>
-public readonly record struct CounterView(bool Open, int[] Percents, long VisitPrice, int Groups, int Visits, string Latest)
+public readonly record struct CounterView(bool Open, int[] Percents, long VisitPrice, int Groups, int Visits, string Latest, string[] Recent)
 {
     /// <summary>
     /// A service's percent.
     /// </summary>
     public int Percent(Service service) => Percents[(int)service];
 }
+
+/// <summary>
+/// What a counter's check-in line shows: what it waits for (null: ready), and whether a customer would get a towel and soap.
+/// </summary>
+public readonly record struct CheckInView(CheckInNeed? Need, bool Towel, bool Soap);
 
 /// <summary>
 /// What the panel of a tub or boiler shows: its building's heat, and for a tub the seats taken.
@@ -131,7 +136,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     public BathhouseSystem(RngPurpose purpose, PopulationData data)
     {
         _purpose = purpose;
-        _soaks = new Soaks(_heating, Finished);
+        _soaks = new Soaks(_heating, Finished, data);
         _clientele = new Clientele(_heating, _soaks, _care, data, purpose);
         _staff = new Staff(new Plans(_soaks, _care));
         _privateBeds = new PrivateBeds(data.Relations);
@@ -301,12 +306,22 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     /// <summary>
     /// The latest view of the counters (written in the tick, read on the host's thread).
     /// </summary>
-    volatile StrongBox<CounterView> _counter = new(new CounterView(true, [100, 100, 100, 100, 100], 0, 0, 0, "No customers yet."));
+    volatile StrongBox<CounterView> _counter = new(new CounterView(true, [100, 100, 100, 100, 100], 0, 0, 0, "No customers yet.", []));
 
     /// <summary>
     /// What a counter's panel shows.
     /// </summary>
     public CounterView Counter => _counter.Value;
+
+    /// <summary>
+    /// The latest check-in view of each counter by site id (written in the tick, read on the host's thread).
+    /// </summary>
+    volatile Dictionary<string, CheckInView> _checkIns = [];
+
+    /// <summary>
+    /// A counter's check-in view; null for another site.
+    /// </summary>
+    public CheckInView? CheckIn(string? site) => site is not null && _checkIns.TryGetValue(site, out var view) ? view : null;
 
     /// <summary>
     /// The debug row's view: each building's heat, then each soak.
@@ -330,6 +345,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
 
         _pieces = pieces;
         _counter = new StrongBox<CounterView>(CounterNow());
+        _checkIns = CheckInsNow(world, tubs);
         _view = Describe(world, tubs);
     }
 
@@ -341,7 +357,23 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
         var prices = _clientele.Prices;
         int running = _clientele.Visits.Count(v => v.Phase != VisitPhase.Done);
         int[] percents = Enum.GetValues<Service>().Select(prices.Percent).ToArray();
-        return new CounterView(_clientele.Open, percents, prices.Visit(TubKind.Medium).Price, _clientele.Groups.Count, running, _clientele.Latest);
+        long visit = prices.Visit(TubKind.Medium).Price;
+        return new CounterView(_clientele.Open, percents, visit, _clientele.Groups.Count, running, _clientele.Latest, [.. _clientele.Recent]);
+    }
+
+    /// <summary>
+    /// What each counter's check-in lacks now.
+    /// </summary>
+    Dictionary<string, CheckInView> CheckInsNow(World world, List<Tub> tubs)
+    {
+        var views = new Dictionary<string, CheckInView>(StringComparer.Ordinal);
+        foreach (var counter in world.Buildings.All.Where(Spawner.IsCounter))
+        {
+            var stock = Stock.Of(world, counter);
+            views[counter.Id] = new CheckInView(_clientele.Waiting(world, counter, tubs), stock.Towels is not null, stock.Soap is not null);
+        }
+
+        return views;
     }
 
     /// <summary>
@@ -394,7 +426,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     /// <summary>
     /// The sidecar layout's version.
     /// </summary>
-    public const int SaveVersion = 3;
+    public const int SaveVersion = 5;
 
     public void Write(Stream stream)
     {
@@ -429,6 +461,9 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
             w.Write(soak.SentAt);
             w.Write(soak.Soaked);
             w.Write(soak.Lukewarm);
+            w.Write(soak.Robed switch { null => (byte)0, true => (byte)1, false => (byte)2 });
+            w.Write(soak.Changed);
+            w.Write(soak.Stowed);
         }
     }
 
@@ -447,14 +482,14 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
         int owed = r.ReadInt32();
         for (int k = 0; k < owed; k++) _heating.Owed[r.ReadString()] = r.ReadDouble();
 
-        ReadSoaks(r);
+        ReadSoaks(r, version);
         if (version >= 2) ClienteleSave.Read(r, _clientele, _care, version);
     }
 
     /// <summary>
     /// Reads the soaks; their bathers are found again by lasting id at the next check and walk back into their tubs.
     /// </summary>
-    void ReadSoaks(BinaryReader r)
+    void ReadSoaks(BinaryReader r, int version)
     {
         int soaks = r.ReadInt32();
         for (int k = 0; k < soaks; k++)
@@ -469,8 +504,19 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
             };
             soak.Soaked = r.ReadDouble();
             soak.Lukewarm = r.ReadDouble();
+            if (version >= 5) ReadRobe(r, soak);
             _soaks.Restore(soak);
         }
+    }
+
+    /// <summary>
+    /// Reads a soak's robe (layout 5).
+    /// </summary>
+    static void ReadRobe(BinaryReader r, Soak soak)
+    {
+        soak.Robed = r.ReadByte() switch { 1 => true, 2 => false, _ => null };
+        soak.Changed = r.ReadBoolean();
+        soak.Stowed = r.ReadString();
     }
 
     #endregion

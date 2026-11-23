@@ -4,8 +4,8 @@ using Meitou.Simulation;
 namespace Bathhouse.Customers;
 
 /// <summary>
-/// The customers' part of the sidecar (layout versions 2 and 3) and of the state hash: open, prices, schedule, the complaints' day, groups, visits
-/// and, from version 3, the tea and massage prices, the visits' massage and the dirty tubs.
+/// The customers' part of the sidecar (layout versions 2 to 4) and of the state hash: open, prices, schedule, the complaints' day, groups, visits
+/// and, from version 3, the tea and massage prices, the visits' massage and the dirty tubs; from version 4, the visits' towel and soap.
 /// </summary>
 public static class ClienteleSave
 {
@@ -77,6 +77,8 @@ public static class ClienteleSave
             hasher.Add(visit.Owed);
             hasher.Add(visit.Massaged);
             hasher.Add(visit.BedWait);
+            hasher.Add(visit.Towel);
+            hasher.Add(visit.Soap);
         }
     }
 
@@ -156,6 +158,8 @@ public static class ClienteleSave
             w.Write(visit.Massaged);
             w.Write(visit.BedWait);
             w.Write(visit.MassagePay);
+            w.Write(visit.Towel);
+            w.Write(visit.Soap);
         }
     }
 
@@ -173,8 +177,18 @@ public static class ClienteleSave
             visit.Waited = r.ReadDouble();
             visit.Price = r.ReadInt64();
             if (version >= 3) ReadMassage(r, visit);
+            if (version >= 4) ReadSupplies(r, visit);
             clientele.Restore(visit);
         }
+    }
+
+    /// <summary>
+    /// Reads whether a visit got a towel and soap (layout 4).
+    /// </summary>
+    static void ReadSupplies(BinaryReader r, Visit visit)
+    {
+        visit.Towel = r.ReadBoolean();
+        visit.Soap = r.ReadBoolean();
     }
 
     /// <summary>
