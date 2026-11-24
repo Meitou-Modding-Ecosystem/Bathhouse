@@ -182,7 +182,7 @@ public sealed class PanelBars(Heating heating, TubCare care, Clientele clientele
     static IEnumerable<Bar> TableBars(World world, BuildSite table)
     {
         var store = Goods.StoreOf(world, table);
-        var set = Goods.Count(store, Ids.TeaSet) > 0 ? new Bar("Tea Set ready", 1, "", "A soaked customer can have tea here.")
+        var set = Goods.Count(store, Ids.TeaSet) > 0 ? new Bar("Tea Set ready", 1, "", "An arriving customer can have tea here before the bath.")
             : Goods.Count(store, Ids.UsedTeaSet) > 0 ? new Bar("Used Tea Set to clear", 0, "", "The tea server takes it to a used tea rack.")
             : new Bar("No Tea Set", 0, "", "The tea server brings one from a tea set cabinet.");
         yield return set;

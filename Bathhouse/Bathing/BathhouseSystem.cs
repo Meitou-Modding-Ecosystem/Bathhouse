@@ -25,6 +25,11 @@ public sealed record BatheCommand(string Tub) : SimCommand;
 public sealed record OpenCommand(bool Open) : SimCommand;
 
 /// <summary>
+/// Switches a counter, tea table or massage bed open or closed.
+/// </summary>
+public sealed record OpenPieceCommand(string Site, bool Open) : SimCommand;
+
+/// <summary>
 /// Sets a service's price, in percent of its suggested price (the counter's price lines).
 /// </summary>
 public sealed record PriceCommand(Service Service, int Percent) : SimCommand;
@@ -179,6 +184,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
             if (command is BatheCommand bathe) Bathe(world, bathe.Tub);
             else if (command is KeepDebuffCommand keep) Keep(keep);
             else if (command is OpenCommand open) _clientele.Open = open.Open;
+            else if (command is OpenPieceCommand piece) OpenPiece(piece);
             else if (command is PriceCommand price) _clientele.Prices.Set(price.Service, price.Percent);
             else if (command is SendCustomersCommand send) _sendKinds.Add(send.Kind);
             else if (command is AssignStaffCommand assign) StaffRoles.Assign(world, assign.Site, assign.Role);
@@ -192,6 +198,20 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     {
         foreach (var who in world.Player.Selection) _sent.Add((who, tub));
     }
+
+    /// <summary>
+    /// Switches a piece open or closed.
+    /// </summary>
+    void OpenPiece(OpenPieceCommand piece)
+    {
+        if (piece.Open) _clientele.Closed.Remove(piece.Site);
+        else _clientele.Closed.Add(piece.Site);
+    }
+
+    /// <summary>
+    /// Whether a counter, tea table or massage bed is switched open (the UI reads it).
+    /// </summary>
+    public bool IsOpen(string site) => _clientele.IsOpen(site);
 
     /// <summary>
     /// Keeps a bad effect from being cleared by soaks, or clears it again.
@@ -503,7 +523,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     /// <summary>
     /// The sidecar layout's version.
     /// </summary>
-    public const int SaveVersion = 7;
+    public const int SaveVersion = 8;
 
     public void Write(Stream stream)
     {

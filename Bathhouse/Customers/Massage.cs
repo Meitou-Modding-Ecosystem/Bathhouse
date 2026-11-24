@@ -59,15 +59,16 @@ public static class Massage
     static readonly TaskType Job = (TaskType)Ids.MassageJob;
 
     /// <summary>
-    /// A free massage bed in the building whose station somebody holds the Massage attendant job at; null for none. Beds other visits hold are taken, and so is one somebody lies in (one of
-    /// the player's people the player ordered into it, <see cref="PrivateBeds"/>).
+    /// A free massage bed in the building, switched <paramref name="open"/>, whose station somebody holds the Massage attendant job at; null for
+    /// none. Beds other visits hold are taken, and so is one somebody lies in (one of the player's people the player ordered into it,
+    /// <see cref="PrivateBeds"/>).
     /// </summary>
-    public static BuildSite? FreeBed(World world, string? building, IEnumerable<Visit> visits)
+    public static BuildSite? FreeBed(World world, string? building, IEnumerable<Visit> visits, Func<string, bool> open)
     {
         if (building is null) return null;
 
         var held = visits.Where(v => v.Phase == VisitPhase.Massage).Select(v => v.Bed).ToHashSet();
-        return world.Buildings.All.FirstOrDefault(s => IsPiece(s, Ids.MassageBed) && s.Parent == building && !held.Contains(s.Id)
+        return world.Buildings.All.FirstOrDefault(s => IsPiece(s, Ids.MassageBed) && s.Parent == building && open(s.Id) && !held.Contains(s.Id)
             && Station(world, s) is { } station && StaffRoles.StaffsPiece(world, station.Id, StaffRole.Massage) && BedOf(world, s) is { } bed
             && FixtureRegistry.IsFree(world.Characters, bed));
     }
