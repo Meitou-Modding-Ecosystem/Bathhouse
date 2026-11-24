@@ -65,7 +65,38 @@ public sealed class PanelBars(Heating heating, TubCare care, Clientele clientele
     {
         foreach (var bar in TubBars(heating.Of(tub.Building), taken, tub.Seats, care.IsDirty(tub.Site.Id))) yield return bar;
 
-        yield return Holder(world, tub.Site.Id, StaffRole.Scrubber, "Scrubber", "Nobody holds the Tub scrubber job at this tub.");
+        yield return Scrubber(world, tub, taken);
+    }
+
+    /// <summary>
+    /// Who scrubs the tub and what holds them up: scrubbing it now, waiting for its bathers to leave, or at another task.
+    /// </summary>
+    Bar Scrubber(World world, Tub tub, int taken)
+    {
+        string id = tub.Site.Id;
+        if (StaffRoles.HolderAt(world, id, StaffRole.Scrubber) is not { } slot || world.Characters.Cold(slot) is not { } cold)
+            return new Bar("Scrubber: none", 0, "", "Nobody holds the Tub scrubber job at this tub, so it stays dirty after each soak.");
+
+        if (!care.IsDirty(id)) return new Bar($"Scrubber: {cold.Name}", 1, "", $"{cold.Name} holds the Tub scrubber job here.");
+
+        var (value, why) = ScrubState(cold, id, taken);
+        return new Bar($"Scrubber: {cold.Name}", 0.5f, value, why);
+    }
+
+    /// <summary>
+    /// What a dirty tub's scrubber is doing about it, as a short value and its tip.
+    /// </summary>
+    static (string Value, string Tip) ScrubState(CharacterCold cold, string tub, int taken)
+    {
+        if (taken > 0) return ("waits", $"{cold.Name} scrubs it once the {taken} bather(s) in it leave.");
+
+        var scrub = StaffRoles.TypeOf(StaffRole.Scrubber);
+        var job = cold.Running is { Job: var k } && k >= 0 && k < cold.Jobs.Count ? cold.Jobs[k] : null;
+        if (job is { } now && now.Type == scrub && now.Site == tub) return ("scrubbing", $"{cold.Name} is scrubbing it.");
+
+        if (job is { } other && other.Type == scrub) return ("next", $"{cold.Name} is scrubbing another tub and comes here after.");
+
+        return ("busy", $"{cold.Name} is at another task. Jobs higher in their jobs list, orders and needs come first: move this job up or free them.");
     }
 
     /// <summary>
