@@ -7,8 +7,8 @@ namespace Bathhouse.Bathing;
 
 /// <summary>
 /// The tea pieces that need hot water (docs/bathhouse.md "Tea works"): a used tea rack rinses its Used Tea Sets into Teaware on a teaware shelf, and
-/// a tea bench makes progress, only while its building is warm (a lit boiler and Water, <see cref="Heating"/>). Neither state is saved: a load
-/// starts a rinse over and holds a bench at its loaded progress.
+/// a tea bench makes progress and uses its ingredients, only while its building is warm (a lit boiler and Water, <see cref="Heating"/>). Neither
+/// state is saved: a load starts a rinse over and holds a bench at its loaded progress and ingredients.
 /// </summary>
 public sealed class TeaWorks(Heating heating)
 {
@@ -26,6 +26,11 @@ public sealed class TeaWorks(Heating heating)
     /// Each tea bench's progress on its first craft at the last check, held there while its building is cold.
     /// </summary>
     readonly Dictionary<string, float> _held = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Each tea bench's ingredient sections (items held, level drawn) at the last check, given back while its building is cold.
+    /// </summary>
+    readonly Dictionary<string, (int Count, float Level)[]> _stock = new(StringComparer.Ordinal);
 
     /// <summary>
     /// One check over <paramref name="hours"/> game hours: racks rinse, benches in cold buildings stay where they were.
@@ -82,17 +87,42 @@ public sealed class TeaWorks(Heating heating)
     }
 
     /// <summary>
-    /// A tea bench's first craft keeps the progress it had at the last check while its building is cold, so it brews only with hot water.
+    /// A tea bench's first craft keeps the progress it had at the last check while its building is cold, so it brews only with hot water. The
+    /// engine draws a bench's ingredients as its operator works, so a cold bench also gets back what it drew since then.
     /// </summary>
     void Hold(World world, BuildSite bench)
     {
-        if (world.Machines.Find(bench.Id)?.Craft is not { Queue: [var job, ..] })
+        if (world.Machines.Find(bench.Id) is not { Craft.Queue: [var job, ..] } machine)
         {
             _held.Remove(bench.Id);
+            _stock.Remove(bench.Id);
             return;
         }
 
-        if (!Hot(bench) && _held.TryGetValue(bench.Id, out float was) && job.Progress > was) job.Progress = was;
+        if (!Hot(bench))
+        {
+            if (_held.TryGetValue(bench.Id, out float was) && job.Progress > was) job.Progress = was;
+            if (_stock.TryGetValue(bench.Id, out var stock)) GiveBack(machine.Inputs, stock);
+        }
+
         _held[bench.Id] = job.Progress;
+        _stock[bench.Id] = [.. machine.Inputs.Select(i => (i.Count, i.Level))];
+    }
+
+    /// <summary>
+    /// Puts each section back to its last check when it has less now: a section the operator loaded since (more items) keeps what it has.
+    /// </summary>
+    public static void GiveBack(Meitou.Simulation.Production.InputSlot[] inputs, (int Count, float Level)[] stock)
+    {
+        if (inputs.Length != stock.Length) return;
+
+        for (int i = 0; i < inputs.Length; i++)
+        {
+            var (count, level) = stock[i];
+            if (inputs[i].Count > count || inputs[i].Count + inputs[i].Level >= count + level) continue;
+
+            inputs[i].Count = count;
+            inputs[i].Level = level;
+        }
     }
 }

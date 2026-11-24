@@ -108,7 +108,8 @@ public sealed class Heating
         var boilers = Boilers(world);
         var seats = SeatsByBuilding(tubs);
         _now.Clear();
-        foreach (string building in boilers.Keys.Union(seats.Keys).Order(StringComparer.Ordinal))
+        var buildings = boilers.Keys.Union(seats.Keys).Union(TeaBuildings(world));
+        foreach (string building in buildings.Order(StringComparer.Ordinal))
         {
             var heat = Judge(world, building, boilers.GetValueOrDefault(building) ?? [], seats.GetValueOrDefault(building), settings);
             _now[building] = heat;
@@ -160,6 +161,14 @@ public sealed class Heating
 
         return byBuilding;
     }
+
+    /// <summary>
+    /// The buildings holding a finished tea bench or used tea rack, which need hot water too (their panels show its state).
+    /// </summary>
+    static IEnumerable<string> TeaBuildings(World world) =>
+        world.Buildings.All
+            .Where(s => s.Record is Ids.TeaBench or Ids.UsedTeaRack && s.Complete && !s.Destroyed && s.Parent is not null)
+            .Select(s => s.Parent!);
 
     /// <summary>
     /// The tub seats by building.

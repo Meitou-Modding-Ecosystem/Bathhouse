@@ -67,9 +67,10 @@ public sealed record GuestsNow(string[] OnTheWay, GuestView[] Guests);
 public sealed record ReviewsNow(GuestSummary Summary, GuestRecord[] Records);
 
 /// <summary>
-/// What the panel of a tub or boiler shows: its building's heat, and for a tub the seats taken.
+/// What the panel of a tub, boiler, tea bench or used tea rack (<paramref name="Tea"/>) shows: its building's heat, and for a tub the seats taken
+/// and whether it is dirty.
 /// </summary>
-public readonly record struct PieceView(BuildingHeat Heat, int Taken, int Seats, bool Dirty = false);
+public readonly record struct PieceView(BuildingHeat Heat, int Taken, int Seats, bool Dirty = false, bool Tea = false);
 
 /// <summary>
 /// The bathhouse in one world (docs/bathhouse.md "Heated tubs", "Customers", "Staff"): heating checked, bathers sent, soaks, customers and staff
@@ -312,7 +313,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     #region Views
 
     /// <summary>
-    /// The latest view of each tub and boiler by site id (written in the tick, read on the host's thread).
+    /// The latest view of each tub, boiler and hot-water tea piece by site id (written in the tick, read on the host's thread).
     /// </summary>
     volatile Dictionary<string, PieceView> _pieces = [];
 
@@ -395,6 +396,9 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
 
         foreach (var site in world.Buildings.All.Where(s => s.Record == Records.Ids.Boiler))
             pieces[site.Id] = new PieceView(_heating.Of(site.Parent), 0, 0);
+
+        foreach (var site in world.Buildings.All.Where(s => s.Record is Records.Ids.TeaBench or Records.Ids.UsedTeaRack))
+            pieces[site.Id] = new PieceView(_heating.Of(site.Parent), 0, 0, Tea: true);
 
         _pieces = pieces;
         _counter = new StrongBox<CounterView>(CounterNow());
