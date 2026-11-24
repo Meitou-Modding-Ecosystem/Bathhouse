@@ -60,7 +60,8 @@ public sealed class Plans(Soaks soaks, TubCare care)
             StaffRole.Scrubber => Scrub(world, piece),
             StaffRole.Laundry => Laundry(world, slot, piece),
             StaffRole.Tea => Tea(world, slot, piece.Parent),
-            _ => Attend(world, piece),
+            StaffRole.Massage => Attend(world, piece),
+            _ => Water(world, slot, piece),
         };
         return legs is null ? null : new Queue<Leg>(legs);
     }
@@ -105,6 +106,60 @@ public sealed class Plans(Soaks soaks, TubCare care)
     /// Whether no soak holds a seat in the tub.
     /// </summary>
     bool Empty(Tub tub) => !soaks.All.Any(s => s.Tub == tub.Site.Id);
+
+    #endregion
+
+    #region Water carrier
+
+    /// <summary>
+    /// How far (world units, flat) a well may stand from the cistern for its carrier to draw from it.
+    /// </summary>
+    public const float WellReach = 3000;
+
+    /// <summary>
+    /// The water carrier's next errand while the cistern has room: pour carried Water in, else draw an armful from the nearest well and pour it in.
+    /// </summary>
+    static Leg[]? Water(World world, int slot, BuildSite cistern)
+    {
+        if (Cisterns.Room(world, cistern) is not (> 0 and var room)) return null;
+
+        var pour = new Leg(WorkSpots.Front(cistern), Handling, (w, s) => Pour(w, s, cistern));
+        if (Goods.Count(Goods.Carried(world, slot), FurnitureRecords.Water) > 0) return [pour];
+        if (Cisterns.Well(world, cistern, WellReach) is not { } well) return null;
+
+        int most = Math.Min(Armful, room);
+        return [new Leg(well.Position, Handling, (w, s) => Draw(w, s, well, most)), pour];
+    }
+
+    /// <summary>
+    /// Takes up to <paramref name="most"/> Water out of a well's output into the carrier's inventory.
+    /// </summary>
+    static bool Draw(World world, int slot, BuildSite well, int most)
+    {
+        if (world.Machines.Find(well.Id)?.Output is not { } output || Goods.Carried(world, slot) is not { } carried) return false;
+
+        int taken = 0;
+        while (taken < most && output.Count > 0 && Goods.Make(world, FurnitureRecords.Water) is { } unit && carried.Add(unit))
+        {
+            output.Count--;
+            taken++;
+        }
+
+        if (taken > 0) world.Machines.Touch();
+        return taken > 0;
+    }
+
+    /// <summary>
+    /// Pours the carried Water into the cistern's output, as much as it holds.
+    /// </summary>
+    static bool Pour(World world, int slot, BuildSite cistern)
+    {
+        if (world.Machines.Find(cistern.Id)?.Output is not { } held || Goods.Carried(world, slot) is not { } carried) return false;
+
+        while (!held.Full && Goods.Take(carried, FurnitureRecords.Water)) held.Count++;
+        world.Machines.Touch();
+        return true;
+    }
 
     #endregion
 

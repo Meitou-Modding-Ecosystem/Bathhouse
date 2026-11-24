@@ -51,8 +51,28 @@ public sealed class PanelBars(Heating heating, TubCare care, Clientele clientele
         Ids.MassageBed => BedBars(world, site),
         Ids.MassageStation => StationBars(world, site),
         Ids.TeaTable => TableBars(world, site),
+        Ids.Cistern => CisternBars(world, site),
         _ => null,
     };
+
+    #endregion
+
+    #region Cistern
+
+    /// <summary>
+    /// A cistern's bars: the Water it holds, and its Water carrier.
+    /// </summary>
+    static IEnumerable<Bar> CisternBars(World world, BuildSite cistern)
+    {
+        if (Cisterns.Tank(world, cistern) is { } tank)
+        {
+            float share = tank.Recipe.Capacity > 0 ? (float)tank.Count / tank.Recipe.Capacity : 0;
+            string tip = "Water your haulers draw from here as from a well (Hauling to jobs on water tanks, the tea bench). Its Water carrier fills it.";
+            yield return new Bar("Water stored", share, $"{tank.Count}/{tank.Recipe.Capacity}", tip);
+        }
+
+        yield return Holder(world, cistern.Id, StaffRole.Water, "Water carrier", "Nobody holds the Water carrier job here, so nobody fills it from the wells.");
+    }
 
     #endregion
 

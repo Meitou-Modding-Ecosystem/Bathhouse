@@ -198,6 +198,19 @@ public sealed class RecordTests
     }
 
     [Fact]
+    public void The_cistern_is_an_unattended_well_that_makes_nothing_and_holds_water()
+    {
+        var data = Machine(Ids.Cistern);
+
+        Assert.False(data.IsStorage);
+        Assert.True(data.IsProducer);
+        Assert.True(data.IsAutomatic);
+        Assert.True(data.Unattended);
+        Assert.Equal(0, data.OutputRate);
+        Assert.Equal(new RecipeOutput("1914-gamedata.base", 200), data.Output);
+    }
+
+    [Fact]
     public void The_soap_shelf_stores_only_soap_and_is_researched_with_the_basics()
     {
         var game = Game();

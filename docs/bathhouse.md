@@ -15,7 +15,7 @@ for its look (a stand-in until the mod's models land) and links game items by id
 | Production (function 4) | Towel Loom (Fabrics to 2 Towels), Soap Press (Hemp to Soap), Tea Dryer (Greenfruit to Greenfruit Tea), Pottery Kiln (Raw Stone to Teaware) | Fabric Loom (hemp), Hemp Processor, Biofuel Distillery (Hemp), Cooking Stove |
 | Crafting (function 10) | Tea Bench: Tea Set from Teaware + Greenfruit Tea + Water (the Tea Set's `ingredients`; only while the building is hot, Tea works); Washing Machine: a queue of Towel (Dirty Towel + 1/4 Soap) and Bathhouse Robe (Dirty Robe + 1/4 Soap) washes, 1 h each (the items' `ingredients` and `production time`; output holds 10 towels or 1 robe) | Cooking Stove, Sake Still |
 | Power | Steam Boiler: draws 10, functionality the game's Lights (a consumer with no operator, so the Power switch shows) | Boiler Tank |
-| Water | Bathhouse Water Tank: Resource storage limited to Water, as the game's Water Tower | Small Water Tank |
+| Water | Bathhouse Water Tank: Resource storage limited to Water, as the game's Water Tower; Water Cistern (Water cistern) | Small Water Tank, Old Water Tower |
 | Tubs (Resource storage that takes nothing: `itemtype limit` BUILDING, so only a Shift + right click uses it) | Small Tub (1 seat), Medium Tub (2), Large Bath (4), Oil Bath, Blood Bath (+10 Raw Meat to build) | own model (below), Large Barrels, Booze Barrels, Booze Barrel, Cannibal Butcher Table |
 | Service | Massage Bed (bed), Massage Station (Towels only, 5), Check-in Counter (Towels and Soap only, so haulers stock it; grid 12 x 10), Lockers (locks; haulers store only Robes: `itemtype limit` ARMOUR and `limit inventory` Robe and Dirty Robe, two items so the grid stays 8 x 8 instead of one robe's footprint), Laundry Hamper (Dirty Towels only), Robe Hamper (Dirty Robes only), Towel Rack (Towels only), Soap Shelf (Soap only), Tea Table (one Tea Set or Used Tea Set: both listed, grid 2 x 2, one set's footprint), Tea Shelf (Greenfruit Tea only), Teaware Shelf (Teaware only), Tea Set Cabinet (Tea Sets only), Used Tea Rack (Used Tea Sets only), Review Board | Bed, Small Table, Shop Counter, Crossbow Locker, Small Barrel, Small Barrel, Shelf, Shelf, Small Table, Shelf, Shelf, Shelf, Shelf, banner_traders |
 | Decorations | Zen Garden, Wall Art, Tapestry, Statue, Towel Hanger, Tea Set Display | Carpet: Rusty Rug, banner_empire, banner_holy, Emperor Statue, Wall Shelf 1, Wall Shelf 2 |
@@ -117,8 +117,8 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   scrubber; a boiler the hours its building's Water lasts the lit boilers (Water x 24 / (lit x Water per day)) and the seats they heat; a tea
   bench and a used tea rack Steam boiler (lit, none, switched off or no power) and Water, which they need (Tea works), the rack also its rinse
   and whether a teaware shelf has room; a massage bed its customer's massage hours left, its station's attendant (Dexterity as the bar) and
-  towels; a massage station its bed, attendant and towels; a tea table its set and tea server. The bars come from a Harmony postfix on the
-  engine's `BuildingSelection.BuildingRows` (`ConditionBars`, reached by name; `ConditionBars.Supported` is tested); in a game without it a
+  towels; a massage station its bed, attendant and towels; a tea table its set and tea server; a water cistern its Water stored and carrier.
+  The bars come from a Harmony postfix on the engine's `BuildingSelection.BuildingRows` (`ConditionBars`, reached by name; `ConditionBars.Supported` is tested); in a game without it a
   tub's water and seats and a tea piece's hot water stay a line among the buttons. A tub also shows the bath button; a boiler its building's
   heat and one switch per Bad status effect of any mod (the first four) for whether soaks clear it. The switches are saved with the game.
 - **Debug row** "Bathhouse: tubs and bathers": each building's heat and each soak.
@@ -234,11 +234,11 @@ following the water's heat needs an engine hook.
 
 ## Staff
 
-`Staffing/`. Five mod job types (`AddJobType`, 4403 to 4407), each in the character's job list on the piece it was given at: the piece's panel
+`Staffing/`. Six mod job types (`AddJobType`, 4403 to 4408), each in the character's job list on the piece it was given at: the piece's panel
 button "Assign selected: <job>" (the panel's first mod line, as lines past the panel's edge are clipped) gives it to the selected characters (a character may hold a job type at several pieces, each job working its own piece, once per piece); the jobs panel shows and removes it and the game
 saves it. Each job is also offered (`AddJobOffer`, `StaffRoles.Offer`): the piece's right-click menu shows "Work as: <job>" to selected people, and
 other mods read the offers, so Fiefdom's Work tab can staff them. A Shift + right click on the counter, a tub or the massage station works too, with no engine hook: all are storages, so the game gives its Hauling to job
-(124) there, and the system's serial step (`StaffRoles.TakeClickedJobs`) puts the clerk's or scrubber's job in its place in the list. `Staff` is the jobs' `IJobSource`: when the chooser asks, the job's plan (`Plans`) gives an errand of stops (walk there, work for a
+(124) there (at the cistern, an automatic machine, Operating automatic machinery, 152), and the system's serial step (`StaffRoles.TakeClickedJobs`) puts the clerk's, scrubber's or water carrier's job in its place in the list. `Staff` is the jobs' `IJobSource`: when the chooser asks, the job's plan (`Plans`) gives an errand of stops (walk there, work for a
 time, then move goods, re-checking they are there); the errand runs on the job's row until done, then the chooser picks again. Errands are not
 saved: a loaded staff member plans again.
 
@@ -259,6 +259,17 @@ saved: a loaded staff member plans again.
   the building (not a hamper or the counter). Queue the washes and set Repeat Queue at the washer; it also needs an operator.
 - **Tea server** (tea table): puts carried Used Tea Sets in a used tea rack; brings a Tea Set (from a tea set cabinet first) to an empty table; takes a
   table's Used Tea Set to a used tea rack. The used tea rack rinses them back into Teaware (Tea works).
+- **Water carrier** (water cistern): while the cistern has room, draws up to 10 Water from the nearest of the player's wells within 3000
+  units that holds some (a machine whose output is Water; never a storage, so it does not undo the haulers filling tanks from the cistern) and
+  pours it in.
+
+## Water cistern
+
+The game's haulers draw only from machine outputs, never from a storage (`ProductionSystem.HaulSource`), so a Water Tower or water tank never
+feeds a Hauling to job. The Water Cistern is a machine instead: its functionality copies the game's well (`function` 4, max operators 0, so it
+runs unattended) without the well's world resource, with `output rate` 0 so it makes nothing, and its output holds 200 Water. Haulers fill
+water tanks and the tea bench from it as from a well (**Verified** in the headless harness on the Settlement Test save: a Water Tank hauler
+drew 30 Water out of it). Its Water carrier keeps it full; its panel shows the Water stored and the carrier.
 
 ## Animations
 
@@ -271,7 +282,7 @@ hivers, skeletons, fishmen; not the Hive Queen), and a disabled COMBAT_TECHNIQUE
 
 ## Research
 
-All in the Crafting list, no cost: Bathhouse Basics (level 1; loom, press, washer, boiler, water tank, small tub, counter, lockers, hamper,
+All in the Crafting list, no cost: Bathhouse Basics (level 1; loom, press, washer, boiler, water tank, water cistern, small tub, counter, lockers, hamper,
 rack, robe hamper, soap shelf, robe), then Hot Baths (medium and large tubs, review board, decorations), Massage, Tea Service (dryer, kiln, bench, tea table, tea shelf, teaware shelf, tea set cabinet, used tea rack, display)
 and Oil Baths (level 2), and Blood Baths after Hot Baths (level 3).
 

@@ -36,6 +36,7 @@ Block 4400-4499
 | 4405 | Task type | Job: Laundry runner (offered on the Washing Machine) |
 | 4406 | Task type | Job: Tea server (offered on the Tea Table) |
 | 4407 | Task type | Job: Massage attendant (offered on the Massage Station) |
+| 4408 | Task type | Job: Water carrier (offered on the Water Cistern) |
 
 ## Layout
 

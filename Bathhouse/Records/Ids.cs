@@ -66,7 +66,7 @@ public static class Ids
     /// The machines' functionalities (<c>BUILDING_FUNCTIONALITY</c>), in the order of <see cref="TowelLoom"/> and the machines after it.
     /// </summary>
     public const string TowelLoomWork = "20-" + FileName, SoapPressWork = "21-" + FileName, WasherWork = "22-" + FileName,
-        TeaDryerWork = "23-" + FileName, KilnWork = "24-" + FileName, TeaBenchWork = "25-" + FileName;
+        TeaDryerWork = "23-" + FileName, KilnWork = "24-" + FileName, TeaBenchWork = "25-" + FileName, CisternWork = "26-" + FileName;
 
     /// <summary>
     /// The production machines and the tea bench (<c>BUILDING</c>).
@@ -83,6 +83,11 @@ public static class Ids
     /// The water tank the boilers draw from: storage for Water only.
     /// </summary>
     public const string WaterTank = "37-" + FileName;
+
+    /// <summary>
+    /// The water cistern: a machine whose output holds Water, so haulers draw from it as from a well; its Water carrier fills it from wells.
+    /// </summary>
+    public const string Cistern = "38-" + FileName;
 
     #endregion
 
@@ -171,9 +176,10 @@ public static class Ids
     public const int VisitGoalType = 4402;
 
     /// <summary>
-    /// The staff job types (docs/bathhouse.md "Staff"): clerk, scrubber, laundry runner and tea server, each also its errands' row.
+    /// The staff job types (docs/bathhouse.md "Staff"): clerk, scrubber, laundry runner, tea server, massage attendant and water carrier, each also
+    /// its errands' row.
     /// </summary>
-    public const int ClerkJob = 4403, ScrubberJob = 4404, LaundryJob = 4405, TeaJob = 4406, MassageJob = 4407;
+    public const int ClerkJob = 4403, ScrubberJob = 4404, LaundryJob = 4405, TeaJob = 4406, MassageJob = 4407, WaterJob = 4408;
 
     #endregion
 
