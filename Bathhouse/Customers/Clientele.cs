@@ -136,6 +136,17 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     public bool Open { get; set; } = true;
 
     /// <summary>
+    /// The pieces switched closed (counters, tea tables, massage beds), by site id: a closed counter takes no check-ins, a closed table or bed is
+    /// not offered. Saved and hashed.
+    /// </summary>
+    public SortedSet<string> Closed { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Whether a piece is switched open.
+    /// </summary>
+    public bool IsOpen(string piece) => !Closed.Contains(piece);
+
+    /// <summary>
     /// The game hour the next group may set out. Saved and hashed.
     /// </summary>
     public double NextGroupAt { get; set; }
@@ -198,6 +209,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
         _groups.Clear();
         _visits.Clear();
         _present.Clear();
+        Closed.Clear();
     }
 
     #endregion
@@ -242,7 +254,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     /// </summary>
     public bool SendNow(World world, IReadOnlyList<Tub> tubs, CustomerType kind)
     {
-        if (Spawner.OpenCounter(world, b => Warm(tubs, b)) is not { } counter || !kind.Spawnable) return false;
+        if (Spawner.OpenCounter(world, b => Warm(tubs, b), IsOpen) is not { } counter || !kind.Spawnable) return false;
 
         return SpawnGroup(world, kind, counter, tubs, BathhouseSettings.Current);
     }
@@ -253,7 +265,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     void Schedule(World world, IReadOnlyList<Tub> tubs, BathhouseSettings settings)
     {
         if (!Open || settings.HoursBetweenGroups <= 0 || _groups.Count >= MostGroups || world.GameHours < NextGroupAt) return;
-        if (!Spawner.Daytime(world.GameHours) || Spawner.OpenCounter(world, b => Warm(tubs, b)) is not { } counter) return;
+        if (!Spawner.Daytime(world.GameHours) || Spawner.OpenCounter(world, b => Warm(tubs, b), IsOpen) is not { } counter) return;
 
         NextGroupAt = world.GameHours + settings.HoursBetweenGroups;
         if (Spawner.Pick(world, data, Serial, purpose) is { } kind) SpawnGroup(world, kind, counter, tubs, settings);
@@ -474,10 +486,36 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
 
         if (!AtCounter(world, slot, counter)) return;
 
+        if (!visit.TeaOffered)
+        {
+            visit.TeaOffered = true;
+            if (OfferTea(world, slot, visit, counter))
+            {
+                // The goal stands it at the counter: end it, so the next start walks it to the table.
+                if (ModGoals.Holds(world, slot, Row)) ModGoals.Done(world, slot, Row);
+                return;
+            }
+        }
+
+        if (!IsOpen(counter.Id))
+        {
+            CheckInClosed(world, slot, visit);
+            return;
+        }
+
         if (double.IsNaN(visit.ArrivedAt)) visit.ArrivedAt = world.GameHours;
         visit.Waited = world.GameHours - visit.ArrivedAt;
         if (CheckIn(world, slot, visit, counter, tubs)) return;
         if (visit.Waited > MostWait) Unhappy(world, slot, visit, "waited too long at the counter", GuestOutcome.Failed);
+    }
+
+    /// <summary>
+    /// The counter was switched closed: a customer who had tea pays for it and goes, one who had nothing goes as a failed arrival.
+    /// </summary>
+    void CheckInClosed(World world, int slot, Visit visit)
+    {
+        if (visit.Owed <= 0 || CustomerTypes.Find(visit.Kind) is not { } kind) Fail(world, slot, visit, "found check-in closed");
+        else Pay(world, slot, visit, kind, "tea, check-in closed");
     }
 
     /// <summary>
@@ -596,8 +634,8 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     #region Payment
 
     /// <summary>
-    /// A customer's soak ended (the system's callback for soaks of people not the player's): a visit good enough for its kind goes for tea when a
-    /// table has some, else takes a massage or pays; a visit not good enough complains; one that never soaked just leaves.
+    /// A customer's soak ended (the system's callback for soaks of people not the player's): a visit good enough for its kind takes a massage or
+    /// pays (for the tea it had too); a visit not good enough complains; one that never soaked just leaves.
     /// </summary>
     public void Bathed(World world, int slot, Soak soak, SoakEnd end)
     {
@@ -610,7 +648,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
 
         var kind = CustomerTypes.Find(visit.Kind);
         var quality = Quality.Of(soak.Soaked, soak.Lukewarm, visit.Waited, end == SoakEnd.Cold, visit.DirtyTub, visit.Towel, visit.Soap,
-            soak.Robed == true);
+            soak.Robed == true, visit.LateTea);
         visit.Quality = quality.Total;
         if (end == SoakEnd.Cold) Barks.Say(world, world.Characters.IdOf(slot), visit.Kind, BarkEvent.Cold, purpose);
         if (kind is null || quality.Total < kind.Demand)
@@ -620,8 +658,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
         }
 
         var tub = world.Buildings.Find(soak.Tub);
-        visit.Owed = quality.Pay(visit.Price);
-        if (OfferTea(world, slot, visit, tub?.Parent)) return;
+        visit.Owed += quality.Pay(visit.Price);
         if (!OfferMassage(world, slot, visit, tub?.Parent)) Pay(world, slot, visit, kind, $"quality {quality}");
     }
 
@@ -725,6 +762,21 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     public const double TeaMostWait = 1;
 
     /// <summary>
+    /// Game hours a seated customer waits for its Tea Set before the visit counts as late tea (<see cref="Quality.LateTeaWeight"/>).
+    /// </summary>
+    public const double TeaServeWait = 2;
+
+    /// <summary>
+    /// Game hours a seated customer waits for its Tea Set at most; then it goes on to the bath without tea.
+    /// </summary>
+    public const double TeaGiveUp = 4;
+
+    /// <summary>
+    /// How far from the counter (world units, flat) a tea table may stand to be offered.
+    /// </summary>
+    public const float TeaReach = 3000;
+
+    /// <summary>
     /// The chance a customer breaks the tea set it drank from.
     /// </summary>
     public const double BreakChance = 0.15;
@@ -740,22 +792,42 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     const ulong BreakSalt = 0xB2EA;
 
     /// <summary>
-    /// Offers a soaked customer tea: a tea table in the building holding a Tea Set that no other customer drinks at, and the tea price taken, send
-    /// it to the table. False for none.
+    /// Offers an arrived customer tea before its bath: an open tea table of the player's near the counter that no other customer sits at, holding a
+    /// Tea Set or with a Tea server to bring one, and the tea price taken, send it to the table. False for none.
     /// </summary>
-    bool OfferTea(World world, int slot, Visit visit, string? building)
+    bool OfferTea(World world, int slot, Visit visit, BuildSite counter)
     {
-        var held = _visits.Values.Where(v => v.Phase == VisitPhase.Tea).Select(v => v.Table).ToHashSet();
-        var table = Goods.PiecesIn(world, building, Ids.TeaTable).FirstOrDefault(t => !held.Contains(t.Id) && HasTea(world, t));
-        if (table is null || !Accepts(world, slot, visit, Prices.Percent(Service.Tea) / 100.0, TeaSalt)) return false;
+        if (FreeTable(world, counter) is not { } table || !Accepts(world, slot, visit, Prices.Percent(Service.Tea) / 100.0, TeaSalt)) return false;
 
         visit.Table = table.Id;
         visit.Sitting = false;
         visit.Drunk = 0;
         visit.TeaWait = 0;
+        visit.ServeWait = 0;
         visit.Phase = VisitPhase.Tea;
         return true;
     }
+
+    /// <summary>
+    /// The nearest open, unheld tea table of the player's within <see cref="TeaReach"/> of the counter holding a Tea Set, else the nearest one a Tea
+    /// server works (tea houses often stand apart from the baths); null for none.
+    /// </summary>
+    BuildSite? FreeTable(World world, BuildSite counter)
+    {
+        var held = _visits.Values.Where(v => v.Phase == VisitPhase.Tea).Select(v => v.Table).ToHashSet();
+        var tables = world.Buildings.All
+            .Where(t => t.Record == Ids.TeaTable && t.Complete && !t.Destroyed && t.Owner == world.Player.Faction && IsOpen(t.Id) && !held.Contains(t.Id))
+            .Where(t => Soaks.Flat(t.Position, counter.Position) <= TeaReach)
+            .OrderBy(t => Soaks.Flat(t.Position, counter.Position))
+            .ThenBy(t => t.Id, StringComparer.Ordinal)
+            .ToList();
+        return tables.FirstOrDefault(t => HasTea(world, t)) ?? tables.FirstOrDefault(t => Served(world, t));
+    }
+
+    /// <summary>
+    /// Whether one of the player's people holds the Tea server job at the table, so a Tea Set comes to it.
+    /// </summary>
+    static bool Served(World world, BuildSite table) => StaffRoles.StaffsPiece(world, table.Id, StaffRole.Tea);
 
     /// <summary>
     /// Walks the customer to its tea table's front, or sits it down there when it has arrived (the visit goal's start); true when it sits.
@@ -769,14 +841,21 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     }
 
     /// <summary>
-    /// A customer on its tea: sits down on arrival, drinking while it sits; done drinking, it pays for the tea and goes on; one that cannot get to
-    /// the table in time, or whose table or tea set is gone, goes on without.
+    /// A customer on its tea: sits down on arrival and waits for a Tea Set, drinking once there is one; done drinking, it owes the tea and goes on;
+    /// one that cannot get to the table in time, whose table is gone or closed, or whose table has no tea nor a server, goes on without.
     /// </summary>
     void Drinking(World world, int slot, Visit visit, double hours)
     {
-        if (TableOf(world, visit) is not { } table || !HasTea(world, table))
+        if (TableOf(world, visit) is not { } table || !IsOpen(table.Id))
         {
-            AfterTea(world, slot, visit, "its tea was gone");
+            AfterTea(world, slot, visit, "its tea table was gone");
+            return;
+        }
+
+        bool tea = HasTea(world, table);
+        if (!tea && !Served(world, table))
+        {
+            AfterTea(world, slot, visit, "nobody serves tea");
             return;
         }
 
@@ -787,18 +866,41 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
         }
 
         if (world.Characters.Next[slot].Task != (byte)CharacterTask.Rest) SitAtTable(world, slot, visit, table);
+        if (!tea)
+        {
+            AwaitTea(world, slot, visit, hours);
+            return;
+        }
+
         visit.Drunk += hours;
         if (visit.Drunk >= TeaHours) Serve(world, slot, visit, table);
     }
 
     /// <summary>
-    /// A customer not sitting yet: sits at the table once it stands at its front; gives up the tea after <see cref="TeaMostWait"/>.
+    /// A seated customer without a Tea Set waits: past <see cref="TeaServeWait"/> the visit is late tea (once), past <see cref="TeaGiveUp"/> it goes
+    /// on to the bath without.
+    /// </summary>
+    void AwaitTea(World world, int slot, Visit visit, double hours)
+    {
+        visit.ServeWait += hours;
+        if (visit.ServeWait > TeaServeWait && !visit.LateTea)
+        {
+            visit.LateTea = true;
+            Note(world, $"{world.Characters.NameOf(world.Characters.IdOf(slot))} has waited over {TeaServeWait:0} hours for tea.");
+        }
+
+        if (visit.ServeWait > TeaGiveUp) AfterTea(world, slot, visit, "no tea came");
+    }
+
+    /// <summary>
+    /// A customer not sitting yet: sits at the table once it stands at its front; gives up the tea after <see cref="TeaMostWait"/> not walking
+    /// there (a tea house may stand far from the counter, so the walk does not count).
     /// </summary>
     void ApproachTable(World world, int slot, Visit visit, BuildSite table, double hours)
     {
         ref readonly var hot = ref world.Characters.Next[slot];
-        if (Soaks.Flat(hot.Position, WorkSpots.Front(table)) <= Reach && hot.Task != (byte)CharacterTask.GoTo && SitAtTable(world, slot, visit, table))
-            return;
+        if (hot.Task == (byte)CharacterTask.GoTo) return;
+        if (Soaks.Flat(hot.Position, WorkSpots.Front(table)) <= Reach && SitAtTable(world, slot, visit, table)) return;
 
         visit.TeaWait += hours;
         if (visit.TeaWait > TeaMostWait) AfterTea(world, slot, visit, "could not get to the tea table");
@@ -835,8 +937,8 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     }
 
     /// <summary>
-    /// Whether the customer broke its tea set (<see cref="BreakChance"/>, by the world's random numbers): the player is told, and one that had a good
-    /// soak offers to pay for it (<see cref="BrokenSetPrice"/>, added to what it owes).
+    /// Whether the customer broke its tea set (<see cref="BreakChance"/>, by the world's random numbers): the player is told, and one that has not bathed
+    /// yet or had a good soak offers to pay for it (<see cref="BrokenSetPrice"/>, added to what it owes).
     /// </summary>
     bool Broke(World world, int slot, Visit visit)
     {
@@ -845,14 +947,15 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
         if (roll >= BreakChance) return false;
 
         string name = world.Characters.NameOf(who);
-        bool pays = visit.Quality >= Quality.FullPay;
+        bool pays = float.IsNaN(visit.Quality) || visit.Quality >= Quality.FullPay;
         if (pays) visit.Owed += BrokenSetPrice;
         Note(world, pays ? $"{name} broke a tea set and offered to pay {BrokenSetPrice} cats for it." : $"{name} broke a tea set.");
         return true;
     }
 
     /// <summary>
-    /// The tea is over, drunk or not: the customer gets up and takes a massage, else pays and leaves.
+    /// The tea is over, drunk or not: the customer gets up and goes back to the counter to check in; one that already bathed (a visit from before
+    /// tea came first) takes a massage, else pays and leaves.
     /// </summary>
     void AfterTea(World world, int slot, Visit visit, string why)
     {
@@ -860,6 +963,13 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
         visit.Sitting = false;
         visit.Table = null;
         if (ModGoals.Holds(world, slot, Row)) ModGoals.Done(world, slot, Row);
+
+        if (float.IsNaN(visit.Quality))
+        {
+            visit.ArrivedAt = double.NaN;
+            visit.Phase = VisitPhase.Arriving;
+            return;
+        }
 
         var building = world.Buildings.Find(_groups.GetValueOrDefault(visit.Group)?.Counter ?? "")?.Parent;
         if (OfferMassage(world, slot, visit, building)) return;
@@ -889,7 +999,7 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     /// </summary>
     bool OfferMassage(World world, int slot, Visit visit, string? building)
     {
-        if (Massage.FreeBed(world, building, _visits.Values) is not { } bed) return false;
+        if (Massage.FreeBed(world, building, _visits.Values, IsOpen) is not { } bed) return false;
         if (!Accepts(world, slot, visit, Prices.Percent(Service.Massage) / 100.0, MassageSalt)) return false;
 
         visit.Bed = bed.Id;
@@ -1039,7 +1149,8 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
         {
             string name = world.Characters.NameOf(world.LastingIds.Find(visit.Customer));
             text.AppendLine($"{name}: {visit.Phase}, waited {visit.Waited:0.0} h, price {visit.Price}, owes {visit.Owed}"
-                + $"{(visit.DirtyTub ? ", dirty tub" : "")}{(visit.Bed is null ? "" : $", massaged {visit.Massaged:0.0} h")}");
+                + $"{(visit.DirtyTub ? ", dirty tub" : "")}{(visit.Bed is null ? "" : $", massaged {visit.Massaged:0.0} h")}"
+                + $"{(visit.Table is null ? "" : $", tea at {visit.Table}, served after {visit.ServeWait:0.0} h")}{(visit.LateTea ? ", late tea" : "")}");
         }
     }
 

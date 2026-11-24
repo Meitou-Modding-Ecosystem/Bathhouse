@@ -2,14 +2,20 @@ namespace Bathhouse.Customers;
 
 /// <summary>
 /// A visit's quality and its parts (docs/bathhouse.md "Quality and payment"): 1 less what lukewarm water, waiting, a soak cut short by cold, a
-/// dirty tub and bathing without a towel, soap or robe took off, never below 0. Decor, robes and staff skill join in later milestones.
+/// dirty tub, bathing without a towel, soap or robe and a long wait for tea took off, never below 0. Decor, robes and staff skill join in later milestones.
 /// </summary>
-public readonly record struct Quality(float Heat, float Wait, float Cold, float Dirt = 0, float NoTowel = 0, float NoSoap = 0, float NoRobe = 0)
+public readonly record struct Quality(float Heat, float Wait, float Cold, float Dirt = 0, float NoTowel = 0, float NoSoap = 0, float NoRobe = 0,
+    float LateTea = 0)
 {
     /// <summary>
     /// What soaking without a robe takes off.
     /// </summary>
     public const float RobeWeight = 0.1f;
+
+    /// <summary>
+    /// What waiting more than two hours for tea before the bath takes off.
+    /// </summary>
+    public const float LateTeaWeight = 0.15f;
 
     /// <summary>
     /// What bathing without a towel takes off.
@@ -54,19 +60,19 @@ public readonly record struct Quality(float Heat, float Wait, float Cold, float 
     /// <summary>
     /// The score: 1 less each part, from 0 to 1.
     /// </summary>
-    public float Total => Math.Clamp(1 - Heat - Wait - Cold - Dirt - NoTowel - NoSoap - NoRobe, 0, 1);
+    public float Total => Math.Clamp(1 - Heat - Wait - Cold - Dirt - NoTowel - NoSoap - NoRobe - LateTea, 0, 1);
 
     /// <summary>
     /// The parts of a visit that soaked <paramref name="soaked"/> hours, <paramref name="lukewarm"/> of them lukewarm, after waiting
     /// <paramref name="waited"/> hours, whether cold water ended it, whether its tub was dirty and whether it got a towel, soap and a robe.
     /// </summary>
     public static Quality Of(double soaked, double lukewarm, double waited, bool cold, bool dirty = false, bool towel = true, bool soap = true,
-        bool robe = true)
+        bool robe = true, bool lateTea = false)
     {
         float heat = soaked > 0 ? HeatWeight * (float)Math.Clamp(lukewarm / soaked, 0, 1) : 0;
         float wait = Math.Min(MostWait, WaitPerHour * (float)Math.Max(0, waited));
         return new Quality(heat, wait, cold ? ColdWeight : 0, dirty ? DirtWeight : 0, towel ? 0 : TowelWeight, soap ? 0 : SoapWeight,
-            robe ? 0 : RobeWeight);
+            robe ? 0 : RobeWeight, lateTea ? LateTeaWeight : 0);
     }
 
     /// <summary>
@@ -79,5 +85,5 @@ public readonly record struct Quality(float Heat, float Wait, float Cold, float 
     /// </summary>
     public override string ToString() =>
         $"{Total:P0} (heat -{Heat:P0}, wait -{Wait:P0}, cold -{Cold:P0}, dirty tub -{Dirt:P0}, no towel -{NoTowel:P0}, no soap -{NoSoap:P0}, "
-        + $"no robe -{NoRobe:P0})";
+        + $"no robe -{NoRobe:P0}, late tea -{LateTea:P0})";
 }

@@ -164,7 +164,11 @@ following the water's heat needs an engine hook.
   not change it (engine `SquadFactory.Count`).
   A group whose platoon disappears is posted and the next may set out at once. A held stand-in takes part in Meitou's off-screen fights
   (Settings > Advanced > Fights far away, on by default), so a group can be wiped out on the road; kept on purpose (README).
-- **Check-in**: the visit goal (desire 0.7) walks the customer to the counter's front and stands it there. It checks in when one of the player's
+- **Order of a visit**: arrive at the counter, tea (optional), check in and bathe, massage (optional), pay. Counters, tea tables and massage
+  beds each have an open switch on their panel (`OpenPieceCommand`, saved): a closed counter gets no groups and sends its arrivals away (one
+  who had tea pays for it), a closed table or bed is not offered.
+- **Check-in**: the visit goal (desire 0.7) walks the customer to the counter's front and stands it there; on its first arrival there it is
+  offered tea (below), and comes back to the counter after. It checks in when one of the player's
   people stands within 80 units of the counter and a tub in the building is warm with a free seat. It gets a Towel and a Soap when each is found
   in the counter, else in a store in its building (`Stock`; they may come from different stores), and bathes without one that is not. It takes
   the price (below: the bath plus the towel and soap it gets), a Soap is used up and a Towel goes into its inventory (it dries with it), and it
@@ -173,14 +177,16 @@ following the water's heat needs an engine hook.
   milestone 5) for the suggested price. The counter's panel sets each service to 50, 75, 100, 125, 150 or 200% of it. A customer takes a visit
   price at or under tolerance x suggested; above it with chance e^(-8 (ratio / tolerance - 1)), 13% at a quarter over, else it leaves.
 - **Quality and payment** (`Quality`): 1 less 0.5 x the lukewarm share of the soak, 0.15 a game hour waited (at most 0.3), 0.3 for a soak cut
-  short by cold, 0.2 for a dirty tub, 0.1 without a towel, 0.1 without soap and 0.1 without a robe. At or above 0.8 the customer owes the full price, below it price x quality / 0.8. Check-in prefers a
-  clean tub. After a good enough soak it may have tea, may take a massage, then pays what it owes (added to the player's money and posted).
-- **Tea**: after a good enough soak, when a tea table in the tub's building holds a Tea Set no other customer drinks at and the customer takes the
-  tea price (the same chance rule, ratio = percent / 100), the visit goal walks it to the table's work spot, where it sits on the floor facing the
-  table (`CharacterTask.Rest` on row 4402, as in a tub; drawn cross-legged, see Animations) for 0.5 h. Then the set becomes a Used Tea Set on the table, the tea's price (100 cats
-  suggested) is owed, and it gets up for a massage or to pay. 15% of drinks (seeded per customer and tick) breaks the set
-  instead: no Used Tea Set is left, a message names the customer, and after a full-pay soak (quality 0.8 or more) the customer also offers to
-  pay 37 cats for it (added to what it owes). Not sitting there within 1 h, or the table or its set gone, it goes on without tea.
+  short by cold, 0.2 for a dirty tub, 0.1 without a towel, 0.1 without soap, 0.1 without a robe and 0.15 for late tea. At or above 0.8 the customer owes the full price, below it price x quality / 0.8. Check-in prefers a
+  clean tub. After a good enough soak it may take a massage, then pays what it owes, the tea included (added to the player's money and posted).
+- **Tea**: before check-in, the nearest open tea table of the player's within 3000 units of the counter that no other customer sits at, holding a
+  Tea Set, else one a Tea server holds the job at, is offered; with the tea price taken (the same chance rule, ratio = percent / 100) the visit
+  goal walks the customer to the table's work spot, where it sits on the floor facing the table (`CharacterTask.Rest` on row 4402, as in a tub;
+  drawn cross-legged, see Animations) and waits for a Tea Set, then drinks for 0.5 h. Then the set becomes a Used Tea Set on the table, the
+  tea's price (100 cats suggested) is owed, and it goes back to the counter to check in. Waiting more than 2 h for the set makes it late tea
+  (quality -0.15, posted once); after 4 h it goes on without. 15% of drinks (seeded per customer and tick) breaks the set instead: no Used Tea
+  Set is left, a message names the customer, and it offers to pay 37 cats for it (added to what it owes). Not sitting there within 1 h, the
+  table gone or closed, or no tea and no server, it goes on without tea.
 - **Massage** (`Massage`): each massage bed is paired with the nearest massage station in its building within 50 units (5 m) of it. With a free
   bed (one whose bed fixture no other visit holds, and whose station somebody holds the Massage attendant job at) and the massage price taken, the customer walks to the bed (visit goal) and lies in it
   (`EnterBed`). While the station's Massage attendant (Staff) stands within 40 units of it and it holds a Towel, each hour pays 300 cats suggested x the attendant's pay
@@ -208,7 +214,7 @@ following the water's heat needs an engine hook.
 - **Barks** (`Barks`): two lines per kind for getting into a tub, cold water, a complaint, leaving happy, the price and a fight. English only (the
   engine has no translation catalog for mods).
 - **Panels**: the counter has its clerk button, a check-in line ("ready" with the towel and soap it has, or the first of clerk, warm tub, scrubbed tub it lacks;
-  tooltip: the fix) and the ledger button; the tea table and the massage station have their price line; the review board shows guests of the
+  tooltip: the fix) and the ledger button; the counter, tea table and massage bed their open switch; the tea table and the massage station have their price line; the review board shows guests of the
   last three days (and their daily average), those ever, failed arrivals and the reviews button. The building panel holds about six lines, so
   the details are in the **ledger** window (`CounterLedger`, the HUD overlay, 900 pixels wide, fits a 1280 x 720 screen) with three tabs. The
   ledger button opens it on Counter, the reviews button on Reviews; either again, or Close, closes it.
@@ -274,7 +280,7 @@ and Oil Baths (level 2), and Blood Baths after Hot Baths (level 3).
 `BathhouseSettings`, on the Settings screen's Mods page: seats per boiler (4), Water per boiler a day (2), soak length by tub (small 2 h,
 medium 3, large 4, oil and blood 3), Soothed buff (3 days), soaks clear debuffs (on), towels kept (80%), hours between customers (6), most bathers per group (3),
 relation lost per complaint (1), most relation lost a day (5), fight chance (5%). Prices and the open switch are on the counter, saved with the
-game (sidecar version 7, which adds the visits' tea; 6 added the guest book; version 2 reads with tea and massage at 100%, before 4 visits had a towel and soap).
+game (sidecar version 8, which adds the closed pieces and tea before the bath; 7 added the visits' tea; 6 added the guest book; version 2 reads with tea and massage at 100%, before 4 visits had a towel and soap).
 
 ## Tests
 
