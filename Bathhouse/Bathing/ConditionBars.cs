@@ -1,12 +1,14 @@
 using System.Collections;
+using System.Globalization;
 using System.Reflection;
 using HarmonyLib;
 
 namespace Bathhouse.Bathing;
 
 /// <summary>
-/// A tub's bars under its Condition bar in the selected building's panel (docs/bathhouse.md "Panels"): whether it is clean, and its water's heat
-/// with the seats taken, so the button column keeps only the buttons. The panel's bars come from an engine method a mod cannot name
+/// A tub's, tea bench's and used tea rack's bars under the Condition bar in the selected building's panel (docs/bathhouse.md "Panels"): a tub's
+/// cleanliness and water heat with the seats taken; a tea piece's steam boiler and Water, which it needs to work. The button column keeps only
+/// the buttons. The panel's bars come from an engine method a mod cannot name
 /// (<c>BuildingSelection.BuildingRows</c>), so a postfix adds them to the list it returns; display only, on the host's thread, from the system's
 /// published views.
 /// </summary>
@@ -70,9 +72,12 @@ public static class ConditionBars
 #pragma warning restore IDE1006
     {
         if (__result is not IList rows || Traverse.Create(focus).Property("SiteId").GetValue<string?>() is not { } site) return;
-        if (System() is not { } bathhouse || bathhouse.Piece(site) is not { Seats: > 0 } view) return;
+        if (System() is not { } bathhouse || bathhouse.Piece(site) is not { } view) return;
 
-        foreach (var (name, fraction, value, tip) in Bars(view)) rows.Add(Row(name, fraction, value, tip));
+        var bars = view.Seats > 0 ? Bars(view)
+            : view.Tea ? TeaBars(view.Heat)
+            : [];
+        foreach (var (name, fraction, value, tip) in bars) rows.Add(Row(name, fraction, value, tip));
     }
 
     /// <summary>
@@ -103,6 +108,47 @@ public static class ConditionBars
         string water = view.Heat.Warm ? view.Heat.Heat == Heat.Hot ? "Water: hot" : "Water: lukewarm" : "Water: cold";
         yield return (water, heat, $"{view.Taken}/{view.Seats}", BathhouseSystem.Describe(view.Heat.Heat) + " Seats taken over seats.");
     }
+
+    /// <summary>
+    /// A tea bench's or used tea rack's bars: its building's steam boiler, then the Water in its stores. It works only while both are there
+    /// (docs/bathhouse.md "Tea works").
+    /// </summary>
+    public static IEnumerable<(string Name, float Fraction, string Value, string Tip)> TeaBars(BuildingHeat heat)
+    {
+        yield return Boiler(heat);
+        yield return Water(heat);
+    }
+
+    /// <summary>
+    /// The building's steam boiler: lit, or why not.
+    /// </summary>
+    static (string, float, string, string) Boiler(BuildingHeat heat)
+    {
+        const string tip = "Tea needs hot water: a lit steam boiler in the same building, with Water in its tanks.";
+        string state = heat.Boilers == 0 ? "none"
+            : heat.Lit > 0 ? "lit"
+            : heat.On == 0 ? "switched off"
+            : "no power";
+        string count = heat.Boilers > 0 ? $"{heat.Lit}/{heat.Boilers}" : "";
+        return ($"Steam boiler: {state}", heat.Lit > 0 ? 1 : 0, count, tip);
+    }
+
+    /// <summary>
+    /// The Water in the building's stores.
+    /// </summary>
+    static (string, float, string, string) Water(BuildingHeat heat)
+    {
+        const string tip = "Water in this building's stores (a Bathhouse Water Tank). The boiler drinks it to make hot water.";
+        return heat.Water > 0 ? ("Water in tanks", 1, heat.Water.ToString(CultureInfo.InvariantCulture), tip) : ("No Water in tanks", 0, "", tip);
+    }
+
+    /// <summary>
+    /// Hot water for a tea piece in one line (a game without the bars): yes, or the first thing missing.
+    /// </summary>
+    public static (string Name, float Fraction, string Value, string Tip) HotWater(BuildingHeat heat) =>
+        heat.Warm ? ("Hot water: yes", 1, "", "A lit steam boiler and Water in this building.")
+        : heat.Heat == Heat.Outdoors ? ("Hot water: no", 0, "", "Tea needs hot water: build it inside a building with a steam boiler.")
+        : ("Hot water: no", 0, "", $"Tea needs hot water: {BathhouseSystem.Describe(heat.Heat)}.");
 
     #endregion
 }

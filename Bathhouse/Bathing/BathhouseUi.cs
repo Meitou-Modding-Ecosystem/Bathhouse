@@ -74,6 +74,7 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system, CounterLedger led
         if (bathhouse.Piece(building.SiteId) is not { } view) return [];
 
         if (building.Record == Ids.Boiler) return [BoilerLine(view), .. DebuffLines(context, bathhouse)];
+        if (view.Tea) return ConditionBars.Active ? [] : [HotWaterLine(view)];
         return ConditionBars.Active ? [BatheLine(context)] : [TubLine(view), BatheLine(context)];
     }
 
@@ -119,6 +120,15 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system, CounterLedger led
     /// The press of a tub's button: queues the command that sends the selection.
     /// </summary>
     static Action Bathe(UiBuildingContext context, string tub) => () => context.Enqueue(new BatheCommand(tub) { Tick = context.Tick });
+
+    /// <summary>
+    /// A tea bench's or used tea rack's line in a game without the Condition bars: whether its building has hot water.
+    /// </summary>
+    static UiBuildingAction HotWaterLine(PieceView view)
+    {
+        var (name, _, value, tip) = ConditionBars.HotWater(view.Heat);
+        return new UiBuildingAction(value.Length > 0 ? $"{name} ({value})" : name, tip, Nothing);
+    }
 
     /// <summary>
     /// A boiler's line: its building's heat and how many seats the lit boilers heat.

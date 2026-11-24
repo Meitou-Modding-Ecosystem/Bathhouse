@@ -115,7 +115,9 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
 - **Panels** (`BathhouseUi`): a tub shows the bath button, and under its Condition bar a Clean or Dirty bar (`TubCare`) and a Water bar (hot full,
   lukewarm half, cold empty; seats taken over seats as its number). The bars come from a Harmony postfix on the engine's
   `BuildingSelection.BuildingRows` (`ConditionBars`, reached by name; `ConditionBars.Supported` is tested); in a game without it the water
-  and seats stay a line among the buttons; a boiler shows its building's heat (tooltip: boilers lit,
+  and seats stay a line among the buttons. A tea bench and a used tea rack show a Steam boiler bar (lit, none, switched off or no power; lit
+  over built) and a Water bar (the Water in the building's stores), since they need both (Tea works); without the postfix, one Hot water line.
+  A boiler shows its building's heat (tooltip: boilers lit,
   seats heated, Water) and one switch per Bad status effect of any mod (the first four) for whether soaks clear it. The switches are saved with
   the game.
 - **Debug row** "Bathhouse: tubs and bathers": each building's heat and each soak.
@@ -134,8 +136,11 @@ following the water's heat needs an engine hook.
 `Bathing/TeaWorks`, stepped in the slow check right after the heat. Both pieces work only in a hot or lukewarm building (Heating), like the tubs.
 
 - **Used tea rack**: rinses one Used Tea Set an hour into Teaware on a teaware shelf in the same building with room; no shelf with room, it waits.
-- **Tea bench**: its first queued craft does not advance while the building is cold (its progress is held at the last check's value).
-- Neither the rinse hours nor the held progress is saved: a load restarts the current rinse hour.
+- **Tea bench**: its first queued craft does not advance while the building is cold (its progress is held at the last check's value). The
+  engine draws a bench's ingredient sections as its operator works, so a cold bench also gets each section's items and level back to the last
+  check's (`TeaWorks.GiveBack`; a section loaded since keeps what it has). Without that, a bench in a building with no boiler ate its
+  ingredients and made nothing (**Observed**, Matthew's Settlement Test, issue #124).
+- Neither the rinse hours, the held progress nor the held ingredients are saved: a load restarts the current rinse hour.
 
 ## Customers
 
