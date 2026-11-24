@@ -48,10 +48,12 @@ static class MachineRecords
         .. Specs.Select(s => Work(game, s)),
         TeaBenchWork(game),
         WasherWork(game),
+        CisternWork(game),
         .. Specs.Select(s => Building(game, s, s.WorkId)),
         TeaBench(game),
         Washer(game),
         Boiler(game),
+        Cistern(game),
     ];
 
     #region Production machines
@@ -198,6 +200,53 @@ static class MachineRecords
             + $" Each boiler heats {BathhouseSettings.DefaultSeatsPerBoiler} bathers' seats.";
         record.Bools["creates player town"] = true;
         EffectRecords.Attach(record, Ids.Boiler);
+        return record;
+    }
+
+    #endregion
+
+    #region Cistern
+
+    /// <summary>
+    /// The Water the cistern holds (the game's Water Tank storage holds 100).
+    /// </summary>
+    public const int CisternHolds = 200;
+
+    /// <summary>
+    /// The cistern's functionality: the game's well's, made an automatic refinery (max operators 0) that consumes nothing and produces Water into
+    /// an output of <see cref="CisternHolds"/>. The building's output rate 0 keeps it from making any: its Water carrier fills the output.
+    /// </summary>
+    static FcsRecord CisternWork(GameDatabase game)
+    {
+        var model = RecordKit.Model(game, FcsRecordType.BuildingFunctionality, "1926-gamedata.base", "well");
+        var record = RecordKit.Copy(model, Ids.CisternWork, "Water Cistern", "consumes", "produces");
+
+        record.Ints["function"] = RefineryFunction;
+        record.Ints["max operators"] = 0;
+        record.Ints.Remove("world resource mining");
+        record.Bools["is production building"] = true;
+        RecordKit.Links(record, "produces", (FurnitureRecords.Water, CisternHolds, 0));
+        return record;
+    }
+
+    /// <summary>
+    /// The water cistern: the game's Old Water Tower look (until a model of its own) without its storage grid, with the cistern functionality.
+    /// </summary>
+    static FcsRecord Cistern(GameDatabase game)
+    {
+        var standIn = RecordKit.Model(game, FcsRecordType.Building, "1950-gamedata.base", "Old Water Tower");
+        var model = FurnitureRecords.OwnLook(game, Ids.Cistern) ?? standIn;
+        var record = RecordKit.Copy(model, Ids.Cistern, "Water Cistern", "functionality", "upgrades to", "limit inventory");
+
+        if (model != standIn) KeepCost(standIn, record);
+        RecordKit.Links(record, "functionality", (Ids.CisternWork, 0, 0));
+        record.Bools["has inventory"] = false;
+        record.Ints["max operators"] = 0;
+        record.Floats["output rate"] = 0;
+        record.Strings["building category"] = RecordKit.BuildCategory;
+        record.Strings["Description"] = "Holds Water for your haulers to draw from, as from a well. Give one of your people its Water carrier job"
+            + " (Shift + right click, or the panel button) and they fill it from your wells.";
+        record.Bools["creates player town"] = true;
         return record;
     }
 
