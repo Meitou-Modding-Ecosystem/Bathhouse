@@ -22,8 +22,8 @@ public sealed class ConditionBarsTests
     {
         var hot = new BuildingHeat(Heat.Hot, 1, 1, 1, 2, 4, 10);
 
-        var dirty = ConditionBars.Bars(new PieceView(hot, 1, 2, Dirty: true)).ToList();
-        var clean = ConditionBars.Bars(new PieceView(hot, 0, 2)).ToList();
+        var dirty = PanelBars.TubBars(hot, 1, 2, dirty: true).ToList();
+        var clean = PanelBars.TubBars(hot, 0, 2, dirty: false).ToList();
 
         Assert.Equal(("Dirty", 0f), (dirty[0].Name, dirty[0].Fraction));
         Assert.Equal(("Clean", 1f), (clean[0].Name, clean[0].Fraction));
@@ -33,8 +33,8 @@ public sealed class ConditionBarsTests
     [Fact]
     public void A_tea_piece_shows_its_boiler_and_water()
     {
-        var bare = ConditionBars.TeaBars(new BuildingHeat(Heat.NoBoiler, 0, 0, 0, 0, 0, 0)).ToList();
-        var ready = ConditionBars.TeaBars(new BuildingHeat(Heat.Hot, 1, 1, 1, 0, 4, 12)).ToList();
+        var bare = PanelBars.TeaBars(new BuildingHeat(Heat.NoBoiler, 0, 0, 0, 0, 0, 0)).ToList();
+        var ready = PanelBars.TeaBars(new BuildingHeat(Heat.Hot, 1, 1, 1, 0, 4, 12)).ToList();
 
         Assert.Equal(("Steam boiler: none", 0f), (bare[0].Name, bare[0].Fraction));
         Assert.Equal(("No Water in tanks", 0f), (bare[1].Name, bare[1].Fraction));
@@ -52,5 +52,14 @@ public sealed class ConditionBarsTests
 
         Assert.Equal((3, 0.2f), (drawn.Count, drawn.Level));
         Assert.Equal((4, 0.9f), (loaded.Count, loaded.Level));
+    }
+
+    [Fact]
+    public void A_boiler_shows_the_hours_its_water_lasts()
+    {
+        var bars = PanelBars.BoilerBars(new BuildingHeat(Heat.Hot, 2, 2, 2, 6, 8, 6), waterPerDay: 2).ToList();
+
+        Assert.Equal(("Water left: 36 h", 1f, "6"), (bars[0].Name, bars[0].Fraction, bars[0].Value));
+        Assert.Equal(("Seats heated", 1f, "8/6"), (bars[1].Name, bars[1].Fraction, bars[1].Value));
     }
 }

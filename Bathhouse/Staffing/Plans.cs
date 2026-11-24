@@ -57,7 +57,7 @@ public sealed class Plans(Soaks soaks, TubCare care)
         var legs = role switch
         {
             StaffRole.Clerk => Clerk(piece),
-            StaffRole.Scrubber => Scrub(world, piece.Parent),
+            StaffRole.Scrubber => Scrub(world, piece),
             StaffRole.Laundry => Laundry(world, slot, piece),
             StaffRole.Tea => Tea(world, slot, piece.Parent),
             _ => Attend(world, piece),
@@ -81,12 +81,12 @@ public sealed class Plans(Soaks soaks, TubCare care)
         Massage.Busy(world, station) ? [new Leg(WorkSpots.Front(station), AttendSpell, (_, _) => true)] : null;
 
     /// <summary>
-    /// The scrubber scrubs the building's first dirty tub nobody soaks in.
+    /// The scrubber scrubs the tub its job is at once it is dirty and nobody soaks in it.
     /// </summary>
-    Leg[]? Scrub(World world, string? building)
+    Leg[]? Scrub(World world, BuildSite piece)
     {
-        var tub = Tubs.All(world).FirstOrDefault(t => t.Building == building && building is not null && care.IsDirty(t.Site.Id) && Empty(t));
-        if (tub is null) return null;
+        var tub = Tubs.All(world).FirstOrDefault(t => t.Site.Id == piece.Id);
+        if (tub is null || !care.IsDirty(tub.Site.Id) || !Empty(tub)) return null;
 
         string id = tub.Site.Id;
         return [new Leg(Tubs.ApproachOf(tub), TubCare.HoursFor(tub.Kind), (_, _) => Scrubbed(id))];

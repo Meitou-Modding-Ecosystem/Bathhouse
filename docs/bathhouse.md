@@ -112,14 +112,15 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   robe hamper with room, else on the floor. One already wearing a robe keeps it. The look is rebuilt from the worn kit as the engine does
   (`SavedKit.LoadoutOf`, `IAppearanceSource.Create`); the engine has no public re-dress call, so the fighter's armour cover catches up at its
   next refresh. Saved with the soak (sidecar version 5 on).
-- **Panels** (`BathhouseUi`): a tub shows the bath button, and under its Condition bar a Clean or Dirty bar (`TubCare`) and a Water bar (hot full,
-  lukewarm half, cold empty; seats taken over seats as its number). The bars come from a Harmony postfix on the engine's
-  `BuildingSelection.BuildingRows` (`ConditionBars`, reached by name; `ConditionBars.Supported` is tested); in a game without it the water
-  and seats stay a line among the buttons. A tea bench and a used tea rack show a Steam boiler bar (lit, none, switched off or no power; lit
-  over built) and a Water bar (the Water in the building's stores), since they need both (Tea works); without the postfix, one Hot water line.
-  A boiler shows its building's heat (tooltip: boilers lit,
-  seats heated, Water) and one switch per Bad status effect of any mod (the first four) for whether soaks clear it. The switches are saved with
-  the game.
+- **Panels** (`BathhouseUi`): under its Condition bar each piece that works under conditions or with other pieces shows bars (`PanelBars`,
+  worked out in the check): a tub Clean or Dirty (`TubCare`), Water (hot full, lukewarm half, cold empty; seats taken over seats) and its
+  scrubber; a boiler the hours its building's Water lasts the lit boilers (Water x 24 / (lit x Water per day)) and the seats they heat; a tea
+  bench and a used tea rack Steam boiler (lit, none, switched off or no power) and Water, which they need (Tea works), the rack also its rinse
+  and whether a teaware shelf has room; a massage bed its customer's massage hours left, its station's attendant (Dexterity as the bar) and
+  towels; a massage station its bed, attendant and towels; a tea table its set and tea server. The bars come from a Harmony postfix on the
+  engine's `BuildingSelection.BuildingRows` (`ConditionBars`, reached by name; `ConditionBars.Supported` is tested); in a game without it a
+  tub's water and seats and a tea piece's hot water stay a line among the buttons. A tub also shows the bath button; a boiler its building's
+  heat and one switch per Bad status effect of any mod (the first four) for whether soaks clear it. The switches are saved with the game.
 - **Debug row** "Bathhouse: tubs and bathers": each building's heat and each soak.
 
 ## Steam
@@ -181,7 +182,7 @@ following the water's heat needs an engine hook.
   instead: no Used Tea Set is left, a message names the customer, and after a full-pay soak (quality 0.8 or more) the customer also offers to
   pay 37 cats for it (added to what it owes). Not sitting there within 1 h, or the table or its set gone, it goes on without tea.
 - **Massage** (`Massage`): each massage bed is paired with the nearest massage station in its building within 50 units (5 m) of it. With a free
-  bed (one whose bed fixture no other visit holds) and the massage price taken, the customer walks to the bed (visit goal) and lies in it
+  bed (one whose bed fixture no other visit holds, and whose station somebody holds the Massage attendant job at) and the massage price taken, the customer walks to the bed (visit goal) and lies in it
   (`EnterBed`). While the station's Massage attendant (Staff) stands within 40 units of it and it holds a Towel, each hour pays 300 cats suggested x the attendant's pay
   factor: 0.1 at Dexterity 0 rising evenly to 1 at 100, x 1.2 in a Bathhouse Robe, never past 1. Each hour worked with a customer
   on the bed trains the attendant's Dexterity by 0.5 on the game's curve (about a third of a level an hour at 20). After 1 hour massaged, or 1 hour lying with nobody at the station (or waiting for the bed), it gets up and pays
@@ -228,7 +229,7 @@ following the water's heat needs an engine hook.
 ## Staff
 
 `Staffing/`. Five mod job types (`AddJobType`, 4403 to 4407), each in the character's job list on the piece it was given at: the piece's panel
-button "Assign selected: <job>" (the panel's first mod line, as lines past the panel's edge are clipped) gives it to the selected characters (one job of a type each); the jobs panel shows and removes it and the game
+button "Assign selected: <job>" (the panel's first mod line, as lines past the panel's edge are clipped) gives it to the selected characters (a character may hold a job type at several pieces, each job working its own piece, once per piece); the jobs panel shows and removes it and the game
 saves it. Each job is also offered (`AddJobOffer`, `StaffRoles.Offer`): the piece's right-click menu shows "Work as: <job>" to selected people, and
 other mods read the offers, so Fiefdom's Work tab can staff them. A Shift + right click on the counter, a tub or the massage station works too, with no engine hook: all are storages, so the game gives its Hauling to job
 (124) there, and the system's serial step (`StaffRoles.TakeClickedJobs`) puts the clerk's or scrubber's job in its place in the list. `Staff` is the jobs' `IJobSource`: when the chooser asks, the job's plan (`Plans`) gives an errand of stops (walk there, work for a
@@ -237,10 +238,11 @@ saved: a loaded staff member plans again.
 
 - **Clerk** (counter): stands 15 units behind the counter for an hour at a time, so it is staffed.
 - **Massage attendant** (massage station): stands at the station's work spot, 0.1 h at a time, while someone lies on a bed paired with it and it
-  holds a Towel; otherwise it has no work and the next job in the list runs.
-- **Tub scrubber** (any tub): scrubs the building's first dirty tub nobody soaks in, 0.5 h (the blood bath 1.5 h). A tub gets dirty when a soak
-  in it ends (`TubCare`, saved). While anyone holds the scrubber job in the building, check-in seats customers only in clean tubs (they wait at
-  the counter), so a dirty tub empties and gets scrubbed; with nobody, a dirty tub is used and the visit is worse. Like any job, it runs only
+  holds a Towel; otherwise it has no work and the next job in the list runs. Only the attendant running the job at that station counts for it
+  (an attendant at the next station within reach does not).
+- **Tub scrubber** (a tub): scrubs the tub its job is at once it is dirty and nobody soaks in it, 0.5 h (the blood bath 1.5 h). A tub gets dirty
+  when a soak in it ends (`TubCare`, saved). Check-in seats customers in a clean tub first, else in a dirty tub nobody holds the scrubber job at
+  (the visit is worse); a dirty tub with a scrubber is left to empty and be scrubbed (customers wait at the counter). Like any job, it runs only
   when no job above it in the list has work: hauling jobs above it keep a hauler from scrubbing.
 - **Laundry runner** (washing machine): loads what it carries that the current wash takes; puts carried clean goods away (towels to the first
   towel rack, else the counter, robes to the first lockers, with room) and dirty goods it cannot load back in their hamper; takes finished goods

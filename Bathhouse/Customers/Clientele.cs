@@ -535,15 +535,15 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     }
 
     /// <summary>
-    /// The first clean tub with a free seat and warm water in the counter's building; without a scrubber there, else the first dirty one. With
-    /// one, customers wait for it, so a dirty tub empties and gets scrubbed. Null for none.
+    /// The first clean tub with a free seat and warm water in the counter's building, else the first dirty one nobody holds the scrubber job at. A
+    /// dirty tub with a scrubber is left to empty and be scrubbed (customers wait for it). Null for none.
     /// </summary>
     Tub? FreeTub(World world, BuildSite counter, IReadOnlyList<Tub> tubs)
     {
         var free = tubs.Where(t => t.Building == counter.Parent && heating.Of(t.Building).Warm && soaks.FreeSeat(t) is not null).ToList();
         if (free.FirstOrDefault(t => !care.IsDirty(t.Site.Id)) is { } clean) return clean;
 
-        return StaffRoles.Staffs(world, counter.Parent, StaffRole.Scrubber) ? null : free.FirstOrDefault();
+        return free.FirstOrDefault(t => !StaffRoles.StaffsPiece(world, t.Site.Id, StaffRole.Scrubber));
     }
 
     /// <summary>

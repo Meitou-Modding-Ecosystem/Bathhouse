@@ -110,21 +110,24 @@ public static class StaffRoles
     public static ModJobOffer Offer(StaffRole role) => new(TypeOf(role), PiecesOf(role), "Work as: " + Name(role), ModJobTakers.People);
 
     /// <summary>
-    /// Whether one of the player's characters holds the role's job at a piece in the building (its jobs switch on or off).
+    /// Whether one of the player's living characters holds the role's job at this piece.
     /// </summary>
-    public static bool Staffs(World world, string? building, StaffRole role)
-    {
-        if (building is null) return false;
+    public static bool StaffsPiece(World world, string piece, StaffRole role) => HolderAt(world, piece, role) is not null;
 
+    /// <summary>
+    /// The first of the player's living characters holding the role's job at this piece (by slot); null for none.
+    /// </summary>
+    public static int? HolderAt(World world, string piece, StaffRole role)
+    {
         var type = TypeOf(role);
         var table = world.Characters;
         for (int slot = 0; slot < table.HighWater; slot++)
         {
             if (table.Cold(slot) is not { IsPlayer: true, Jobs: { } jobs } || !table.Next[slot].Alive) continue;
-            if (jobs.Any(j => j.Type == type && j.Site is { } site && world.Buildings.Find(site)?.Parent == building)) return true;
+            if (jobs.Any(j => j.Type == type && j.Site == piece)) return slot;
         }
 
-        return false;
+        return null;
     }
 
     /// <summary>
@@ -150,7 +153,8 @@ public static class StaffRoles
     }
 
     /// <summary>
-    /// Puts the role's job in place of the Hauling to job <paramref name="k"/>; one of the role held elsewhere goes.
+    /// Puts the role's job in place of the Hauling to job <paramref name="k"/>; a second one at the same piece goes (jobs at other pieces of the
+    /// role stay: each job works its own piece).
     /// </summary>
     static void Convert(World world, int slot, CharacterCold cold, int k, StaffRole role, string site)
     {
@@ -163,7 +167,7 @@ public static class StaffRoles
         cold.Jobs[k] = job;
         for (int i = cold.Jobs.Count - 1; i >= 0; i--)
         {
-            if (i != k && cold.Jobs[i].Type == type) RemoveAt(cold, i);
+            if (i != k && cold.Jobs[i].Type == type && cold.Jobs[i].Site == site) RemoveAt(cold, i);
         }
 
         DecisionSystem.Request(cold);
@@ -180,7 +184,8 @@ public static class StaffRoles
     }
 
     /// <summary>
-    /// Gives each of the player's selected characters the role's job at a piece (one job of a role per character: one held elsewhere moves here).
+    /// Gives each of the player's selected characters the role's job at a piece, once: a character may hold the role at several pieces, each job
+    /// working its own piece.
     /// </summary>
     public static void Assign(World world, string site, StaffRole role)
     {
@@ -189,7 +194,8 @@ public static class StaffRoles
         {
             if (!world.Characters.TryResolveNext(who, out int slot) || world.Characters.Cold(slot) is not { IsPlayer: true } cold) continue;
 
-            cold.Jobs.RemoveAll(j => j.Type == type);
+            if (cold.Jobs.Any(j => j.Type == type && j.Site == site)) continue;
+
             cold.Jobs.Add(new PermaJob(type, site));
             cold.Orders |= Meitou.Simulation.Player.CharacterOrders.Jobs;
             DecisionSystem.Request(cold);
