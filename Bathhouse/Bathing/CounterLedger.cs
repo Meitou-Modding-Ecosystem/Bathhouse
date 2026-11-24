@@ -172,6 +172,8 @@ public sealed class CounterLedger(Func<BathhouseSystem?> system, Action<SimComma
             { Need: CheckInNeed.Clerk } => ("Needs a clerk.", "Select one of your people and press Assign selected: Bathhouse clerk on the counter."),
             { Need: CheckInNeed.WarmTub } => ("Needs a warm tub with a free seat.",
                 "Switch on a powered steam boiler in this building and keep Water in a store here."),
+            { Need: CheckInNeed.Scrub } => ("Waiting for a dirty tub to be scrubbed.",
+                "The tubs are warm but dirty: their Tub scrubber cleans each once nobody soaks in it. Check the Scrubber row under the tub's Condition."),
             { } ready => ($"Ready: customers get {Supplies(ready)}.", "Keep towels on a towel rack and soap on a soap shelf in this building."),
         };
         rows.Text(status);

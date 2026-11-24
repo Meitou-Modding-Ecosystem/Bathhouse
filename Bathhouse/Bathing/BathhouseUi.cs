@@ -31,6 +31,11 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system, CounterLedger led
     const string WarmTip = "No tub in this building is warm with a free seat: switch a powered steam boiler on and keep Water in a store here.";
 
     /// <summary>
+    /// The tooltip of a counter whose warm tubs are all dirty and wait for their scrubber.
+    /// </summary>
+    const string ScrubTip = "The warm tubs here are dirty: their Tub scrubber cleans each once it is empty. The tub's Scrubber row says what they are doing.";
+
+    /// <summary>
     /// The tooltip of a ready counter.
     /// </summary>
     const string SuppliesTip = "Customers bathe without a towel or soap the counter and this building's stores lack, for a lower quality and price.";
@@ -172,6 +177,7 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system, CounterLedger led
         {
             CheckInNeed.Clerk => new UiBuildingAction("Check-in needs: a clerk", ClerkTip, Nothing),
             CheckInNeed.WarmTub => new UiBuildingAction("Check-in needs: a warm tub", WarmTip, Nothing),
+            CheckInNeed.Scrub => new UiBuildingAction("Check-in needs: a tub scrubbed", ScrubTip, Nothing),
             _ => new UiBuildingAction($"Check-in: ready, {Supplies(now)}", SuppliesTip, Nothing),
         };
     }

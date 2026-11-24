@@ -29,6 +29,11 @@ public enum CheckInNeed
     /// A warm tub with a free seat in the counter's building.
     /// </summary>
     WarmTub,
+
+    /// <summary>
+    /// Every warm tub with a free seat is dirty and waits for the scrubber who holds the job at it.
+    /// </summary>
+    Scrub,
 }
 
 /// <summary>
@@ -540,11 +545,17 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     /// </summary>
     Tub? FreeTub(World world, BuildSite counter, IReadOnlyList<Tub> tubs)
     {
-        var free = tubs.Where(t => t.Building == counter.Parent && heating.Of(t.Building).Warm && soaks.FreeSeat(t) is not null).ToList();
+        var free = WarmSeats(counter, tubs).ToList();
         if (free.FirstOrDefault(t => !care.IsDirty(t.Site.Id)) is { } clean) return clean;
 
         return free.FirstOrDefault(t => !StaffRoles.StaffsPiece(world, t.Site.Id, StaffRole.Scrubber));
     }
+
+    /// <summary>
+    /// The tubs with a free seat and warm water in the counter's building, clean or dirty.
+    /// </summary>
+    IEnumerable<Tub> WarmSeats(BuildSite counter, IReadOnlyList<Tub> tubs) =>
+        tubs.Where(t => t.Building == counter.Parent && heating.Of(t.Building).Warm && soaks.FreeSeat(t) is not null);
 
     /// <summary>
     /// Whether one of the player's people, alive and on their feet, stands at the counter.
@@ -1009,7 +1020,9 @@ public sealed class Clientele(Heating heating, Soaks soaks, TubCare care, Popula
     {
         if (!Staffed(world, counter)) return CheckInNeed.Clerk;
 
-        return FreeTub(world, counter, tubs) is null ? CheckInNeed.WarmTub : null;
+        if (FreeTub(world, counter, tubs) is not null) return null;
+
+        return WarmSeats(counter, tubs).Any() ? CheckInNeed.Scrub : CheckInNeed.WarmTub;
     }
 
     /// <summary>

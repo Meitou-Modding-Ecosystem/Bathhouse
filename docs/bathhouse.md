@@ -207,7 +207,7 @@ following the water's heat needs an engine hook.
   picks a fight: its squad gets a TEMP_ENEMY tag for each of the player's people within 300 units, never the faction.
 - **Barks** (`Barks`): two lines per kind for getting into a tub, cold water, a complaint, leaving happy, the price and a fight. English only (the
   engine has no translation catalog for mods).
-- **Panels**: the counter has its clerk button, a check-in line ("ready" with the towel and soap it has, or the first of clerk, warm tub it lacks;
+- **Panels**: the counter has its clerk button, a check-in line ("ready" with the towel and soap it has, or the first of clerk, warm tub, scrubbed tub it lacks;
   tooltip: the fix) and the ledger button; the tea table and the massage station have their price line; the review board shows guests of the
   last three days (and their daily average), those ever, failed arrivals and the reviews button. The building panel holds about six lines, so
   the details are in the **ledger** window (`CounterLedger`, the HUD overlay, 900 pixels wide, fits a 1280 x 720 screen) with three tabs. The
@@ -242,7 +242,9 @@ saved: a loaded staff member plans again.
   (an attendant at the next station within reach does not).
 - **Tub scrubber** (a tub): scrubs the tub its job is at once it is dirty and nobody soaks in it, 0.5 h (the blood bath 1.5 h). A tub gets dirty
   when a soak in it ends (`TubCare`, saved). Check-in seats customers in a clean tub first, else in a dirty tub nobody holds the scrubber job at
-  (the visit is worse); a dirty tub with a scrubber is left to empty and be scrubbed (customers wait at the counter). Like any job, it runs only
+  (the visit is worse); a dirty tub with a scrubber is left to empty and be scrubbed (customers wait at the counter, which then reads
+  "needs: a tub scrubbed"). The tub's Scrubber bar says what the scrubber is doing: scrubbing, next (scrubbing another tub), waits (bathers
+  in it) or busy (another task). Like any job, it runs only
   when no job above it in the list has work: hauling jobs above it keep a hauler from scrubbing.
 - **Laundry runner** (washing machine): loads what it carries that the current wash takes; puts carried clean goods away (towels to the first
   towel rack, else the counter, robes to the first lockers, with room) and dirty goods it cannot load back in their hamper; takes finished goods
