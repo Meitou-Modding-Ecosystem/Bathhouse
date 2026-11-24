@@ -47,6 +47,11 @@ public sealed class TeaWorks(Heating heating)
     }
 
     /// <summary>
+    /// How far the rack is through rinsing its next set, 0 to 1.
+    /// </summary>
+    public double Rinsed(string rack) => _rinsing.GetValueOrDefault(rack) / RinseHours;
+
+    /// <summary>
     /// Whether a piece's building is warm: a lit boiler and Water in it.
     /// </summary>
     public bool Hot(BuildSite site) => heating.Of(site.Parent).Warm;
@@ -78,7 +83,7 @@ public sealed class TeaWorks(Heating heating)
     /// <summary>
     /// The first teaware shelf in the building with room for a Teaware; null for none.
     /// </summary>
-    static Meitou.Simulation.Items.Inventory? Shelf(World world, string? building)
+    public static Meitou.Simulation.Items.Inventory? Shelf(World world, string? building)
     {
         var unit = Goods.Make(world, Ids.Teaware);
         return Goods.PiecesIn(world, building, Ids.TeawareShelf)

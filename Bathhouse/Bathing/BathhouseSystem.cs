@@ -127,6 +127,11 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     readonly BedHealing _bedHealing = new();
 
     /// <summary>
+    /// The bars under each piece's Condition bar.
+    /// </summary>
+    readonly PanelBars _panelBars;
+
+    /// <summary>
     /// The customer kinds the debug row asked to send since the last check.
     /// </summary>
     readonly List<string> _sendKinds = [];
@@ -157,6 +162,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
         _clientele = new Clientele(_heating, _soaks, _care, data, purpose);
         _staff = new Staff(new Plans(_soaks, _care));
         _privateBeds = new PrivateBeds(data.Relations);
+        _panelBars = new PanelBars(_heating, _care, _clientele, _teaWorks);
     }
 
     public void Register(ChooserRegistry chooser)
@@ -217,7 +223,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
         _staff.Step(world);
         _privateBeds.Step(world);
         _bedHealing.Step(world);
-        Publish(world, tubs);
+        Publish(world, tubs, settings);
     }
 
     /// <summary>
@@ -323,7 +329,17 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     volatile string _view = "No bathhouse yet.";
 
     /// <summary>
-    /// The view of a tub or boiler; null for another site.
+    /// The latest bars under each piece's Condition bar by site id (written in the tick, read on the host's thread).
+    /// </summary>
+    volatile Dictionary<string, Bar[]> _bars = [];
+
+    /// <summary>
+    /// The bars under a piece's Condition bar; null for a site without any.
+    /// </summary>
+    public Bar[]? Bars(string site) => _bars.TryGetValue(site, out var bars) ? bars : null;
+
+    /// <summary>
+    /// The latest view of a tub, boiler or tea piece; null for none.
     /// </summary>
     public PieceView? Piece(string? site) => site is not null && _pieces.TryGetValue(site, out var view) ? view : null;
 
@@ -385,8 +401,9 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     /// <summary>
     /// Publishes the panels' and the debug row's views.
     /// </summary>
-    void Publish(World world, List<Tub> tubs)
+    void Publish(World world, List<Tub> tubs, BathhouseSettings settings)
     {
+        _bars = _panelBars.Build(world, tubs, _soaks, settings);
         var pieces = new Dictionary<string, PieceView>(StringComparer.Ordinal);
         foreach (var tub in tubs)
         {

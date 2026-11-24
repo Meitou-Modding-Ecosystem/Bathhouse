@@ -131,6 +131,11 @@ static class FurnitureRecords
     };
 
     /// <summary>
+    /// How many units a piece limited to one item holds (<see cref="Capacity"/>); 0 for any other piece.
+    /// </summary>
+    public static int CapacityOf(string record) => Capacity.GetValueOrDefault(record);
+
+    /// <summary>
     /// The tea table's grid, in inventory cells: one tea set's footprint, so it holds one set.
     /// </summary>
     const int TeaTableCells = 2;

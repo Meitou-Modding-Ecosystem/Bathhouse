@@ -59,7 +59,7 @@ public static class Massage
     static readonly TaskType Job = (TaskType)Ids.MassageJob;
 
     /// <summary>
-    /// A free massage bed with a station in the building; null for none. Beds other visits hold are taken, and so is one somebody lies in (one of
+    /// A free massage bed in the building whose station somebody holds the Massage attendant job at; null for none. Beds other visits hold are taken, and so is one somebody lies in (one of
     /// the player's people the player ordered into it, <see cref="PrivateBeds"/>).
     /// </summary>
     public static BuildSite? FreeBed(World world, string? building, IEnumerable<Visit> visits)
@@ -68,7 +68,8 @@ public static class Massage
 
         var held = visits.Where(v => v.Phase == VisitPhase.Massage).Select(v => v.Bed).ToHashSet();
         return world.Buildings.All.FirstOrDefault(s => IsPiece(s, Ids.MassageBed) && s.Parent == building && !held.Contains(s.Id)
-            && Station(world, s) is not null && BedOf(world, s) is { } bed && FixtureRegistry.IsFree(world.Characters, bed));
+            && Station(world, s) is { } station && StaffRoles.StaffsPiece(world, station.Id, StaffRole.Massage) && BedOf(world, s) is { } bed
+            && FixtureRegistry.IsFree(world.Characters, bed));
     }
 
     /// <summary>
@@ -82,7 +83,7 @@ public static class Massage
             .FirstOrDefault();
 
     /// <summary>
-    /// Whoever works the station now and their pay factor: the best of the player's people on the station's Massage attendant job within
+    /// Whoever works the station now and their pay factor: the best of the player's people running the Massage attendant job at this station within
     /// <see cref="AttendantReach"/> of it (<see cref="Pay"/>); null with no attendant.
     /// </summary>
     public static (int Slot, double Pay)? Attendant(World world, BuildSite station)
@@ -92,6 +93,7 @@ public static class Massage
         for (int slot = 0; slot < table.HighWater; slot++)
         {
             if (!table.Next[slot].Alive || table.Cold(slot) is not { IsPlayer: true, Running.Row: var row } cold || row != Job) continue;
+            if (!WorksAt(cold, station.Id)) continue;
             if (Soaks.Flat(table.Next[slot].Position, station.Position) > AttendantReach) continue;
 
             bool robed = cold.Inventory?.Items.Any(i => i.Record == Ids.Robe && InventoryCommands.IsEquipmentSection(i.Section)) ?? false;
@@ -101,6 +103,12 @@ public static class Massage
 
         return best;
     }
+
+    /// <summary>
+    /// Whether the character's running job is the one at this station (an attendant of the next station stays out of its reckoning).
+    /// </summary>
+    static bool WorksAt(CharacterCold cold, string station) =>
+        cold.Running is { Job: var k } && k >= 0 && k < cold.Jobs.Count && cold.Jobs[k].Site == station;
 
     /// <summary>
     /// Whether the station has massage work: someone lies on a bed paired with it and it holds a towel.
