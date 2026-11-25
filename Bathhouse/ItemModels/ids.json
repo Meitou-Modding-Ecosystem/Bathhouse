@@ -1,0 +1,12 @@
+{
+  "blocks": {
+    "dirty-robe": 0,
+    "dirty-towel": 1,
+    "greenfruit-tea": 2,
+    "soap": 3,
+    "teaset": 4,
+    "teaware": 5,
+    "towel": 6,
+    "used-teaset": 7
+  }
+}

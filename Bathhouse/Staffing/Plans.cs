@@ -57,10 +57,11 @@ public sealed class Plans(Soaks soaks, TubCare care)
         var legs = role switch
         {
             StaffRole.Clerk => Clerk(piece),
-            StaffRole.Scrubber => Scrub(world, piece.Parent),
+            StaffRole.Scrubber => Scrub(world, piece),
             StaffRole.Laundry => Laundry(world, slot, piece),
             StaffRole.Tea => Tea(world, slot, piece.Parent),
-            _ => Attend(world, piece),
+            StaffRole.Massage => Attend(world, piece),
+            _ => Water(world, slot, piece),
         };
         return legs is null ? null : new Queue<Leg>(legs);
     }
@@ -81,12 +82,12 @@ public sealed class Plans(Soaks soaks, TubCare care)
         Massage.Busy(world, station) ? [new Leg(WorkSpots.Front(station), AttendSpell, (_, _) => true)] : null;
 
     /// <summary>
-    /// The scrubber scrubs the building's first dirty tub nobody soaks in.
+    /// The scrubber scrubs the tub its job is at once it is dirty and nobody soaks in it.
     /// </summary>
-    Leg[]? Scrub(World world, string? building)
+    Leg[]? Scrub(World world, BuildSite piece)
     {
-        var tub = Tubs.All(world).FirstOrDefault(t => t.Building == building && building is not null && care.IsDirty(t.Site.Id) && Empty(t));
-        if (tub is null) return null;
+        var tub = Tubs.All(world).FirstOrDefault(t => t.Site.Id == piece.Id);
+        if (tub is null || !care.IsDirty(tub.Site.Id) || !Empty(tub)) return null;
 
         string id = tub.Site.Id;
         return [new Leg(Tubs.ApproachOf(tub), TubCare.HoursFor(tub.Kind), (_, _) => Scrubbed(id))];
@@ -108,6 +109,60 @@ public sealed class Plans(Soaks soaks, TubCare care)
 
     #endregion
 
+    #region Water carrier
+
+    /// <summary>
+    /// How far (world units, flat) a well may stand from the cistern for its carrier to draw from it.
+    /// </summary>
+    public const float WellReach = 3000;
+
+    /// <summary>
+    /// The water carrier's next errand while the cistern has room: pour carried Water in, else draw an armful from the nearest well and pour it in.
+    /// </summary>
+    static Leg[]? Water(World world, int slot, BuildSite cistern)
+    {
+        if (Cisterns.Room(world, cistern) is not (> 0 and var room)) return null;
+
+        var pour = new Leg(WorkSpots.Front(cistern), Handling, (w, s) => Pour(w, s, cistern));
+        if (Goods.Count(Goods.Carried(world, slot), FurnitureRecords.Water) > 0) return [pour];
+        if (Cisterns.Well(world, cistern, WellReach) is not { } well) return null;
+
+        int most = Math.Min(Armful, room);
+        return [new Leg(well.Position, Handling, (w, s) => Draw(w, s, well, most)), pour];
+    }
+
+    /// <summary>
+    /// Takes up to <paramref name="most"/> Water out of a well's output into the carrier's inventory.
+    /// </summary>
+    static bool Draw(World world, int slot, BuildSite well, int most)
+    {
+        if (world.Machines.Find(well.Id)?.Output is not { } output || Goods.Carried(world, slot) is not { } carried) return false;
+
+        int taken = 0;
+        while (taken < most && output.Count > 0 && Goods.Make(world, FurnitureRecords.Water) is { } unit && carried.Add(unit))
+        {
+            output.Count--;
+            taken++;
+        }
+
+        if (taken > 0) world.Machines.Touch();
+        return taken > 0;
+    }
+
+    /// <summary>
+    /// Pours the carried Water into the cistern's output, as much as it holds.
+    /// </summary>
+    static bool Pour(World world, int slot, BuildSite cistern)
+    {
+        if (world.Machines.Find(cistern.Id)?.Output is not { } held || Goods.Carried(world, slot) is not { } carried) return false;
+
+        while (!held.Full && Goods.Take(carried, FurnitureRecords.Water)) held.Count++;
+        world.Machines.Touch();
+        return true;
+    }
+
+    #endregion
+
     #region Laundry
 
     /// <summary>
@@ -117,7 +172,6 @@ public sealed class Plans(Soaks soaks, TubCare care)
     [
         (Ids.Towel, Ids.DirtyTowel, Ids.Hamper),
         (Ids.Robe, Ids.DirtyRobe, Ids.RobeHamper),
-        (Ids.Teaware, Ids.UsedTeaSet, Ids.UsedTeaRack),
     ];
 
     /// <summary>
@@ -194,15 +248,12 @@ public sealed class Plans(Soaks soaks, TubCare care)
     }
 
     /// <summary>
-    /// Where clean goods go: towels to the first rack, else counter, robes to the first lockers, teaware to the first teaware shelf, in the
-    /// building with room for one.
+    /// Where clean goods go: towels to the first rack, else counter, robes to the first lockers, in the building with room for one.
     /// </summary>
-    static BuildSite? CleanTarget(World world, string building, string clean) => clean switch
-    {
-        Ids.Robe => WithRoom(world, building, Ids.Lockers, Ids.Robe),
-        Ids.Teaware => WithRoom(world, building, Ids.TeawareShelf, Ids.Teaware),
-        _ => WithRoom(world, building, Ids.TowelRack, Ids.Towel) ?? WithRoom(world, building, Ids.Counter, Ids.Towel),
-    };
+    static BuildSite? CleanTarget(World world, string building, string clean) =>
+        clean == Ids.Robe
+            ? WithRoom(world, building, Ids.Lockers, Ids.Robe)
+            : WithRoom(world, building, Ids.TowelRack, Ids.Towel) ?? WithRoom(world, building, Ids.Counter, Ids.Towel);
 
     /// <summary>
     /// The first piece of a record in the building with room for one of an item; null for none.

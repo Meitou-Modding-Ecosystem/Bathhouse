@@ -539,3 +539,6 @@ macos-runtime/
 
 # Frameworks downloaded from meitou.lock.json
 deps/
+
+# The mod's own animation files (made by the Motion Lab, docs/bathhouse.md "Animations")
+!Bathhouse/items/animations/*.skeleton

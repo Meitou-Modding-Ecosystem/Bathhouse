@@ -47,14 +47,13 @@ public sealed class RecordTests
     }
 
     [Fact]
-    public void The_washing_machine_washes_towels_robes_and_teaware_from_dirty_ones_and_soap()
+    public void The_washing_machine_washes_towels_and_robes_from_dirty_ones_and_soap()
     {
         var game = Game();
         var data = Machine(Ids.WashingMachine);
 
         Assert.True(data.IsCrafting);
-        Assert.Equal([Ids.Towel, Ids.Robe, Ids.Teaware], data.Craft!.Options.Select(o => o.Item));
-        Assert.Equal([Ids.UsedTeaSet, Ids.Soap], game.Find(Ids.Teaware)!.GetReferences("ingredients").Select(l => l.TargetStringId));
+        Assert.Equal([Ids.Towel, Ids.Robe], data.Craft!.Options.Select(o => o.Item));
         Assert.Equal([Ids.DirtyTowel, Ids.Soap], game.Find(Ids.Towel)!.GetReferences("ingredients").Select(l => l.TargetStringId));
         Assert.Equal([Ids.DirtyRobe, Ids.Soap], game.Find(Ids.Robe)!.GetReferences("ingredients").Select(l => l.TargetStringId));
     }
@@ -98,12 +97,13 @@ public sealed class RecordTests
     }
 
     [Fact]
-    public void The_tea_bench_crafts_tea_sets_from_teaware_and_tea()
+    public void The_tea_bench_crafts_tea_sets_from_teaware_tea_and_water()
     {
         var game = Game();
 
         Assert.True(Machine(Ids.TeaBench).IsCrafting);
-        Assert.Equal([Ids.Teaware, Ids.GreenfruitTea], game.Find(Ids.TeaSet)!.GetReferences("ingredients").Select(l => l.TargetStringId));
+        Assert.Equal([Ids.Teaware, Ids.GreenfruitTea, "1914-gamedata.base"],
+            game.Find(Ids.TeaSet)!.GetReferences("ingredients").Select(l => l.TargetStringId));
     }
 
     [Fact]
@@ -195,6 +195,19 @@ public sealed class RecordTests
 
         Assert.True(Machine(Ids.WaterTank).IsStorage);
         Assert.Equal(["1914-gamedata.base"], game.Find(Ids.WaterTank)!.GetReferences("limit inventory").Select(l => l.TargetStringId));
+    }
+
+    [Fact]
+    public void The_cistern_is_an_unattended_well_that_makes_nothing_and_holds_water()
+    {
+        var data = Machine(Ids.Cistern);
+
+        Assert.False(data.IsStorage);
+        Assert.True(data.IsProducer);
+        Assert.True(data.IsAutomatic);
+        Assert.True(data.Unattended);
+        Assert.Equal(0, data.OutputRate);
+        Assert.Equal(new RecipeOutput("1914-gamedata.base", 200), data.Output);
     }
 
     [Fact]

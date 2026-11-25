@@ -22,6 +22,12 @@ public static class WorkSpots
     public const float OperatorReach = 10;
 
     /// <summary>
+    /// Ground units each front use node sits beside the work spot, across the piece's front (local X): the game takes a machine's position marker
+    /// from its use nodes only when it has two or more, and with fewer works it from its origin, inside the model (docs/bathhouse.md "Work spots").
+    /// </summary>
+    const float NodeSpread = 3;
+
+    /// <summary>
     /// A front spot for a piece without a measured face: 15 units out.
     /// </summary>
     const float Unmeasured = 15;
@@ -44,14 +50,17 @@ public static class WorkSpots
         [Ids.RobeHamper] = 5.3f,
         [Ids.TowelRack] = 2.6f,
         [Ids.SoapShelf] = 2.6f,
-        [Ids.TeaTable] = 7.6f,
+        [Ids.TeaTable] = 8.7f,
         [Ids.TeaShelf] = 3.0f,
+        [Ids.TeawareShelf] = 2.4f,
+        [Ids.TeaSetCabinet] = 3.1f,
+        [Ids.UsedTeaRack] = 2.6f,
         [Ids.TowelLoom] = 11.2f,
         [Ids.SoapPress] = 5.3f,
         [Ids.TeaDryer] = 5.5f,
         [Ids.Kiln] = 10.6f,
-        [Ids.WashingMachine] = 4.1f,
-        [Ids.TeaBench] = 3.4f,
+        [Ids.WashingMachine] = 4.5f,
+        [Ids.TeaBench] = 4.4f,
     };
 
     /// <summary>
@@ -74,6 +83,11 @@ public static class WorkSpots
     /// The piece's spot in its own frame.
     /// </summary>
     public static Vector3 Local(string record) => new(0, 0, Out(record));
+
+    /// <summary>
+    /// The piece's two front use nodes in its own frame: either side of its spot.
+    /// </summary>
+    public static Vector3[] Nodes(string record) => [Local(record) - new Vector3(NodeSpread, 0, 0), Local(record) + new Vector3(NodeSpread, 0, 0)];
 
     /// <summary>
     /// The piece's spot in the world.

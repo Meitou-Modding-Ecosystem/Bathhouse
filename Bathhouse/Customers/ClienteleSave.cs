@@ -25,6 +25,8 @@ public static class ClienteleSave
         w.Write(care.Dirty.Count);
         foreach (string tub in care.Dirty) w.Write(tub);
         clientele.Book.Write(w);
+        w.Write(clientele.Closed.Count);
+        foreach (string piece in clientele.Closed) w.Write(piece);
     }
 
     /// <summary>
@@ -46,6 +48,8 @@ public static class ClienteleSave
         care.Restore(dirty);
         if (version >= 6) clientele.Book.Read(r);
         else clientele.Book.Clear();
+        int closed = version >= 8 ? r.ReadInt32() : 0;
+        for (int k = 0; k < closed; k++) clientele.Closed.Add(r.ReadString());
     }
 
     /// <summary>
@@ -62,6 +66,8 @@ public static class ClienteleSave
         foreach (string tub in care.Dirty) hasher.Add(Rng.StableHash(tub));
 
         hasher.Add(clientele.Open);
+        hasher.Add(clientele.Closed.Count);
+        foreach (string piece in clientele.Closed) hasher.Add(Rng.StableHash(piece));
         foreach (var service in Enum.GetValues<Service>()) hasher.Add(clientele.Prices.Percent(service));
         hasher.Add(clientele.NextGroupAt);
         hasher.Add(clientele.Serial);
@@ -84,6 +90,9 @@ public static class ClienteleSave
             hasher.Add(visit.Towel);
             hasher.Add(visit.Soap);
             hasher.Add(visit.Drunk);
+            hasher.Add(visit.TeaOffered);
+            hasher.Add(visit.ServeWait);
+            hasher.Add(visit.LateTea);
         }
     }
 
@@ -169,6 +178,9 @@ public static class ClienteleSave
             w.Write(visit.Sitting);
             w.Write(visit.Drunk);
             w.Write(visit.TeaWait);
+            w.Write(visit.TeaOffered);
+            w.Write(visit.ServeWait);
+            w.Write(visit.LateTea);
         }
     }
 
@@ -188,6 +200,8 @@ public static class ClienteleSave
             if (version >= 3) ReadMassage(r, visit);
             if (version >= 4) ReadSupplies(r, visit);
             if (version >= 7) ReadTea(r, visit);
+            if (version >= 8) ReadTeaFirst(r, visit);
+            else visit.TeaOffered = visit.Phase != VisitPhase.Arriving;
             clientele.Restore(visit);
         }
     }
@@ -207,6 +221,16 @@ public static class ClienteleSave
     /// <summary>
     /// Reads whether a visit got a towel and soap (layout 4).
     /// </summary>
+    /// <summary>
+    /// Reads whether a visit had its chance at tea before the bath, its hours waiting for a Tea Set and whether that made it late tea (layout 8).
+    /// </summary>
+    static void ReadTeaFirst(BinaryReader r, Visit visit)
+    {
+        visit.TeaOffered = r.ReadBoolean();
+        visit.ServeWait = r.ReadDouble();
+        visit.LateTea = r.ReadBoolean();
+    }
+
     static void ReadSupplies(BinaryReader r, Visit visit)
     {
         visit.Towel = r.ReadBoolean();

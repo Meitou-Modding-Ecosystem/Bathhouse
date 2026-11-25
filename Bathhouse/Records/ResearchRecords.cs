@@ -26,10 +26,10 @@ static class ResearchRecords
         new(Ids.BasicsResearch, "Bathhouse Basics", 1, 6, [],
             [
                 Ids.TowelLoom, Ids.SoapPress, Ids.WashingMachine, Ids.Boiler, Ids.WaterTank, Ids.SmallTub, Ids.Counter, Ids.Lockers, Ids.Hamper,
-                Ids.TowelRack, Ids.RobeHamper, Ids.SoapShelf
+                Ids.TowelRack, Ids.RobeHamper, Ids.SoapShelf, Ids.Cistern
             ],
             [Ids.Robe], "Hot water, clean towels and a place to soak. Unlocks the towel loom, soap press, washing machine, steam boiler, water tank,"
-            + " small tub,"
+            + " water cistern, small tub,"
             + " check-in counter, lockers, laundry hamper, towel rack, robe hamper, soap shelf and the bathhouse robe."),
         new(Ids.HotBathsResearch, "Hot Baths", 2, 8, [Ids.BasicsResearch],
             [Ids.MediumTub, Ids.LargeTub, Ids.ReviewBoard, Ids.ZenGarden, Ids.WallArt, Ids.Tapestry, Ids.Statue, Ids.TowelHanger], [],

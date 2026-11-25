@@ -86,7 +86,7 @@ public sealed class StaffTests
         prices.Set(Service.Massage, 50);
 
         Assert.Equal(before, prices.Visit(TubKind.Medium));
-        Assert.Equal(138, prices.Price(Service.Tea, TubKind.Medium));
+        Assert.Equal(200, prices.Price(Service.Tea, TubKind.Medium));
         Assert.Equal(150, prices.Price(Service.Massage, TubKind.Medium));
     }
 
@@ -108,6 +108,17 @@ public sealed class StaffTests
         Assert.Equal(StaffRole.Laundry, StaffRoles.OfferedBy(Ids.WashingMachine));
         Assert.Equal(StaffRole.Tea, StaffRoles.OfferedBy(Ids.TeaTable));
         Assert.Equal(StaffRole.Massage, StaffRoles.OfferedBy(Ids.MassageStation));
+        Assert.Equal(StaffRole.Water, StaffRoles.OfferedBy(Ids.Cistern));
         Assert.Null(StaffRoles.OfferedBy(Ids.Boiler));
+    }
+
+    [Fact]
+    public void A_piece_has_two_use_nodes_in_front_of_it_so_the_game_reads_them()
+    {
+        var nodes = WorkSpots.Nodes(Ids.TeaBench);
+
+        Assert.Equal(2, nodes.Length);
+        Assert.All(nodes, n => Assert.Equal(WorkSpots.Out(Ids.TeaBench), n.Z));
+        Assert.NotEqual(nodes[0], nodes[1]);
     }
 }
