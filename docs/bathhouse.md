@@ -64,11 +64,13 @@ from anywhere within its functionality's `use range` of its origin. The game's B
 across it); the two nodes face opposite ways (node yaw - 90), so the side a sleeper comes from decides where its head goes. So the massage bed's model lies along
 local X (`yaw` 0, head rest at -X) and keeps only the Bed's -Z node (`KeepUseNodes`; Forgotten Buildings' Bed with Pillow keeps the same one), so every sleeper lies the same way. The node sits 0.5 m above the Bed's
 (`LieRaise`): at the Bed's height the customer lay sunk into the higher mattress (**Observed**, Matthew's game). 
-- **Work spots** (`WorkSpots`): every tub, machine and service store on its own model gets one use node in front of it (local +Z, the model's
-  front), 6 units (0.6 m) past its front face as measured on the model at its finished height, turned -90° as the game's own front nodes are (the
-  Shop Counter's and Cooking Stove's at +Z), so its marker (local -X) points back at the piece: the build ghost's green arrow. The machines'
-  functionalities have `use range` 10, so operators walk up to the node instead of stopping anywhere near the origin (the washer's operator
-  stood inside it). Staff take and put goods, and bathers step in and out of a tub, at the same spot.
+- **Work spots** (`WorkSpots`): every tub, machine and service store on its own model gets two use nodes in front of it (local +Z, the model's
+  front), 6 units (0.6 m) past its front face as measured on the model at its finished height and 3 units either side of its middle, turned -90°
+  as the game's own front nodes are (the Shop Counter's and Cooking Stove's at +Z), so their marker (local -X) points back at the piece: the build
+  ghost's green arrow. Two, because the game takes a machine's position marker from its use nodes only with two or more and otherwise works it
+  from its origin (`Building::getPositionMarker`, MeitouClient docs/game/buildings-production.md; Meitou 0.23 follows it, and with one node the
+  tea bench's operator stood inside it). The machines' functionalities have `use range` 10, so operators walk up to the nearer node instead of
+  stopping anywhere near the origin. Staff take and put goods, and bathers step in and out of a tub, at the same spot.
 Model textures are kept at 2048 (base colour and metal/roughness as JPEG quality 92, normal map as lossless PNG): the import bakes 2048 DDS
 by default (`textureSize`), so a 4096 source only grows the repo.
 The Tea Set Cabinet model came from a 1.6 million triangle export, cut to 130,000 triangles keeping its UV seams (meshoptimizer's

@@ -111,4 +111,14 @@ public sealed class StaffTests
         Assert.Equal(StaffRole.Water, StaffRoles.OfferedBy(Ids.Cistern));
         Assert.Null(StaffRoles.OfferedBy(Ids.Boiler));
     }
+
+    [Fact]
+    public void A_piece_has_two_use_nodes_in_front_of_it_so_the_game_reads_them()
+    {
+        var nodes = WorkSpots.Nodes(Ids.TeaBench);
+
+        Assert.Equal(2, nodes.Length);
+        Assert.All(nodes, n => Assert.Equal(WorkSpots.Out(Ids.TeaBench), n.Z));
+        Assert.NotEqual(nodes[0], nodes[1]);
+    }
 }

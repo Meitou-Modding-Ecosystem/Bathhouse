@@ -91,7 +91,7 @@ static class MachineRecords
         var record = RecordKit.Copy(model, spec.Id, spec.Name, "functionality", "upgrades to");
 
         if (model != standIn) KeepCost(standIn, record);
-        if (model != standIn) FurnitureRecords.AddUseNode(record, WorkSpots.Local(spec.Id), WorkSpots.NodeYaw);
+        if (model != standIn) FurnitureRecords.AddFrontNodes(record, spec.Id);
 
         RecordKit.Links(record, "functionality", (work, 0, 0));
         record.Strings["building category"] = RecordKit.BuildCategory;
