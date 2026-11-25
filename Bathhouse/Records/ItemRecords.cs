@@ -4,16 +4,23 @@ using Meitou.Data.Fcs;
 namespace Bathhouse.Records;
 
 /// <summary>
-/// The items (docs/bathhouse.md "Items"). Each is a copy of a game item for its look (mesh, icon, size) until the mod's own models land, with
-/// its own name, value and text.
+/// The items (docs/bathhouse.md "Items"). Each is a copy of a game item for its fields, with its own name, value, text, icon and model (from
+/// <c>Bathhouse/ItemModels</c>, when the import made it; else the copied item's look).
 /// </summary>
 static class ItemRecords
 {
     /// <summary>
-    /// One item: its id and name, the game item it looks like (string id, then name), its value in cats, how many stack, its text and its icon
-    /// (<c>Bathhouse/items/icons/bathhouse-&lt;icon&gt;.png</c>).
+    /// One item: its id and name, the game item it is copied from (string id, then name), its value in cats, how many stack, its text, its icon
+    /// (<c>Bathhouse/items/icons/bathhouse-&lt;icon&gt;.png</c>) and its own model (<c>ItemModels/&lt;model&gt;.glb</c>, block from
+    /// <c>ItemModels/ids.json</c>).
     /// </summary>
-    sealed record Spec(string Id, string Name, string ModelId, string ModelName, int Value, int Stack, string Text, string Icon);
+    sealed record Spec(string Id, string Name, string ModelId, string ModelName, int Value, int Stack, string Text, string Icon, string Model,
+        int Block);
+
+    /// <summary>
+    /// The first MATERIAL_SPECS_CLOTHING number the structure import gives item models (block 100 x n from it).
+    /// </summary>
+    const int ItemMaterialBase = 950000;
 
     /// <summary>
     /// The game's item functions used: 0, none (a plain trade good).
@@ -73,20 +80,21 @@ static class ItemRecords
     static readonly Spec[] Specs =
     [
         new(Ids.Towel, "Towel", "584-gamedata.base", "Fabrics", 47, 10,
-            "A thick cotton towel. Bathers dry off with one; most come back dirty, some are ruined.", "towel"),
+            "A thick cotton towel. Bathers dry off with one; most come back dirty, some are ruined.", "towel", "towel", 6),
         new(Ids.DirtyTowel, "Dirty Towel", "584-gamedata.base", "Fabrics", 37, 10,
-            "A used towel. A washing machine and a little soap make it clean again.", "dirtytowel"),
-        new(Ids.Soap, "Soap", "43959-rebirth.mod", "Foodcube", 30, 20, "A rough bar of hemp soap, for bathers and for the laundry.", "soap"),
+            "A used towel. A washing machine and a little soap make it clean again.", "dirtytowel", "dirty-towel", 1),
+        new(Ids.Soap, "Soap", "43959-rebirth.mod", "Foodcube", 30, 20, "A rough bar of hemp soap, for bathers and for the laundry.", "soap",
+            "soap", 3),
         new(Ids.GreenfruitTea, "Greenfruit Tea", "42309-changes_otto.mod", "Greenfruit", 61, 20,
-            "Sliced and dried greenfruit. Brewed in teaware it makes a sweet, pale tea.", "greenfruittea"),
+            "Sliced and dried greenfruit. Brewed in teaware it makes a sweet, pale tea.", "greenfruittea", "greenfruit-tea", 2),
         new(Ids.Teaware, "Teaware", "42319-changes_otto.mod", "Cup", 61, 5,
-            "A pot and cups of fired stone. Fill it with greenfruit tea at a tea bench to make a tea set.", "teaware"),
+            "A pot and cups of fired stone. Brew greenfruit tea in it with Water at a tea bench to make a tea set.", "teaware", "teaware", 5),
         new(Ids.TeaSet, "Tea Set", "42316-changes_otto.mod", "Ceramic Bowl", 115, 5,
-            "A tray of hot greenfruit tea, ready to serve. Drunk, it leaves a used tea set behind.", "teaset"),
+            "A tray of hot greenfruit tea, ready to serve. Drunk, it leaves a used tea set behind.", "teaset", "teaset", 4),
         new(Ids.UsedTeaSet, "Used Tea Set", "42316-changes_otto.mod", "Ceramic Bowl", 53, 5,
-            "A tray of empty, stained cups. A washing machine and a little soap make it clean teaware again.", "usedteaset"),
+            "A tray of empty, stained cups. A used tea rack rinses it back into teaware with hot water.", "usedteaset", "used-teaset", 7),
         new(Ids.DirtyRobe, "Dirty Robe", "584-gamedata.base", "Fabrics", 90, 5,
-            "A robe a bather has worn. A washing machine and a little soap make it clean again.", "dirtyrobe"),
+            "A robe a bather has worn. A washing machine and a little soap make it clean again.", "dirtyrobe", "dirty-robe", 0),
     ];
 
     /// <summary>
@@ -108,13 +116,36 @@ static class ItemRecords
         record.Ints["item function"] = NoFunction;
         record.Strings["description"] = spec.Text;
         SetIcon(record, spec.Icon);
+        WearOwnModel(game, record, spec);
 
-        if (spec.Id == Ids.TeaSet) RecordKit.Links(record, "ingredients", (Ids.Teaware, 100, 0), (Ids.GreenfruitTea, 100, 0));
+        if (spec.Id == Ids.TeaSet) Brewed(record);
         if (spec.Id == Ids.Towel) Washed(record, Ids.DirtyTowel);
-        if (spec.Id == Ids.Teaware) Washed(record, Ids.UsedTeaSet);
         if (record.References.ContainsKey("ingredients")) Markup(record);
         return record;
     }
+
+    /// <summary>
+    /// Points the item at its own mesh and material when the deployed data has the material (tests and tools that read the game without the
+    /// deployed mod keep the copied item's look). An item's own texture map would win over its material, so the copied one is cleared.
+    /// </summary>
+    static void WearOwnModel(GameDatabase game, FcsRecord record, Spec spec)
+    {
+        string material = $"{ItemMaterialBase + 100 * spec.Block}-{Ids.FileName}";
+        if (game.Find(material) is null) return;
+
+        string mesh = $"bathhouse_{spec.Model.Replace('-', '_')}.mesh";
+        record.Filenames["mesh"] = mesh;
+        record.Filenames["ground mesh"] = mesh;
+        record.Filenames["texture map"] = "";
+        record.Filenames["normal map"] = "";
+        record.References["material"] = [new FcsReference(material, 0, 0, 0)];
+    }
+
+    /// <summary>
+    /// A tea set's recipe: teaware, greenfruit tea and the game's Water.
+    /// </summary>
+    static void Brewed(FcsRecord record) =>
+        RecordKit.Links(record, "ingredients", (Ids.Teaware, 100, 0), (Ids.GreenfruitTea, 100, 0), (FurnitureRecords.Water, 100, 0));
 
     /// <summary>
     /// Prices a crafted item at its ingredients' worth plus <see cref="WorkMarkup"/> per hour of its <c>production time</c>.

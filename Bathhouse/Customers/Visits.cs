@@ -147,6 +147,22 @@ public sealed class Visit
     /// Game hours it has spent getting to its tea table.
     /// </summary>
     public double TeaWait { get; set; }
+
+    /// <summary>
+    /// Whether the visit has had its chance at tea before the bath (taken or not), so the counter checks it in next.
+    /// </summary>
+    public bool TeaOffered { get; set; }
+
+    /// <summary>
+    /// Game hours the customer has sat at its tea table waiting for a Tea Set to be served.
+    /// </summary>
+    public double ServeWait { get; set; }
+
+    /// <summary>
+    /// Whether the customer waited longer than <see cref="Clientele.TeaServeWait"/> for its tea: the visit's quality drops by
+    /// <see cref="Quality.LateTeaWeight"/>.
+    /// </summary>
+    public bool LateTea { get; set; }
 }
 
 /// <summary>

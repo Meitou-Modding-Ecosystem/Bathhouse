@@ -13,9 +13,9 @@ for its look (a stand-in until the mod's models land) and links game items by id
 | Items | Towel, Dirty Towel, Soap, Greenfruit Tea, Teaware, Tea Set, Used Tea Set, Dirty Robe | Fabrics, Fabrics, Foodcube, Greenfruit, Cup, Ceramic Bowl, Ceramic Bowl, Fabrics |
 | Armour | Bathhouse Robe (`slot` 5, body: it replaces body armour; the Monk Robe sits in the belt slot, 14, under body armour; `part coverage` 20 on each arm and the stomach, 27 on the chest, so its total coverage is 100 and the clothing bench makes it from one Fabrics) | Monk Robe |
 | Production (function 4) | Towel Loom (Fabrics to 2 Towels), Soap Press (Hemp to Soap), Tea Dryer (Greenfruit to Greenfruit Tea), Pottery Kiln (Raw Stone to Teaware) | Fabric Loom (hemp), Hemp Processor, Biofuel Distillery (Hemp), Cooking Stove |
-| Crafting (function 10) | Tea Bench: Tea Set from Teaware + Greenfruit Tea (the Tea Set's `ingredients`); Washing Machine: a queue of Towel (Dirty Towel + 1/4 Soap), Bathhouse Robe (Dirty Robe + 1/4 Soap) and Teaware (Used Tea Set + 1/4 Soap) washes, 1 h each (the items' `ingredients` and `production time`; output holds 10 towels, 1 robe or 5 teaware) | Cooking Stove, Sake Still |
+| Crafting (function 10) | Tea Bench: Tea Set from Teaware + Greenfruit Tea + Water (the Tea Set's `ingredients`; only while the building is hot, Tea works); Washing Machine: a queue of Towel (Dirty Towel + 1/4 Soap) and Bathhouse Robe (Dirty Robe + 1/4 Soap) washes, 1 h each (the items' `ingredients` and `production time`; output holds 10 towels or 1 robe) | Cooking Stove, Sake Still |
 | Power | Steam Boiler: draws 10, functionality the game's Lights (a consumer with no operator, so the Power switch shows) | Boiler Tank |
-| Water | Bathhouse Water Tank: Resource storage limited to Water, as the game's Water Tower | Small Water Tank |
+| Water | Bathhouse Water Tank: Resource storage limited to Water, as the game's Water Tower; Water Cistern (Water cistern) | Small Water Tank, Old Water Tower |
 | Tubs (Resource storage that takes nothing: `itemtype limit` BUILDING, so only a Shift + right click uses it) | Small Tub (1 seat), Medium Tub (2), Large Bath (4), Oil Bath, Blood Bath (+10 Raw Meat to build) | own model (below), Large Barrels, Booze Barrels, Booze Barrel, Cannibal Butcher Table |
 | Service | Massage Bed (bed), Massage Station (Towels only, 5), Check-in Counter (Towels and Soap only, so haulers stock it; grid 12 x 10), Lockers (locks; haulers store only Robes: `itemtype limit` ARMOUR and `limit inventory` Robe and Dirty Robe, two items so the grid stays 8 x 8 instead of one robe's footprint), Laundry Hamper (Dirty Towels only), Robe Hamper (Dirty Robes only), Towel Rack (Towels only), Soap Shelf (Soap only), Tea Table (one Tea Set or Used Tea Set: both listed, grid 2 x 2, one set's footprint), Tea Shelf (Greenfruit Tea only), Teaware Shelf (Teaware only), Tea Set Cabinet (Tea Sets only), Used Tea Rack (Used Tea Sets only), Review Board | Bed, Small Table, Shop Counter, Crossbow Locker, Small Barrel, Small Barrel, Shelf, Shelf, Small Table, Shelf, Shelf, Shelf, Shelf, banner_traders |
 | Decorations | Zen Garden, Wall Art, Tapestry, Statue, Towel Hanger, Tea Set Display | Carpet: Rusty Rug, banner_empire, banner_holy, Emperor Statue, Wall Shelf 1, Wall Shelf 2 |
@@ -33,9 +33,9 @@ Machine hours an item: 24 / (`output rate` x `production mult`).
 | Towel | 1/2 Fabrics (towel loom) | 0.5 | 27 (as washed: Dirty Towel + 1/4 Soap, 1 h) |
 | Dirty Towel | a Towel less its wash | | 22 |
 | Greenfruit Tea | 1 Greenfruit (tea dryer) | 0.4 | 27 |
-| Teaware | 1 Raw Stone (kiln), or washed: Used Tea Set + 1/4 Soap, 1 h | 0.5 | 38 |
-| Tea Set | Teaware + Greenfruit Tea (tea bench) | 4 | 69 |
-| Used Tea Set | Teaware less its wash | | 32 |
+| Teaware | 1 Raw Stone (kiln), or rinsed from a Used Tea Set (Tea works) | 0.5 | 37 |
+| Tea Set | Teaware + Greenfruit Tea + Water (tea bench) | 4 | 100 |
+| Used Tea Set | Teaware less its rinse | | 32 |
 | Bathhouse Robe | 1 Fabrics (clothing bench) | 3 at quality 50 | 60 at quality 50 (`relative price mult` 0.11; 5 to 237 by quality) |
 | Dirty Robe | a robe less its wash | | 54 |
 
@@ -43,8 +43,11 @@ The items and the robe show the mod's own icons, not the copied item's: `tools/m
 (transparent background) into the item's inventory footprint at 50 px a cell as `Bathhouse/items/icons/bathhouse-<name>.png`, and the
 record names it in `icon` with `auto icon image` false (the game then takes the file by its bare name from its Icons group, which a mod's
 `items/icons` folder joins, as Rebirth's `.\mods\Basic\items\icons\Foodcube.png`). Play copies `Bathhouse/items/` into the deployed mod folder (`PlayDeployAssets`). Rerun it when an inventory picture or a footprint changes.
-Item models (`Bathhouse/ItemModels/*.glb`, textures at 1024) are kept out of `Structures`, which would make them buildable furniture; the
-structure import makes buildings only, so the items still look like their stand-ins in the world.
+Item models: `Bathhouse/ItemModels/<model>.glb` (textures at 1024; out of `Structures`, which would make them buildable furniture). The
+import makes each a mesh `bathhouse_<model>.mesh` and a MATERIAL_SPECS_CLOTHING `<950000 + 100 x block>-Bathhouse.mod`, block from
+`ItemModels/ids.json` (docs/structures.md "Item models"); when the deployed data has that material, the item's `mesh`, `ground mesh` and
+`material` point at them (`ItemRecords.WearOwnModel`), else it keeps its stand-in's look. The robe keeps the Monk Robe's: a worn model needs
+the body skeleton.
 
 Every building is in the build menu's own `BATH HOUSE` category (`RecordKit.BuildCategory`); each shows there once its research is done. Each
 building's description says how to use it (what it needs, which staff job its panel offers).
@@ -59,14 +62,23 @@ nodes (NODE_USE 1183-gamedata.base, node type 4): a bed without one is lain in a
 from anywhere within its functionality's `use range` of its origin. The game's Bed lies along local X with a node beside each long side
 (z ±12.2, the second turned 180°) and a sleeper lies along X (**Observed**, Matthew's game: on the model turned along Z the customer lay
 across it); the two nodes face opposite ways (node yaw - 90), so the side a sleeper comes from decides where its head goes. So the massage bed's model lies along
-local X (`yaw` 0, head rest at -X) and keeps only the Bed's -Z node (`KeepUseNodes`; Forgotten Buildings' Bed with Pillow keeps the same one), so every sleeper lies the same way. 
-- **Work spots** (`WorkSpots`): every tub, machine and service store on its own model gets one use node in front of it (local +Z, the model's
-  front), 6 units (0.6 m) past its front face as measured on the model at its finished height, turned -90° as the game's own front nodes are (the
-  Shop Counter's and Cooking Stove's at +Z), so its marker (local -X) points back at the piece: the build ghost's green arrow. The machines'
-  functionalities have `use range` 10, so operators walk up to the node instead of stopping anywhere near the origin (the washer's operator
-  stood inside it). Staff take and put goods, and bathers step in and out of a tub, at the same spot.
+local X (`yaw` 0, head rest at -X) and keeps only the Bed's -Z node (`KeepUseNodes`; Forgotten Buildings' Bed with Pillow keeps the same one), so every sleeper lies the same way. The node sits 0.5 m above the Bed's
+(`LieRaise`): at the Bed's height the customer lay sunk into the higher mattress (**Observed**, Matthew's game). 
+- **Work spots** (`WorkSpots`): every tub, machine and service store on its own model gets two use nodes in front of it (local +Z, the model's
+  front), 6 units (0.6 m) past its front face as measured on the model at its finished height and 3 units either side of its middle, turned -90°
+  as the game's own front nodes are (the Shop Counter's and Cooking Stove's at +Z), so their marker (local -X) points back at the piece: the build
+  ghost's green arrow. Two, because the game takes a machine's position marker from its use nodes only with two or more and otherwise works it
+  from its origin (`Building::getPositionMarker`, MeitouClient docs/game/buildings-production.md; Meitou 0.23 follows it, and with one node the
+  tea bench's operator stood inside it). The machines' functionalities have `use range` 10, so operators walk up to the nearer node instead of
+  stopping anywhere near the origin. Staff take and put goods, and bathers step in and out of a tub, at the same spot.
 Model textures are kept at 2048 (base colour and metal/roughness as JPEG quality 92, normal map as lossless PNG): the import bakes 2048 DDS
 by default (`textureSize`), so a 4096 source only grows the repo.
+The Tea Set Cabinet model came from a 1.6 million triangle export, cut to 130,000 triangles keeping its UV seams (meshoptimizer's
+`gltfpack -si 0.08 -noq -kn`; collapsing across seams smears the textures), then its textures were shrunk to 2048; at 55,000 triangles its
+cups and pots turned faceted. The original exports stay in Git history (`git show 9e9dcf7:Bathhouse/Structures/teaset-cabinet.glb`). The Teaware Shelf
+(29,000 triangles) and Used Tea Rack (9,400) are the generator's own remeshes, textures shrunk to 2048; cutting them ourselves melted
+their small pots and cups. The Used Tea Rack is sized by its width (art prompt 1.2 m x 1.2), so its height was 0.73 m; Matthew asked for it 20% bigger (0.88 m). He also asked for the Tea Table 15% (0.55 m), Tea Bench 30%
+(1.56 m) and Washing Machine 10% (2.11 m) bigger; their work-spot faces scale with them.
 
 Tubs have no functionality so that no game or mod AI (a town bar's, Fiefdom's residents) sits in them; bathing is the mod's code.
 
@@ -103,9 +115,15 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   robe hamper with room, else on the floor. One already wearing a robe keeps it. The look is rebuilt from the worn kit as the engine does
   (`SavedKit.LoadoutOf`, `IAppearanceSource.Create`); the engine has no public re-dress call, so the fighter's armour cover catches up at its
   next refresh. Saved with the soak (sidecar version 5 on).
-- **Panels** (`BathhouseUi`): a tub shows its water and seats taken and the bath button; a boiler shows its building's heat (tooltip: boilers lit,
-  seats heated, Water) and one switch per Bad status effect of any mod (the first four) for whether soaks clear it. The switches are saved with
-  the game.
+- **Panels** (`BathhouseUi`): under its Condition bar each piece that works under conditions or with other pieces shows bars (`PanelBars`,
+  worked out in the check): a tub Clean or Dirty (`TubCare`), Water (hot full, lukewarm half, cold empty; seats taken over seats) and its
+  scrubber; a boiler the hours its building's Water lasts the lit boilers (Water x 24 / (lit x Water per day)) and the seats they heat; a tea
+  bench and a used tea rack Steam boiler (lit, none, switched off or no power) and Water, which they need (Tea works), the rack also its rinse
+  and whether a teaware shelf has room; a massage bed its customer's massage hours left, its station's attendant (Dexterity as the bar) and
+  towels; a massage station its bed, attendant and towels; a tea table its set and tea server; a water cistern its Water stored and carrier.
+  The bars come from a Harmony postfix on the engine's `BuildingSelection.BuildingRows` (`ConditionBars`, reached by name; `ConditionBars.Supported` is tested); in a game without it a
+  tub's water and seats and a tea piece's hot water stay a line among the buttons. A tub also shows the bath button; a boiler its building's
+  heat and one switch per Bad status effect of any mod (the first four) for whether soaks clear it. The switches are saved with the game.
 - **Debug row** "Bathhouse: tubs and bathers": each building's heat and each soak.
 
 ## Steam
@@ -116,6 +134,17 @@ its rim, and a plume from the boiler's top. The game reads every `.pu` in a mod'
 with the item icons). The systems use the base game's `kenshi_smoke1` material (alpha-blended, not cut inside buildings) tinted white. Meitou
 runs a player building's effects whenever it is complete (engine `docs/formats/lights.md` "Effects on buildings"), so a cold tub steams too:
 following the water's heat needs an engine hook.
+
+## Tea works
+
+`Bathing/TeaWorks`, stepped in the slow check right after the heat. Both pieces work only in a hot or lukewarm building (Heating), like the tubs.
+
+- **Used tea rack**: rinses one Used Tea Set an hour into Teaware on a teaware shelf in the same building with room; no shelf with room, it waits.
+- **Tea bench**: its first queued craft does not advance while the building is cold (its progress is held at the last check's value). The
+  engine draws a bench's ingredient sections as its operator works, so a cold bench also gets each section's items and level back to the last
+  check's (`TeaWorks.GiveBack`; a section loaded since keeps what it has). Without that, a bench in a building with no boiler ate its
+  ingredients and made nothing (**Observed**, Matthew's Settlement Test, issue #124).
+- Neither the rinse hours, the held progress nor the held ingredients are saved: a load restarts the current rinse hour.
 
 ## Customers
 
@@ -138,7 +167,11 @@ following the water's heat needs an engine hook.
   not change it (engine `SquadFactory.Count`).
   A group whose platoon disappears is posted and the next may set out at once. A held stand-in takes part in Meitou's off-screen fights
   (Settings > Advanced > Fights far away, on by default), so a group can be wiped out on the road; kept on purpose (README).
-- **Check-in**: the visit goal (desire 0.7) walks the customer to the counter's front and stands it there. It checks in when one of the player's
+- **Order of a visit**: arrive at the counter, tea (optional), check in and bathe, massage (optional), pay. Counters, tea tables and massage
+  beds each have an open switch on their panel (`OpenPieceCommand`, saved): a closed counter gets no groups and sends its arrivals away (one
+  who had tea pays for it), a closed table or bed is not offered.
+- **Check-in**: the visit goal (desire 0.7) walks the customer to the counter's front and stands it there; on its first arrival there it is
+  offered tea (below), and comes back to the counter after. It checks in when one of the player's
   people stands within 80 units of the counter and a tub in the building is warm with a free seat. It gets a Towel and a Soap when each is found
   in the counter, else in a store in its building (`Stock`; they may come from different stores), and bathes without one that is not. It takes
   the price (below: the bath plus the towel and soap it gets), a Soap is used up and a Towel goes into its inventory (it dries with it), and it
@@ -147,14 +180,18 @@ following the water's heat needs an engine hook.
   milestone 5) for the suggested price. The counter's panel sets each service to 50, 75, 100, 125, 150 or 200% of it. A customer takes a visit
   price at or under tolerance x suggested; above it with chance e^(-8 (ratio / tolerance - 1)), 13% at a quarter over, else it leaves.
 - **Quality and payment** (`Quality`): 1 less 0.5 x the lukewarm share of the soak, 0.15 a game hour waited (at most 0.3), 0.3 for a soak cut
-  short by cold, 0.2 for a dirty tub, 0.1 without a towel, 0.1 without soap and 0.1 without a robe. At or above 0.8 the customer owes the full price, below it price x quality / 0.8. Check-in prefers a
-  clean tub. After a good enough soak it may have tea, may take a massage, then pays what it owes (added to the player's money and posted).
-- **Tea**: after a good enough soak, when a tea table in the tub's building holds a Tea Set no other customer drinks at and the customer takes the
-  tea price (the same chance rule, ratio = percent / 100), the visit goal walks it to the table's work spot, where it sits on the floor facing the
-  table (`CharacterTask.Rest` on row 4402, as in a tub) for 0.5 h. Then the set becomes a Used Tea Set on the table, the tea's price (69 cats
-  suggested) is owed, and it gets up for a massage or to pay. Not sitting there within 1 h, or the table or its set gone, it goes on without tea.
+  short by cold, 0.2 for a dirty tub, 0.1 without a towel, 0.1 without soap, 0.1 without a robe and 0.15 for late tea. At or above 0.8 the customer owes the full price, below it price x quality / 0.8. Check-in prefers a
+  clean tub. After a good enough soak it may take a massage, then pays what it owes, the tea included (added to the player's money and posted).
+- **Tea**: before check-in, the nearest open tea table of the player's within 3000 units of the counter that no other customer sits at, holding a
+  Tea Set, else one a Tea server holds the job at, is offered; with the tea price taken (the same chance rule, ratio = percent / 100) the visit
+  goal walks the customer to the table's work spot, where it sits on the floor facing the table (`CharacterTask.Rest` on row 4402, as in a tub;
+  drawn cross-legged, see Animations) and waits for a Tea Set, then drinks for 0.5 h. Then the set becomes a Used Tea Set on the table, the
+  tea's price (100 cats suggested) is owed, and it goes back to the counter to check in. Waiting more than 2 h for the set makes it late tea
+  (quality -0.15, posted once); after 4 h it goes on without. 15% of drinks (seeded per customer and tick) breaks the set instead: no Used Tea
+  Set is left, a message names the customer, and it offers to pay 37 cats for it (added to what it owes). Not sitting there within 1 h, the
+  table gone or closed, or no tea and no server, it goes on without tea.
 - **Massage** (`Massage`): each massage bed is paired with the nearest massage station in its building within 50 units (5 m) of it. With a free
-  bed (one whose bed fixture no other visit holds) and the massage price taken, the customer walks to the bed (visit goal) and lies in it
+  bed (one whose bed fixture no other visit holds, and whose station somebody holds the Massage attendant job at) and the massage price taken, the customer walks to the bed (visit goal) and lies in it
   (`EnterBed`). While the station's Massage attendant (Staff) stands within 40 units of it and it holds a Towel, each hour pays 300 cats suggested x the attendant's pay
   factor: 0.1 at Dexterity 0 rising evenly to 1 at 100, x 1.2 in a Bathhouse Robe, never past 1. Each hour worked with a customer
   on the bed trains the attendant's Dexterity by 0.5 on the game's curve (about a third of a level an hour at 20). After 1 hour massaged, or 1 hour lying with nobody at the station (or waiting for the bed), it gets up and pays
@@ -179,8 +216,8 @@ following the water's heat needs an engine hook.
   picks a fight: its squad gets a TEMP_ENEMY tag for each of the player's people within 300 units, never the faction.
 - **Barks** (`Barks`): two lines per kind for getting into a tub, cold water, a complaint, leaving happy, the price and a fight. English only (the
   engine has no translation catalog for mods).
-- **Panels**: the counter has its clerk button, a check-in line ("ready" with the towel and soap it has, or the first of clerk, warm tub it lacks;
-  tooltip: the fix) and the ledger button; the tea table and the massage station have their price line; the review board shows guests of the
+- **Panels**: the counter has its clerk button, a check-in line ("ready" with the towel and soap it has, or the first of clerk, warm tub, scrubbed tub it lacks;
+  tooltip: the fix) and the ledger button; the counter, tea table and massage bed their open switch; the tea table and the massage station have their price line; the review board shows guests of the
   last three days (and their daily average), those ever, failed arrivals and the reviews button. The building panel holds about six lines, so
   the details are in the **ledger** window (`CounterLedger`, the HUD overlay, 900 pixels wide, fits a 1280 x 720 screen) with three tabs. The
   ledger button opens it on Counter, the reviews button on Reviews; either again, or Close, closes it.
@@ -200,32 +237,55 @@ following the water's heat needs an engine hook.
 
 ## Staff
 
-`Staffing/`. Five mod job types (`AddJobType`, 4403 to 4407), each in the character's job list on the piece it was given at: the piece's panel
-button "Assign selected: <job>" (the panel's first mod line, as lines past the panel's edge are clipped) gives it to the selected characters (one job of a type each); the jobs panel shows and removes it and the game
-saves it. A Shift + right click on the counter, a tub or the massage station works too, with no engine hook: all are storages, so the game gives its Hauling to job
-(124) there, and the system's serial step (`StaffRoles.TakeClickedJobs`) puts the clerk's or scrubber's job in its place in the list. `Staff` is the jobs' `IJobSource`: when the chooser asks, the job's plan (`Plans`) gives an errand of stops (walk there, work for a
+`Staffing/`. Six mod job types (`AddJobType`, 4403 to 4408), each in the character's job list on the piece it was given at: the piece's panel
+button "Assign selected: <job>" (the panel's first mod line, as lines past the panel's edge are clipped) gives it to the selected characters (a character may hold a job type at several pieces, each job working its own piece, once per piece); the jobs panel shows and removes it and the game
+saves it. Each job is also offered (`AddJobOffer`, `StaffRoles.Offer`): the piece's right-click menu shows "Work as: <job>" to selected people, and
+other mods read the offers, so Fiefdom's Work tab can staff them. A Shift + right click on the counter, a tub or the massage station works too, with no engine hook: all are storages, so the game gives its Hauling to job
+(124) there (at the cistern, an automatic machine, Operating automatic machinery, 152), and the system's serial step (`StaffRoles.TakeClickedJobs`) puts the clerk's, scrubber's or water carrier's job in its place in the list. `Staff` is the jobs' `IJobSource`: when the chooser asks, the job's plan (`Plans`) gives an errand of stops (walk there, work for a
 time, then move goods, re-checking they are there); the errand runs on the job's row until done, then the chooser picks again. Errands are not
 saved: a loaded staff member plans again.
 
 - **Clerk** (counter): stands 15 units behind the counter for an hour at a time, so it is staffed.
 - **Massage attendant** (massage station): stands at the station's work spot, 0.1 h at a time, while someone lies on a bed paired with it and it
-  holds a Towel; otherwise it has no work and the next job in the list runs.
-- **Tub scrubber** (any tub): scrubs the building's first dirty tub nobody soaks in, 0.5 h (the blood bath 1.5 h). A tub gets dirty when a soak
-  in it ends (`TubCare`, saved). While anyone holds the scrubber job in the building, check-in seats customers only in clean tubs (they wait at
-  the counter), so a dirty tub empties and gets scrubbed; with nobody, a dirty tub is used and the visit is worse. Like any job, it runs only
+  holds a Towel; otherwise it has no work and the next job in the list runs. Only the attendant running the job at that station counts for it
+  (an attendant at the next station within reach does not).
+- **Tub scrubber** (a tub): scrubs the tub its job is at once it is dirty and nobody soaks in it, 0.5 h (the blood bath 1.5 h). A tub gets dirty
+  when a soak in it ends (`TubCare`, saved). Check-in seats customers in a clean tub first, else in a dirty tub nobody holds the scrubber job at
+  (the visit is worse); a dirty tub with a scrubber is left to empty and be scrubbed (customers wait at the counter, which then reads
+  "needs: a tub scrubbed"). The tub's Scrubber bar says what the scrubber is doing: scrubbing, next (scrubbing another tub), waits (bathers
+  in it) or busy (another task). Like any job, it runs only
   when no job above it in the list has work: hauling jobs above it keep a hauler from scrubbing.
 - **Laundry runner** (washing machine): loads what it carries that the current wash takes; puts carried clean goods away (towels to the first
-  towel rack, else the counter, robes to the first lockers, teaware to the first teaware shelf, with room) and dirty goods it cannot load back in their hamper (used tea
-  sets: the used tea rack); takes finished goods
-  out of the washer to those places; fetches from a hamper or used tea rack only as many dirty goods (up to 10) as the queued washes of the current kind still
+  towel rack, else the counter, robes to the first lockers, with room) and dirty goods it cannot load back in their hamper; takes finished goods
+  out of the washer to those places; fetches from a hamper only as many dirty goods (up to 10) as the queued washes of the current kind still
   need, since the washer drops what is left in its sections when the next wash takes another item; keeps 3 Soap in the washer from a store in
   the building (not a hamper or the counter). Queue the washes and set Repeat Queue at the washer; it also needs an operator.
 - **Tea server** (tea table): puts carried Used Tea Sets in a used tea rack; brings a Tea Set (from a tea set cabinet first) to an empty table; takes a
-  table's Used Tea Set to a used tea rack. The washing machine washes them back into Teaware (the laundry runner fetches them like dirty towels).
+  table's Used Tea Set to a used tea rack. The used tea rack rinses them back into Teaware (Tea works).
+- **Water carrier** (water cistern): while the cistern has room, draws up to 10 Water from the nearest of the player's wells within 3000
+  units that holds some (a machine whose output is Water; never a storage, so it does not undo the haulers filling tanks from the cistern) and
+  pours it in.
+
+## Water cistern
+
+The game's haulers draw only from machine outputs, never from a storage (`ProductionSystem.HaulSource`), so a Water Tower or water tank never
+feeds a Hauling to job. The Water Cistern is a machine instead: its functionality copies the game's well (`function` 4, max operators 0, so it
+runs unattended) without the well's world resource, with `output rate` 0 so it makes nothing, and its output holds 200 Water. Haulers fill
+water tanks and the tea bench from it as from a well (**Verified** in the headless harness on the Settlement Test save: a Water Tank hauler
+drew 30 Water out of it). Its Water carrier keeps it full; its panel shows the Water stored and the carrier.
+
+## Animations
+
+`items/animations/bathhouse_male.skeleton` / `bathhouse_female.skeleton` hold the mod's clips on male_skeleton / female_skeleton bones. The data
+phase adds an ANIMATION_FILE (`96-`) naming them and links it to every race whose `male mesh` is under `data/character/meshes/` (humans, shek,
+hivers, skeletons, fishmen; not the Hive Queen), and a disabled COMBAT_TECHNIQUE per clip, so no fight picks it (`AnimationRecords`).
+- `bathhouse_tea_sit` (`95-`, 2.5 s loop): a customer sitting at a tea table plays it as a mod combat move (`BathhouseMod.TeaSitMove`, from the
+  sitters `Clientele` publishes each step), cross-legged facing the table. Meshy's Sit_Cross_Legged_on_Floor retargeted onto both skeletons
+  with the Motion Lab (Meitou-Modding-Ecosystem/PZAKenshiMotionLab, `rig --reference`, then `motionlab.kenshi_export`), played in place.
 
 ## Research
 
-All in the Crafting list, no cost: Bathhouse Basics (level 1; loom, press, washer, boiler, water tank, small tub, counter, lockers, hamper,
+All in the Crafting list, no cost: Bathhouse Basics (level 1; loom, press, washer, boiler, water tank, water cistern, small tub, counter, lockers, hamper,
 rack, robe hamper, soap shelf, robe), then Hot Baths (medium and large tubs, review board, decorations), Massage, Tea Service (dryer, kiln, bench, tea table, tea shelf, teaware shelf, tea set cabinet, used tea rack, display)
 and Oil Baths (level 2), and Blood Baths after Hot Baths (level 3).
 
@@ -234,7 +294,7 @@ and Oil Baths (level 2), and Blood Baths after Hot Baths (level 3).
 `BathhouseSettings`, on the Settings screen's Mods page: seats per boiler (4), Water per boiler a day (2), soak length by tub (small 2 h,
 medium 3, large 4, oil and blood 3), Soothed buff (3 days), soaks clear debuffs (on), towels kept (80%), hours between customers (6), most bathers per group (3),
 relation lost per complaint (1), most relation lost a day (5), fight chance (5%). Prices and the open switch are on the counter, saved with the
-game (sidecar version 7, which adds the visits' tea; 6 added the guest book; version 2 reads with tea and massage at 100%, before 4 visits had a towel and soap).
+game (sidecar version 8, which adds the closed pieces and tea before the bath; 7 added the visits' tea; 6 added the guest book; version 2 reads with tea and massage at 100%, before 4 visits had a towel and soap).
 
 ## Tests
 

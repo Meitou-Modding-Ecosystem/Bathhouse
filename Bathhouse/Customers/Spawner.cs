@@ -38,10 +38,10 @@ public static class Spawner
     public static Vector3 FrontOf(BuildSite counter) => counter.Position + Vector3.Transform(new Vector3(0, 0, Front), counter.Rotation);
 
     /// <summary>
-    /// The first finished counter in a building with a warm tub; null for none.
+    /// The first finished counter switched open in a building with a warm tub; null for none.
     /// </summary>
-    public static BuildSite? OpenCounter(World world, Func<string?, bool> warm) =>
-        world.Buildings.All.FirstOrDefault(s => IsCounter(s) && s.Parent is not null && warm(s.Parent));
+    public static BuildSite? OpenCounter(World world, Func<string?, bool> warm, Func<string, bool> open) =>
+        world.Buildings.All.FirstOrDefault(s => IsCounter(s) && open(s.Id) && s.Parent is not null && warm(s.Parent));
 
     /// <summary>
     /// Whether a site is a finished check-in counter.

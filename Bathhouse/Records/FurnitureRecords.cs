@@ -131,6 +131,11 @@ static class FurnitureRecords
     };
 
     /// <summary>
+    /// How many units a piece limited to one item holds (<see cref="Capacity"/>); 0 for any other piece.
+    /// </summary>
+    public static int CapacityOf(string record) => Capacity.GetValueOrDefault(record);
+
+    /// <summary>
     /// The tea table's grid, in inventory cells: one tea set's footprint, so it holds one set.
     /// </summary>
     const int TeaTableCells = 2;
@@ -205,12 +210,13 @@ static class FurnitureRecords
         new(Ids.SoapShelf, "Soap Shelf", "3470-otto.mod", "Shelf", Use.Limited,
             "Holds only soap, up to 100 bars. Haulers bring it from the soap press; check-ins and the Laundry runner take soap from it."),
         new(Ids.TeawareShelf, "Teaware Shelf", "3470-otto.mod", "Shelf", Use.Limited,
-            "Holds only clean teaware, up to 20. Haulers bring it from the pottery kiln and the washing machine; the tea bench's worker takes"
-            + " it from here."),
+            "Holds only clean teaware, up to 20. Haulers bring it from the pottery kiln, used tea racks put rinsed teaware here, and the tea"
+            + " bench's worker takes it from here."),
         new(Ids.TeaSetCabinet, "Tea Set Cabinet", "3470-otto.mod", "Shelf", Use.Limited,
             "Holds only tea sets, up to 20. Haulers bring them from the tea bench; the Tea server takes them to the tea tables."),
         new(Ids.UsedTeaRack, "Used Tea Rack", "3470-otto.mod", "Shelf", Use.Limited,
-            "Holds only used tea sets, up to 20. The Tea server clears the tea tables into it; the washing machine's worker takes them to wash."),
+            "Holds only used tea sets, up to 20. The Tea server clears the tea tables into it. In a building with a lit steam boiler and Water"
+            + " it rinses one set an hour into teaware on a teaware shelf with room."),
     ];
 
     /// <summary>
@@ -230,7 +236,7 @@ static class FurnitureRecords
 
         if (spec.Use == Use.Model && model != standIn) KeepWork(standIn, record);
         if (spec.Id == Ids.MassageBed && model != standIn) KeepUseNodes(standIn, record);
-        if (model != standIn && WorkSpots.Measured(spec.Id)) AddUseNode(record, WorkSpots.Local(spec.Id), WorkSpots.NodeYaw);
+        if (model != standIn && WorkSpots.Measured(spec.Id)) AddFrontNodes(record, spec.Id);
 
         SetUse(record, spec);
         record.Strings["building category"] = RecordKit.BuildCategory;
@@ -278,6 +284,9 @@ static class FurnitureRecords
             Ids.TeaShelf => Ids.TeaShelfLook,
             Ids.RobeHamper => Ids.RobeHamperLook,
             Ids.SoapShelf => Ids.SoapShelfLook,
+            Ids.TeawareShelf => Ids.TeawareShelfLook,
+            Ids.TeaSetCabinet => Ids.TeaSetCabinetLook,
+            Ids.UsedTeaRack => Ids.UsedTeaRackLook,
             _ => null,
         };
 
@@ -308,27 +317,48 @@ static class FurnitureRecords
     const string UseNodeRecord = "1183-gamedata.base";
 
     /// <summary>
+    /// How far above the game Bed's node a massage bed's sleeper lies, in ground units (0.1 m): the model's mattress is higher than the Bed's, and
+    /// at the Bed's height the customer lay sunk into it (**Observed**, Matthew's game).
+    /// </summary>
+    const float LieRaise = 5;
+
+    /// <summary>
     /// Gives the massage bed on its own model one of the game Bed's use nodes, scaled as the Bed scales it. The Bed lies along local X with a node
     /// beside each long side (z +11.18 and -11.05, the second turned 180 degrees, so they face opposite ways), and the side a sleeper comes from
     /// decides where its head goes. The model lies along X (its .json <c>yaw</c> 0) with its head rest at -X and keeps only the -Z node, so every
-    /// sleeper lies the same way (Forgotten Buildings' Bed with Pillow keeps the same one).
+    /// sleeper lies the same way (Forgotten Buildings' Bed with Pillow keeps the same one), raised by <see cref="LieRaise"/>.
     /// </summary>
     static void KeepUseNodes(GameRecord standIn, FcsRecord record)
     {
-        float scale = standIn.GetFloat("scale", 1) / record.Floats.GetValueOrDefault("scale", 1);
+        float own = record.Floats.GetValueOrDefault("scale", 1);
+        float scale = standIn.GetFloat("scale", 1) / own;
         var node = standIn.Instances.Values
             .Where(i => i.Target == UseNodeRecord)
             .OrderBy(i => i.Position.Z)
             .FirstOrDefault();
         if (node is null) return;
 
-        record.Instances.Add(new FcsInstance { Id = node.Id, Target = UseNodeRecord, Position = node.Position * scale, Rotation = node.Rotation });
+        var at = node.Position * scale + Raised(own);
+        record.Instances.Add(new FcsInstance { Id = node.Id, Target = UseNodeRecord, Position = at, Rotation = node.Rotation });
+    }
+
+    /// <summary>
+    /// <see cref="LieRaise"/> in the record's own units (the game multiplies node positions by the building's <c>scale</c>).
+    /// </summary>
+    static Vector3 Raised(float scale) => new(0, LieRaise / scale, 0);
+
+    /// <summary>
+    /// Adds the piece's front use nodes (<see cref="WorkSpots.Nodes"/>), turned <see cref="WorkSpots.NodeYaw"/>.
+    /// </summary>
+    internal static void AddFrontNodes(FcsRecord record, string piece)
+    {
+        foreach (var at in WorkSpots.Nodes(piece)) AddUseNode(record, at, WorkSpots.NodeYaw);
     }
 
     /// <summary>
     /// Adds a use node at <paramref name="at"/> (building units), turned <paramref name="yaw"/> radians about Y.
     /// </summary>
-    internal static void AddUseNode(FcsRecord record, Vector3 at, float yaw)
+    static void AddUseNode(FcsRecord record, Vector3 at, float yaw)
     {
         var turn = Quaternion.CreateFromAxisAngle(Vector3.UnitY, yaw);
         record.Instances.Add(new FcsInstance { Id = $"usenode{record.Instances.Count + 1}", Target = UseNodeRecord, Position = at, Rotation = turn });

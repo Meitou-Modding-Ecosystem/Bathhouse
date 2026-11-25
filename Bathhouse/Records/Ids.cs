@@ -66,7 +66,7 @@ public static class Ids
     /// The machines' functionalities (<c>BUILDING_FUNCTIONALITY</c>), in the order of <see cref="TowelLoom"/> and the machines after it.
     /// </summary>
     public const string TowelLoomWork = "20-" + FileName, SoapPressWork = "21-" + FileName, WasherWork = "22-" + FileName,
-        TeaDryerWork = "23-" + FileName, KilnWork = "24-" + FileName, TeaBenchWork = "25-" + FileName;
+        TeaDryerWork = "23-" + FileName, KilnWork = "24-" + FileName, TeaBenchWork = "25-" + FileName, CisternWork = "26-" + FileName;
 
     /// <summary>
     /// The production machines and the tea bench (<c>BUILDING</c>).
@@ -83,6 +83,11 @@ public static class Ids
     /// The water tank the boilers draw from: storage for Water only.
     /// </summary>
     public const string WaterTank = "37-" + FileName;
+
+    /// <summary>
+    /// The water cistern: a machine whose output holds Water, so haulers draw from it as from a well; its Water carrier fills it from wells.
+    /// </summary>
+    public const string Cistern = "38-" + FileName;
 
     #endregion
 
@@ -143,7 +148,8 @@ public static class Ids
         LockersLook = "901500-" + FileName, TowelRackLook = "901600-" + FileName, TeaDryerLook = "901700-" + FileName,
         KilnLook = "901800-" + FileName, ReviewBoardLook = "902100-" + FileName, StatueLook = "902200-" + FileName,
         ZenGardenLook = "902300-" + FileName, TeaDisplayLook = "902400-" + FileName, TeaShelfLook = "902500-" + FileName,
-        RobeHamperLook = "902600-" + FileName, SoapShelfLook = "902700-" + FileName;
+        RobeHamperLook = "902600-" + FileName, SoapShelfLook = "902700-" + FileName, TeawareShelfLook = "902800-" + FileName,
+        TeaSetCabinetLook = "902900-" + FileName, UsedTeaRackLook = "903000-" + FileName;
 
     #endregion
 
@@ -155,7 +161,7 @@ public static class Ids
     public const string BathGoal = "90-" + FileName;
 
     /// <summary>
-    /// The bath goal's task type (its <c>enum</c>), also the row its walk and soak run on. Claimed by the mod; Bathhouse keeps 4401 to 4409.
+    /// The bath goal's task type (its <c>enum</c>), also the row its walk and soak run on. Claimed by the mod inside its number block 4400 to 4499 (README "Numbers").
     /// </summary>
     public const int BathGoalType = 4401;
 
@@ -170,9 +176,10 @@ public static class Ids
     public const int VisitGoalType = 4402;
 
     /// <summary>
-    /// The staff job types (docs/bathhouse.md "Staff"): clerk, scrubber, laundry runner and tea server, each also its errands' row.
+    /// The staff job types (docs/bathhouse.md "Staff"): clerk, scrubber, laundry runner, tea server, massage attendant and water carrier, each also
+    /// its errands' row.
     /// </summary>
-    public const int ClerkJob = 4403, ScrubberJob = 4404, LaundryJob = 4405, TeaJob = 4406, MassageJob = 4407;
+    public const int ClerkJob = 4403, ScrubberJob = 4404, LaundryJob = 4405, TeaJob = 4406, MassageJob = 4407, WaterJob = 4408;
 
     #endregion
 
@@ -183,6 +190,15 @@ public static class Ids
     /// </summary>
     public const string BasicsResearch = "80-" + FileName, HotBathsResearch = "81-" + FileName, MassageResearch = "82-" + FileName,
         TeaResearch = "83-" + FileName, OilBathResearch = "84-" + FileName, BloodBathResearch = "85-" + FileName;
+
+    #endregion
+
+    #region Animations
+
+    /// <summary>
+    /// The tea table sit's <c>COMBAT_TECHNIQUE</c> and the mod's <c>ANIMATION_FILE</c> (<see cref="AnimationRecords"/>).
+    /// </summary>
+    public const string TeaSitMove = "95-" + FileName, Animations = "96-" + FileName;
 
     #endregion
 }

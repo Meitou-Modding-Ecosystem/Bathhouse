@@ -10,7 +10,8 @@ heated tubs and paying bathers. GPL-3.0-or-later. What it does: [docs/bathhouse.
   `.claude/skills/meitou-engine-release`.
 - Checking a built mod against the newest Meitou release (CI does it on every PR): [docs/refcheck.md](docs/refcheck.md).
 - Publishing the mod to the Steam Workshop for the first time, then on every release: [docs/steam-workshop.md](docs/steam-workshop.md).
-- Turning `.glb` models (Meshy, Hi3D, Blender) into buildable structures, no FCS needed: [docs/structures.md](docs/structures.md).
+- Turning `.glb` models (Meshy, Hi3D, Blender) into buildable structures and items, no FCS needed: [docs/structures.md](docs/structures.md);
+  getting a generated model's polycount, size and textures right first: [docs/model-prep.md](docs/model-prep.md).
 
 ## Customers can be attacked on the road
 
@@ -18,6 +19,24 @@ Customer groups travel to your bathhouse as ordinary squads. While they are away
 them meet hostile squads and fight it out off screen, and a group that loses never arrives (the bathhouse posts that it never made it, and
 the next group may set out at once). A bathhouse in dangerous country gets fewer customers. To turn it off: **Settings > Advanced > Fights
 far away** (it affects every squad in the world, not only customers).
+
+## Numbers
+
+Task types and dialogue codes are shared by every loaded mod; Bathhouse claims only these, inside its block
+([mod number blocks](https://github.com/TheIvoryDisaster/GutenStructure/blob/beta/docs/numbers.md)). `NumbersTests` checks the list.
+
+Block 4400-4499
+
+| Number | Pool | Use |
+| --- | --- | --- |
+| 4401 | Task type | Goal: taking a bath |
+| 4402 | Task type | Goal: visiting the bathhouse |
+| 4403 | Task type | Job: Bathhouse clerk (offered on the Check-in Counter) |
+| 4404 | Task type | Job: Tub scrubber (offered on the tubs) |
+| 4405 | Task type | Job: Laundry runner (offered on the Washing Machine) |
+| 4406 | Task type | Job: Tea server (offered on the Tea Table) |
+| 4407 | Task type | Job: Massage attendant (offered on the Massage Station) |
+| 4408 | Task type | Job: Water carrier (offered on the Water Cistern) |
 
 ## Layout
 
@@ -32,6 +51,7 @@ far away** (it affects every squad in the world, not only customers).
   to new releases and merges when CI passes ([framework update](https://github.com/TheIvoryDisaster/GutenStructure/blob/beta/docs/framework-update.md)).
 - `Play/`: one-click build, deploy and run.
 - `tools/`: `Update-Local.ps1`, the local pull and engine-pin check ([keep clones current](docs/local-development.md#keep-clones-current));
+  `Switch-Engine.ps1` and `Use-ForkEngine.ps1`, local engine switching ([play every mod on the fork](docs/local-development.md#play-every-mod-on-the-fork));
   `refcheck.sh` and `RefCheck/`, the engine-reference check ([docs/refcheck.md](docs/refcheck.md)); `StructureImport/`, the model import ([docs/structures.md](docs/structures.md)).
 - `Directory.Build.props` imports the engine's, so mods build with the game's settings (warnings are errors).
 

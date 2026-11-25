@@ -86,6 +86,10 @@ public sealed class CustomerTests
         Assert.Equal(Quality.RobeWeight, Quality.Of(soaked: 3, lukewarm: 0, waited: 0, cold: false, robe: false).NoRobe);
 
     [Fact]
+    public void Late_tea_takes_off_fifteen_percent() =>
+        Assert.Equal(0.85f, Quality.Of(soaked: 3, lukewarm: 0, waited: 0, cold: false, lateTea: true).Total, 3);
+
+    [Fact]
     public void Waiting_takes_off_at_most_its_cap() =>
         Assert.Equal(Quality.MostWait, Quality.Of(soaked: 2, lukewarm: 0, waited: 10, cold: false).Wait);
 

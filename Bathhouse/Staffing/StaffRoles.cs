@@ -36,6 +36,11 @@ public enum StaffRole
     /// Works a massage station while a customer (or anyone) lies on a massage bed paired with it.
     /// </summary>
     Massage,
+
+    /// <summary>
+    /// Carries Water from wells into a water cistern.
+    /// </summary>
+    Water,
 }
 
 /// <summary>
@@ -50,6 +55,12 @@ public static class StaffRoles
     public static readonly StaffRole[] All = Enum.GetValues<StaffRole>();
 
     /// <summary>
+    /// Every piece that offers a role.
+    /// </summary>
+    static readonly string[] Pieces =
+        [Ids.Counter, Ids.SmallTub, Ids.MediumTub, Ids.LargeTub, Ids.OilBath, Ids.BloodBath, Ids.WashingMachine, Ids.TeaTable, Ids.MassageStation, Ids.Cistern];
+
+    /// <summary>
     /// A role's task type.
     /// </summary>
     public static TaskType TypeOf(StaffRole role) => (TaskType)(role switch
@@ -58,7 +69,8 @@ public static class StaffRoles
         StaffRole.Scrubber => Ids.ScrubberJob,
         StaffRole.Laundry => Ids.LaundryJob,
         StaffRole.Tea => Ids.TeaJob,
-        _ => Ids.MassageJob,
+        StaffRole.Massage => Ids.MassageJob,
+        _ => Ids.WaterJob,
     });
 
     /// <summary>
@@ -75,7 +87,8 @@ public static class StaffRoles
         StaffRole.Scrubber => "Tub scrubber",
         StaffRole.Laundry => "Laundry runner",
         StaffRole.Tea => "Tea server",
-        _ => "Massage attendant",
+        StaffRole.Massage => "Massage attendant",
+        _ => "Water carrier",
     };
 
     /// <summary>
@@ -88,31 +101,48 @@ public static class StaffRoles
         Ids.WashingMachine => StaffRole.Laundry,
         Ids.TeaTable => StaffRole.Tea,
         Ids.MassageStation => StaffRole.Massage,
+        Ids.Cistern => StaffRole.Water,
         _ => null,
     };
 
     /// <summary>
-    /// Whether one of the player's characters holds the role's job at a piece in the building (its jobs switch on or off).
+    /// The pieces that offer a role: the records <see cref="OfferedBy"/> maps to it.
     /// </summary>
-    public static bool Staffs(World world, string? building, StaffRole role)
-    {
-        if (building is null) return false;
+    public static IReadOnlyList<string> PiecesOf(StaffRole role) =>
+        Pieces.Where(record => OfferedBy(record) == role).ToList();
 
+    /// <summary>
+    /// A role's job offer (engine <c>AddJobOffer</c>): its pieces' right-click menu shows "Work as: name" to selected people, and other mods (such as
+    /// Fiefdom's Work tab) read the offers to staff the job.
+    /// </summary>
+    public static ModJobOffer Offer(StaffRole role) => new(TypeOf(role), PiecesOf(role), "Work as: " + Name(role), ModJobTakers.People);
+
+    /// <summary>
+    /// Whether one of the player's living characters holds the role's job at this piece.
+    /// </summary>
+    public static bool StaffsPiece(World world, string piece, StaffRole role) => HolderAt(world, piece, role) is not null;
+
+    /// <summary>
+    /// The first of the player's living characters holding the role's job at this piece (by slot); null for none.
+    /// </summary>
+    public static int? HolderAt(World world, string piece, StaffRole role)
+    {
         var type = TypeOf(role);
         var table = world.Characters;
         for (int slot = 0; slot < table.HighWater; slot++)
         {
             if (table.Cold(slot) is not { IsPlayer: true, Jobs: { } jobs } || !table.Next[slot].Alive) continue;
-            if (jobs.Any(j => j.Type == type && j.Site is { } site && world.Buildings.Find(site)?.Parent == building)) return true;
+            if (jobs.Any(j => j.Type == type && j.Site == piece)) return slot;
         }
 
-        return false;
+        return null;
     }
 
     /// <summary>
     /// Turns the game's Hauling to job (124, what a Shift + right click on a storage gives) at a piece that offers a role into that role's job, in
     /// its place in the list: the counter, the tubs and the massage station are storages so that the click gives a job (docs/bathhouse.md
-    /// "Staff"). A haul it started stops.
+    /// "Staff"). The cistern is an automatic machine, so its click gives Operating automatic machine (152), which becomes the Water carrier job.
+    /// A haul it started stops.
     /// </summary>
     public static void TakeClickedJobs(World world)
     {
@@ -123,8 +153,7 @@ public static class StaffRoles
 
             for (int k = 0; k < jobs.Count; k++)
             {
-                if (jobs[k].Type != TaskType.OperateStorage || jobs[k].Site is not { } site) continue;
-                if (OfferedBy(world.Buildings.Find(site)?.Record) is not { } role || role == StaffRole.Laundry || role == StaffRole.Tea) continue;
+                if (jobs[k].Site is not { } site || Clicked(jobs[k].Type, world.Buildings.Find(site)?.Record) is not { } role) continue;
 
                 Convert(world, slot, cold, k, role, site);
             }
@@ -132,20 +161,32 @@ public static class StaffRoles
     }
 
     /// <summary>
-    /// Puts the role's job in place of the Hauling to job <paramref name="k"/>; one of the role held elsewhere goes.
+    /// The role a clicked game job at a piece becomes: Hauling to at the counter, a tub or the massage station, Operating automatic machine at the
+    /// cistern; null for any other.
+    /// </summary>
+    static StaffRole? Clicked(TaskType type, string? record) => (type, OfferedBy(record)) switch
+    {
+        (TaskType.OperateStorage, StaffRole.Clerk or StaffRole.Scrubber or StaffRole.Massage) => OfferedBy(record),
+        (TaskType.OperateAutomaticMachinery, StaffRole.Water) => StaffRole.Water,
+        _ => null,
+    };
+
+    /// <summary>
+    /// Puts the role's job in place of the clicked job <paramref name="k"/>; a second one at the same piece goes (jobs at other pieces of the
+    /// role stay: each job works its own piece).
     /// </summary>
     static void Convert(World world, int slot, CharacterCold cold, int k, StaffRole role, string site)
     {
         var type = TypeOf(role);
         var job = new PermaJob(type, site);
-        if (cold.Running is { Source: TaskSource.Job, Row: TaskType.OperateStorage } run && run.Job == k) TaskStart.Stand(world.Characters, slot);
+        if (cold.Running is { Source: TaskSource.Job } run && run.Job == k && run.Row == cold.Jobs[k].Type) TaskStart.Stand(world.Characters, slot);
 
         if (cold.Running is { Source: TaskSource.Job } held && held.Row == type) TaskStart.Stand(world.Characters, slot);
 
         cold.Jobs[k] = job;
         for (int i = cold.Jobs.Count - 1; i >= 0; i--)
         {
-            if (i != k && cold.Jobs[i].Type == type) RemoveAt(cold, i);
+            if (i != k && cold.Jobs[i].Type == type && cold.Jobs[i].Site == site) RemoveAt(cold, i);
         }
 
         DecisionSystem.Request(cold);
@@ -162,7 +203,8 @@ public static class StaffRoles
     }
 
     /// <summary>
-    /// Gives each of the player's selected characters the role's job at a piece (one job of a role per character: one held elsewhere moves here).
+    /// Gives each of the player's selected characters the role's job at a piece, once: a character may hold the role at several pieces, each job
+    /// working its own piece.
     /// </summary>
     public static void Assign(World world, string site, StaffRole role)
     {
@@ -171,7 +213,8 @@ public static class StaffRoles
         {
             if (!world.Characters.TryResolveNext(who, out int slot) || world.Characters.Cold(slot) is not { IsPlayer: true } cold) continue;
 
-            cold.Jobs.RemoveAll(j => j.Type == type);
+            if (cold.Jobs.Any(j => j.Type == type && j.Site == site)) continue;
+
             cold.Jobs.Add(new PermaJob(type, site));
             cold.Orders |= Meitou.Simulation.Player.CharacterOrders.Jobs;
             DecisionSystem.Request(cold);

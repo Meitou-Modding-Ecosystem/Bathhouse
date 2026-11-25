@@ -31,6 +31,11 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system, CounterLedger led
     const string WarmTip = "No tub in this building is warm with a free seat: switch a powered steam boiler on and keep Water in a store here.";
 
     /// <summary>
+    /// The tooltip of a counter whose warm tubs are all dirty and wait for their scrubber.
+    /// </summary>
+    const string ScrubTip = "The warm tubs here are dirty: their Tub scrubber cleans each once it is empty. The tub's Scrubber row says what they are doing.";
+
+    /// <summary>
     /// The tooltip of a ready counter.
     /// </summary>
     const string SuppliesTip = "Customers bathe without a towel or soap the counter and this building's stores lack, for a lower quality and price.";
@@ -66,15 +71,35 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system, CounterLedger led
     {
         var building = context.Building;
         var counter = bathhouse.Counter;
-        if (building.Record == Ids.Counter && building.SiteId is { } site) return [CheckInLine(bathhouse.CheckIn(site)), LedgerLine(site)];
+        if (building.Record == Ids.Counter && building.SiteId is { } site)
+            return [CheckInLine(bathhouse.CheckIn(site)), OpenLine(context, bathhouse, site, "check-in"), LedgerLine(site)];
+
         if (building.Record == Ids.ReviewBoard) return ReviewLines(bathhouse.Reviews.Summary);
-        if (building.Record == Ids.TeaTable) return [PriceLine(context, Service.Tea, counter.Percent(Service.Tea), Tooltip(Service.Tea))];
+        if (building.Record == Ids.TeaTable && building.SiteId is { } table)
+            return [OpenLine(context, bathhouse, table, "tea"), PriceLine(context, Service.Tea, counter.Percent(Service.Tea), Tooltip(Service.Tea))];
+
+        if (building.Record == Ids.MassageBed && building.SiteId is { } bed) return [OpenLine(context, bathhouse, bed, "massage")];
         if (building.Record == Ids.MassageStation)
             return [PriceLine(context, Service.Massage, counter.Percent(Service.Massage), Tooltip(Service.Massage))];
         if (bathhouse.Piece(building.SiteId) is not { } view) return [];
 
         if (building.Record == Ids.Boiler) return [BoilerLine(view), .. DebuffLines(context, bathhouse)];
-        return [TubLine(view), BatheLine(context)];
+        if (view.Tea) return ConditionBars.Active ? [] : [HotWaterLine(view)];
+        return ConditionBars.Active ? [BatheLine(context)] : [TubLine(view), BatheLine(context)];
+    }
+
+    /// <summary>
+    /// A piece's open switch: an open counter checks customers in, an open tea table or massage bed is offered to them. Pressing it flips it.
+    /// </summary>
+    static UiBuildingAction OpenLine(UiBuildingContext context, BathhouseSystem bathhouse, string site, string service)
+    {
+        bool open = bathhouse.IsOpen(site);
+        var flip = new OpenPieceCommand(site, !open) { Tick = 0 };
+        string caption = open ? $"Open for {service} (press to close)" : $"Closed for {service} (press to open)";
+        string tooltip = open
+            ? "Customers use this. Close it when you run out of what it needs."
+            : "Customers skip this until you open it again.";
+        return new UiBuildingAction(caption, tooltip, Send(context, flip));
     }
 
     /// <summary>
@@ -93,7 +118,7 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system, CounterLedger led
     static string Tooltip(Service service)
     {
         long price = (long)Math.Round(Pricing.Suggested(service, TubKind.Small));
-        string what = service == Service.Tea ? "a Tea Set after the soak" : "an hour of massage: a tenth at the attendant's Dexterity 0, all of it at 100";
+        string what = service == Service.Tea ? "a Tea Set before the soak" : "an hour of massage: a tenth at the attendant's Dexterity 0, all of it at 100";
         return $"Suggested {price} cats for {what}. Press for the next step.";
     }
 
@@ -119,6 +144,15 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system, CounterLedger led
     /// The press of a tub's button: queues the command that sends the selection.
     /// </summary>
     static Action Bathe(UiBuildingContext context, string tub) => () => context.Enqueue(new BatheCommand(tub) { Tick = context.Tick });
+
+    /// <summary>
+    /// A tea bench's or used tea rack's line in a game without the Condition bars: whether its building has hot water.
+    /// </summary>
+    static UiBuildingAction HotWaterLine(PieceView view)
+    {
+        var (name, _, value, tip) = ConditionBars.HotWater(view.Heat);
+        return new UiBuildingAction(value.Length > 0 ? $"{name} ({value})" : name, tip, Nothing);
+    }
 
     /// <summary>
     /// A boiler's line: its building's heat and how many seats the lit boilers heat.
@@ -162,6 +196,7 @@ public sealed class BathhouseUi(Func<BathhouseSystem?> system, CounterLedger led
         {
             CheckInNeed.Clerk => new UiBuildingAction("Check-in needs: a clerk", ClerkTip, Nothing),
             CheckInNeed.WarmTub => new UiBuildingAction("Check-in needs: a warm tub", WarmTip, Nothing),
+            CheckInNeed.Scrub => new UiBuildingAction("Check-in needs: a tub scrubbed", ScrubTip, Nothing),
             _ => new UiBuildingAction($"Check-in: ready, {Supplies(now)}", SuppliesTip, Nothing),
         };
     }

@@ -25,6 +25,11 @@ public sealed record BatheCommand(string Tub) : SimCommand;
 public sealed record OpenCommand(bool Open) : SimCommand;
 
 /// <summary>
+/// Switches a counter, tea table or massage bed open or closed.
+/// </summary>
+public sealed record OpenPieceCommand(string Site, bool Open) : SimCommand;
+
+/// <summary>
 /// Sets a service's price, in percent of its suggested price (the counter's price lines).
 /// </summary>
 public sealed record PriceCommand(Service Service, int Percent) : SimCommand;
@@ -67,9 +72,10 @@ public sealed record GuestsNow(string[] OnTheWay, GuestView[] Guests);
 public sealed record ReviewsNow(GuestSummary Summary, GuestRecord[] Records);
 
 /// <summary>
-/// What the panel of a tub or boiler shows: its building's heat, and for a tub the seats taken.
+/// What the panel of a tub, boiler, tea bench or used tea rack (<paramref name="Tea"/>) shows: its building's heat, and for a tub the seats taken
+/// and whether it is dirty.
 /// </summary>
-public readonly record struct PieceView(BuildingHeat Heat, int Taken, int Seats);
+public readonly record struct PieceView(BuildingHeat Heat, int Taken, int Seats, bool Dirty = false, bool Tea = false);
 
 /// <summary>
 /// The bathhouse in one world (docs/bathhouse.md "Heated tubs", "Customers", "Staff"): heating checked, bathers sent, soaks, customers and staff
@@ -89,6 +95,11 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     /// The boilers' heat.
     /// </summary>
     readonly Heating _heating = new();
+
+    /// <summary>
+    /// The used tea racks' rinsing and the tea benches' hold on hot water.
+    /// </summary>
+    readonly TeaWorks _teaWorks;
 
     /// <summary>
     /// The soaks and the bath goal.
@@ -121,6 +132,11 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     readonly BedHealing _bedHealing = new();
 
     /// <summary>
+    /// The bars under each piece's Condition bar.
+    /// </summary>
+    readonly PanelBars _panelBars;
+
+    /// <summary>
     /// The customer kinds the debug row asked to send since the last check.
     /// </summary>
     readonly List<string> _sendKinds = [];
@@ -147,9 +163,11 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     {
         _purpose = purpose;
         _soaks = new Soaks(_heating, Finished, data);
+        _teaWorks = new TeaWorks(_heating);
         _clientele = new Clientele(_heating, _soaks, _care, data, purpose);
         _staff = new Staff(new Plans(_soaks, _care));
         _privateBeds = new PrivateBeds(data.Relations);
+        _panelBars = new PanelBars(_heating, _care, _clientele, _teaWorks);
     }
 
     public void Register(ChooserRegistry chooser)
@@ -166,6 +184,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
             if (command is BatheCommand bathe) Bathe(world, bathe.Tub);
             else if (command is KeepDebuffCommand keep) Keep(keep);
             else if (command is OpenCommand open) _clientele.Open = open.Open;
+            else if (command is OpenPieceCommand piece) OpenPiece(piece);
             else if (command is PriceCommand price) _clientele.Prices.Set(price.Service, price.Percent);
             else if (command is SendCustomersCommand send) _sendKinds.Add(send.Kind);
             else if (command is AssignStaffCommand assign) StaffRoles.Assign(world, assign.Site, assign.Role);
@@ -179,6 +198,20 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     {
         foreach (var who in world.Player.Selection) _sent.Add((who, tub));
     }
+
+    /// <summary>
+    /// Switches a piece open or closed.
+    /// </summary>
+    void OpenPiece(OpenPieceCommand piece)
+    {
+        if (piece.Open) _clientele.Closed.Remove(piece.Site);
+        else _clientele.Closed.Add(piece.Site);
+    }
+
+    /// <summary>
+    /// Whether a counter, tea table or massage bed is switched open (the UI reads it).
+    /// </summary>
+    public bool IsOpen(string site) => _clientele.IsOpen(site);
 
     /// <summary>
     /// Keeps a bad effect from being cleared by soaks, or clears it again.
@@ -201,6 +234,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
 
         var tubs = Tubs.All(world);
         _heating.Check(world, tubs, settings);
+        _teaWorks.Step(world, hours);
         SendPlayers(world, tubs);
         SendCustomers(world, tubs);
         _soaks.Step(world, hours, tub => Length(tub.Kind, settings));
@@ -209,7 +243,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
         _staff.Step(world);
         _privateBeds.Step(world);
         _bedHealing.Step(world);
-        Publish(world, tubs);
+        Publish(world, tubs, settings);
     }
 
     /// <summary>
@@ -305,7 +339,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     #region Views
 
     /// <summary>
-    /// The latest view of each tub and boiler by site id (written in the tick, read on the host's thread).
+    /// The latest view of each tub, boiler and hot-water tea piece by site id (written in the tick, read on the host's thread).
     /// </summary>
     volatile Dictionary<string, PieceView> _pieces = [];
 
@@ -315,7 +349,17 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     volatile string _view = "No bathhouse yet.";
 
     /// <summary>
-    /// The view of a tub or boiler; null for another site.
+    /// The latest bars under each piece's Condition bar by site id (written in the tick, read on the host's thread).
+    /// </summary>
+    volatile Dictionary<string, Bar[]> _bars = [];
+
+    /// <summary>
+    /// The bars under a piece's Condition bar; null for a site without any.
+    /// </summary>
+    public Bar[]? Bars(string site) => _bars.TryGetValue(site, out var bars) ? bars : null;
+
+    /// <summary>
+    /// The latest view of a tub, boiler or tea piece; null for none.
     /// </summary>
     public PieceView? Piece(string? site) => site is not null && _pieces.TryGetValue(site, out var view) ? view : null;
 
@@ -350,6 +394,11 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     public string View => _view;
 
     /// <summary>
+    /// Whether a customer sits at a tea table (<see cref="Clientele.SitsAtTea"/>).
+    /// </summary>
+    public bool SitsAtTea(CharacterId id) => _clientele.SitsAtTea(id);
+
+    /// <summary>
     /// The latest guest list (written in the tick, read on the host's thread).
     /// </summary>
     volatile GuestsNow _guests = new([], []);
@@ -372,17 +421,21 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     /// <summary>
     /// Publishes the panels' and the debug row's views.
     /// </summary>
-    void Publish(World world, List<Tub> tubs)
+    void Publish(World world, List<Tub> tubs, BathhouseSettings settings)
     {
+        _bars = _panelBars.Build(world, tubs, _soaks, settings);
         var pieces = new Dictionary<string, PieceView>(StringComparer.Ordinal);
         foreach (var tub in tubs)
         {
             int taken = _soaks.All.Count(s => s.Tub == tub.Site.Id);
-            pieces[tub.Site.Id] = new PieceView(_heating.Of(tub.Building), taken, tub.Seats);
+            pieces[tub.Site.Id] = new PieceView(_heating.Of(tub.Building), taken, tub.Seats, _care.IsDirty(tub.Site.Id));
         }
 
         foreach (var site in world.Buildings.All.Where(s => s.Record == Records.Ids.Boiler))
             pieces[site.Id] = new PieceView(_heating.Of(site.Parent), 0, 0);
+
+        foreach (var site in world.Buildings.All.Where(s => s.Record is Records.Ids.TeaBench or Records.Ids.UsedTeaRack))
+            pieces[site.Id] = new PieceView(_heating.Of(site.Parent), 0, 0, Tea: true);
 
         _pieces = pieces;
         _counter = new StrongBox<CounterView>(CounterNow());
@@ -470,7 +523,7 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     /// <summary>
     /// The sidecar layout's version.
     /// </summary>
-    public const int SaveVersion = 7;
+    public const int SaveVersion = 8;
 
     public void Write(Stream stream)
     {

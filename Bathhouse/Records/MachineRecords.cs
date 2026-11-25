@@ -48,10 +48,12 @@ static class MachineRecords
         .. Specs.Select(s => Work(game, s)),
         TeaBenchWork(game),
         WasherWork(game),
+        CisternWork(game),
         .. Specs.Select(s => Building(game, s, s.WorkId)),
         TeaBench(game),
         Washer(game),
         Boiler(game),
+        Cistern(game),
     ];
 
     #region Production machines
@@ -89,7 +91,7 @@ static class MachineRecords
         var record = RecordKit.Copy(model, spec.Id, spec.Name, "functionality", "upgrades to");
 
         if (model != standIn) KeepCost(standIn, record);
-        if (model != standIn) FurnitureRecords.AddUseNode(record, WorkSpots.Local(spec.Id), WorkSpots.NodeYaw);
+        if (model != standIn) FurnitureRecords.AddFrontNodes(record, spec.Id);
 
         RecordKit.Links(record, "functionality", (work, 0, 0));
         record.Strings["building category"] = RecordKit.BuildCategory;
@@ -141,15 +143,15 @@ static class MachineRecords
     }
 
     /// <summary>
-    /// The washing machine's functionality: the cooking stove's crafting, with a queue of towel, robe and teaware washes (each from its
-    /// <c>ingredients</c>, a dirty one and a quarter of a soap). The output holds 10 towels, one robe (armour never stacks) and 5 teaware.
+    /// The washing machine's functionality: the cooking stove's crafting, with a queue of towel and robe washes (each from its <c>ingredients</c>, a
+    /// dirty one and a quarter of a soap). The output holds 10 towels, and one robe (armour never stacks).
     /// </summary>
     static FcsRecord WasherWork(GameDatabase game)
     {
         var model = RecordKit.Model(game, FcsRecordType.BuildingFunctionality, "43954-rebirth.mod", "cooking general");
         var record = RecordKit.Copy(model, Ids.WasherWork, "Washing Machine", "item crafts");
 
-        RecordKit.Links(record, "item crafts", (Ids.Towel, 10, 0), (Ids.Robe, 1, 0), (Ids.Teaware, 5, 0));
+        RecordKit.Links(record, "item crafts", (Ids.Towel, 10, 0), (Ids.Robe, 1, 0));
         record.Floats["production mult"] = WashSpeed;
         record.Floats["use range"] = WorkSpots.OperatorReach;
         return record;
@@ -161,10 +163,9 @@ static class MachineRecords
     static FcsRecord Washer(GameDatabase game)
     {
         var spec = new Spec(Ids.WashingMachine, Ids.WasherWork, "Washing Machine", "52162-rebirth.mod", "Sake Still", "", "", [], [],
-            "Washes dirty towels, robes and used tea sets clean, one bar of soap for four. Queue Towel, Robe and Teaware washes at it like a"
-            + " crafting bench (Repeat Queue keeps it going) and give one of your people its operate job. A Laundry runner (panel button)"
-            + " fetches dirty goods from the hampers and the used tea rack for the queued washes, keeps it in soap and takes towels to the"
-            + " racks, robes to the lockers and teaware to the teaware shelf.");
+            "Washes dirty towels and robes clean, one bar of soap for four. Queue Towel and Robe washes at it like a crafting bench (Repeat"
+            + " Queue keeps it going) and give one of your people its operate job. A Laundry runner (panel button) fetches dirty goods from the"
+            + " hampers for the queued washes, keeps it in soap and takes towels to the racks and robes to the lockers.");
         return Building(game, spec, Ids.WasherWork);
     }
 
@@ -174,7 +175,8 @@ static class MachineRecords
     static FcsRecord TeaBench(GameDatabase game)
     {
         var spec = new Spec(Ids.TeaBench, Ids.TeaBenchWork, "Tea Bench", "1944-gamedata.base", "Cooking Stove", "", "", [], [],
-            "Brews greenfruit tea in teaware into tea sets for the tea tables. Craft at it like a cooking stove and store the sets on a tea shelf.");
+            "Brews greenfruit tea and Water in teaware into tea sets for the tea tables. It only brews in a building with a lit steam boiler"
+            + " and Water, like the tubs. Craft at it like a cooking stove; haulers take the sets to a tea set cabinet.");
         return Building(game, spec, Ids.TeaBenchWork);
     }
 
@@ -198,6 +200,53 @@ static class MachineRecords
             + $" Each boiler heats {BathhouseSettings.DefaultSeatsPerBoiler} bathers' seats.";
         record.Bools["creates player town"] = true;
         EffectRecords.Attach(record, Ids.Boiler);
+        return record;
+    }
+
+    #endregion
+
+    #region Cistern
+
+    /// <summary>
+    /// The Water the cistern holds (the game's Water Tank storage holds 100).
+    /// </summary>
+    public const int CisternHolds = 200;
+
+    /// <summary>
+    /// The cistern's functionality: the game's well's, made an automatic refinery (max operators 0) that consumes nothing and produces Water into
+    /// an output of <see cref="CisternHolds"/>. The building's output rate 0 keeps it from making any: its Water carrier fills the output.
+    /// </summary>
+    static FcsRecord CisternWork(GameDatabase game)
+    {
+        var model = RecordKit.Model(game, FcsRecordType.BuildingFunctionality, "1926-gamedata.base", "well");
+        var record = RecordKit.Copy(model, Ids.CisternWork, "Water Cistern", "consumes", "produces");
+
+        record.Ints["function"] = RefineryFunction;
+        record.Ints["max operators"] = 0;
+        record.Ints.Remove("world resource mining");
+        record.Bools["is production building"] = true;
+        RecordKit.Links(record, "produces", (FurnitureRecords.Water, CisternHolds, 0));
+        return record;
+    }
+
+    /// <summary>
+    /// The water cistern: the game's Old Water Tower look (until a model of its own) without its storage grid, with the cistern functionality.
+    /// </summary>
+    static FcsRecord Cistern(GameDatabase game)
+    {
+        var standIn = RecordKit.Model(game, FcsRecordType.Building, "1950-gamedata.base", "Old Water Tower");
+        var model = FurnitureRecords.OwnLook(game, Ids.Cistern) ?? standIn;
+        var record = RecordKit.Copy(model, Ids.Cistern, "Water Cistern", "functionality", "upgrades to", "limit inventory");
+
+        if (model != standIn) KeepCost(standIn, record);
+        RecordKit.Links(record, "functionality", (Ids.CisternWork, 0, 0));
+        record.Bools["has inventory"] = false;
+        record.Ints["max operators"] = 0;
+        record.Floats["output rate"] = 0;
+        record.Strings["building category"] = RecordKit.BuildCategory;
+        record.Strings["Description"] = "Holds Water for your haulers to draw from, as from a well. Give one of your people its Water carrier job"
+            + " (Shift + right click, or the panel button) and they fill it from your wells.";
+        record.Bools["creates player town"] = true;
         return record;
     }
 
