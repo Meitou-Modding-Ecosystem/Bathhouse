@@ -51,6 +51,7 @@ Block 4400-4499
   to new releases and merges when CI passes ([framework update](https://github.com/TheIvoryDisaster/GutenStructure/blob/beta/docs/framework-update.md)).
 - `Play/`: one-click build, deploy and run.
 - `tools/`: `Update-Local.ps1`, the local pull and engine-pin check ([keep clones current](docs/local-development.md#keep-clones-current));
+  `Switch-Engine.ps1` and `Use-ForkEngine.ps1`, local engine switching ([play every mod on the fork](docs/local-development.md#play-every-mod-on-the-fork));
   `refcheck.sh` and `RefCheck/`, the engine-reference check ([docs/refcheck.md](docs/refcheck.md)); `StructureImport/`, the model import ([docs/structures.md](docs/structures.md)).
 - `Directory.Build.props` imports the engine's, so mods build with the game's settings (warnings are errors).
 
