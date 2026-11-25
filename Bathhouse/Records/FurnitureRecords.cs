@@ -236,7 +236,7 @@ static class FurnitureRecords
 
         if (spec.Use == Use.Model && model != standIn) KeepWork(standIn, record);
         if (spec.Id == Ids.MassageBed && model != standIn) KeepUseNodes(standIn, record);
-        if (model != standIn && WorkSpots.Measured(spec.Id)) AddUseNode(record, WorkSpots.Local(spec.Id), WorkSpots.NodeYaw);
+        if (model != standIn && WorkSpots.Measured(spec.Id)) AddFrontNodes(record, spec.Id);
 
         SetUse(record, spec);
         record.Strings["building category"] = RecordKit.BuildCategory;
@@ -348,9 +348,17 @@ static class FurnitureRecords
     static Vector3 Raised(float scale) => new(0, LieRaise / scale, 0);
 
     /// <summary>
+    /// Adds the piece's front use nodes (<see cref="WorkSpots.Nodes"/>), turned <see cref="WorkSpots.NodeYaw"/>.
+    /// </summary>
+    internal static void AddFrontNodes(FcsRecord record, string piece)
+    {
+        foreach (var at in WorkSpots.Nodes(piece)) AddUseNode(record, at, WorkSpots.NodeYaw);
+    }
+
+    /// <summary>
     /// Adds a use node at <paramref name="at"/> (building units), turned <paramref name="yaw"/> radians about Y.
     /// </summary>
-    internal static void AddUseNode(FcsRecord record, Vector3 at, float yaw)
+    static void AddUseNode(FcsRecord record, Vector3 at, float yaw)
     {
         var turn = Quaternion.CreateFromAxisAngle(Vector3.UnitY, yaw);
         record.Instances.Add(new FcsInstance { Id = $"usenode{record.Instances.Count + 1}", Target = UseNodeRecord, Position = at, Rotation = turn });
