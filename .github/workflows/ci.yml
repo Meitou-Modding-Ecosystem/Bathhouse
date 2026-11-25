@@ -56,7 +56,7 @@ jobs:
     - name: Check engine references against the pinned Meitou tag
       run: |
         engine=$(git rev-parse HEAD:engine)
-        tag=$(git ls-remote --tags https://github.com/VlcekM/MeitouClient | awk -v s="$engine" '$1 == s { sub("refs/tags/", "", $2); sub("\\^\\{\\}$", "", $2); print $2; exit }')
+        tag=$(git ls-remote --tags https://github.com/VlcekM/MeitouClient | awk -v s="$engine" '$1 == s && $2 ~ "^refs/tags/v" { sub("refs/tags/", "", $2); sub("\\^\\{\\}$", "", $2); print $2; exit }')
         if [ -z "$tag" ]; then echo "::error::engine $engine is not an upstream Meitou tag"; exit 1; fi
         tools/refcheck.sh "$tag"
   development-readiness:
