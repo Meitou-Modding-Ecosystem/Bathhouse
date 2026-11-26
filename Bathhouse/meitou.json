@@ -6,5 +6,5 @@
     "Bathhouse.dll"
   ],
   "entry": "Bathhouse.BathhouseMod",
-  "gameVersion": ">=0.23.2"
+  "gameVersion": ">=0.23.3"
 }
