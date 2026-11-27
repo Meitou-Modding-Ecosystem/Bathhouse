@@ -2,6 +2,9 @@ using Bathhouse.Bathing;
 using Bathhouse.Customers;
 using Bathhouse.Records;
 using Bathhouse.Staffing;
+using System.Numerics;
+using Meitou.Data.Gameplay.Construction;
+using Meitou.Modding;
 
 namespace Bathhouse.Tests;
 
@@ -127,5 +130,16 @@ public sealed class StaffTests
     {
         Assert.True(WorkSpots.Measured(Ids.Cistern));
         Assert.Equal(11, WorkSpots.Out(Ids.Cistern), 3);
+    }
+
+    [Fact]
+    public void The_cistern_is_refused_inside_a_building_but_not_outside_or_on_a_roof()
+    {
+        static PlacementAsk Ask(string id, string? parent) =>
+            new(new BuildingBuildData { Id = id, Name = id }, Vector3.Zero, 0, parent, 0, false);
+
+        Assert.Equal(Cisterns.OutsideOnly, Cisterns.Refuse(Ask(Ids.Cistern, "house")));
+        Assert.Null(Cisterns.Refuse(Ask(Ids.Cistern, null)));
+        Assert.Null(Cisterns.Refuse(Ask(Ids.Counter, "house")));
     }
 }

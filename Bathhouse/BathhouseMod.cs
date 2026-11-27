@@ -58,6 +58,7 @@ public sealed class BathhouseMod : IMod, IModDataPhase
             context.AddJobOffer(StaffRoles.Offer(role));
         }
         context.AddStatusEffect(Soothing.Soothed);
+        context.AddPlacementRule(Cisterns.Placement);
 
         var purpose = context.RngPurpose;
         context.AddItemUse(Ids.Towel, use => Towels.Use(use, purpose));
