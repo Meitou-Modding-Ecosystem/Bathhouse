@@ -273,8 +273,9 @@ feeds a Hauling to job. The Water Cistern is a machine instead: its functionalit
 runs unattended) without the well's world resource, with `output rate` 0 so it makes nothing, and its output holds 200 Water. Haulers fill
 water tanks and the tea bench from it as from a well (**Verified** in the headless harness on the Settlement Test save: a Water Tank hauler
 drew 30 Water out of it). Its Water carrier keeps it full; its panel shows the Water stored and the carrier. Its model is
-`Structures/cistern.glb` at 1.8 m (`cistern.json` `height`), placed outdoors only (`is exterior furniture`; the game's outdoor rule takes
-a roof as outside: "Must be placed outside or on a roof."); a new height moves its front face, so `WorkSpots` `Faces` (5.0 at 1.8 m, half
+`Structures/cistern.glb` at 1.8 m (`cistern.json` `height`), marked outdoor (`is exterior furniture` only). That does not keep it
+out of buildings: the game refuses exterior-only furniture indoors only for a rain collector (`function` 26, "Must be placed outside or on a
+roof."; MeitouClient docs/game/buildings-production.md); a new height moves its front face, so `WorkSpots` `Faces` (5.0 at 1.8 m, half
 the model's depth) scales with it.
 
 ## Animations
