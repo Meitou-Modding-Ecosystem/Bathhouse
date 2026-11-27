@@ -99,7 +99,7 @@ The system (`Bathing/BathhouseSystem`, at the end of the tick) checks once a gam
   building keeps the selection). The next check turns each into a soak; one that cannot go (cold tub, full tub) barks why.
 - **Soaks** (`Soaks`): a sent bather holds the first free seat and gets the bath goal's desire (0.75, urgent tier; 0 for everyone else).
   When the chooser starts the goal the bather walks to the tub's work spot (in front, local +Z, Work spots above), is placed in its seat (one at the
-  centre, two side by side, four on a square, 6 units out) and rests there (`CharacterTask.Rest`, sitting on the ground) on row 4401. Warm
+  centre, two side by side, four on a square, 6 units out) and rests there (`CharacterTask.Rest`, kneeling and washing: Animations) on row 4401. Warm
   hours count while it sits; it stands up in front of the tub when the soak's length is reached or the water goes cold. A fight or another goal
   gets it out and the goal starts again later (one still in its seat, or whose rest something else ended while the goal held, rests again where it
   sits, without standing up first); an order, leaving the world, a gone tub, being knocked down or not getting in within 3 hours
@@ -287,6 +287,12 @@ hivers, skeletons, fishmen; not the Hive Queen), and a disabled COMBAT_TECHNIQUE
 - `bathhouse_tea_sit` (`95-`, 2.5 s loop): a customer sitting at a tea table plays it as a mod combat move (`BathhouseMod.TeaSitMove`, from the
   sitters `Clientele` publishes each step), cross-legged facing the table. Meshy's Sit_Cross_Legged_on_Floor retargeted onto both skeletons
   with the Motion Lab (Meitou-Modding-Ecosystem/PZAKenshiMotionLab, `rig --reference`, then `motionlab.kenshi_export`), played in place.
+- `bathhouse_bath_enter` (`97-`, 1.3 s) and `bathhouse_bath_wash` (`98-`, 6.37 s loop): a bather in the water (`Soaks.SeatedSince`, published
+  at each sit-down and serial step) plays the kneel once from the tick it sat down, then the wash on a loop until it gets out
+  (`BathhouseMod.BathMove`, `AnimationRecords.BathFrame`); sitting down again kneels again. From the Kat-Lon rig's 10 s `Bathing_Loop`
+  (Bip001 bones renamed to Mixamo roles, retargeted like the tea sit): the kneel is 0 to 1.3 s, the wash 1.3 to 7.67 s, the pair whose
+  poses match best after the kneel; its last 0.5 s blends into the frames before 1.3 s, so its last key is its first pose and the kneel's
+  last key is the wash's first.
 
 ## Research
 

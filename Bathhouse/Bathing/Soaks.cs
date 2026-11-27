@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Numerics;
 using Bathhouse.Records;
 using Meitou.Data.Gameplay.Ai;
@@ -68,6 +69,11 @@ public sealed class Soak
     /// Whether it sits in the water now (not saved: tasks are not, so a loaded bather walks back in).
     /// </summary>
     public bool Seated { get; set; }
+
+    /// <summary>
+    /// The tick it last sat down in the water, which starts its bath clips (not saved, as <see cref="Seated"/>).
+    /// </summary>
+    public long SeatedAt { get; set; }
 }
 
 /// <summary>
@@ -129,6 +135,12 @@ public sealed class Soaks(Heating heating, Action<World, int, Soak, SoakEnd> fin
     /// The soaks of the bathers in the world now, by character id: what <see cref="IModGoal.Desire"/> reads. Rebuilt in the serial step.
     /// </summary>
     Dictionary<CharacterId, Soak> _present = [];
+
+    /// <summary>
+    /// The bathers in the water and the tick each sat down, published after each serial step and each sit-down for <see cref="SeatedSince"/> (read from the
+    /// animation's parallel step).
+    /// </summary>
+    volatile FrozenDictionary<CharacterId, long> _bathers = FrozenDictionary<CharacterId, long>.Empty;
 
     /// <summary>
     /// Every soak, for saving, hashing and the debug view.
@@ -227,7 +239,21 @@ public sealed class Soaks(Heating heating, Action<World, int, Soak, SoakEnd> fin
         }
 
         DropStale(world);
+        PublishBathers();
     }
+
+    /// <summary>
+    /// Publishes the bathers in the water for <see cref="SeatedSince"/>.
+    /// </summary>
+    void PublishBathers() =>
+        _bathers = _present
+            .Where(p => p.Value.Seated)
+            .ToFrozenDictionary(p => p.Key, p => p.Value.SeatedAt);
+
+    /// <summary>
+    /// The tick a bather sat down in the water, as of the last serial step; null when it is not in the water. Its bath clips run from then.
+    /// </summary>
+    public long? SeatedSince(CharacterId id) => _bathers.TryGetValue(id, out long tick) ? tick : null;
 
     /// <summary>
     /// One bather: called off when its tub is gone, it is down or it waited too long; stepped in on arrival; its soak counted while seated.
@@ -273,7 +299,15 @@ public sealed class Soaks(Heating heating, Action<World, int, Soak, SoakEnd> fin
         soak.Robed ??= Robes.PutOn(world, slot, tub.Building, soak, data);
         if (!InSeat(world, slot, tub, soak)) Place(world, slot, Tubs.SeatAt(tub, soak.Seat));
 
+        bool wasSeated = soak.Seated;
         soak.Seated = Rest(world, slot);
+        if (soak.Seated && !wasSeated)
+        {
+            // Published at once, so the kneel plays from its start rather than from the next serial step.
+            soak.SeatedAt = world.Tick;
+            PublishBathers();
+        }
+
         return soak.Seated;
     }
 

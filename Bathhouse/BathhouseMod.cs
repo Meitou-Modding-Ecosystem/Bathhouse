@@ -36,6 +36,12 @@ public sealed class BathhouseMod : IMod, IModDataPhase
     const float TeaSitSeconds = 2.5f;
 
     /// <summary>
+    /// The bath's kneel-in and wash COMBAT_TECHNIQUEs (<see cref="AnimationRecords"/>); null when the data phase did not add them (bathers then
+    /// sit as the game rests).
+    /// </summary>
+    CombatTechnique? _bathEnter, _bathWash;
+
+    /// <summary>
     /// Adds the mod's items, machines, furniture, research and bath goal to the merged game data.
     /// </summary>
     public void EditData(ModDataContext context)
@@ -64,6 +70,9 @@ public sealed class BathhouseMod : IMod, IModDataPhase
         context.AddItemUse(Ids.Towel, use => Towels.Use(use, purpose));
         _teaSit = context.Data.Find(Ids.TeaSitMove) is { } sit ? CombatTechnique.From(sit) : null;
         context.AddCombatMove(TeaSitMove);
+        _bathEnter = context.Data.Find(Ids.BathEnterMove) is { } enter ? CombatTechnique.From(enter) : null;
+        _bathWash = context.Data.Find(Ids.BathWashMove) is { } wash ? CombatTechnique.From(wash) : null;
+        context.AddCombatMove(BathMove);
         context.AddSystem("bathhouse", build => _latest = new BathhouseSystem(purpose, build.Data), SystemAnchor.End);
         ConditionBars.System = () => _latest;
         context.Harmony.PatchAll(typeof(BathhouseMod).Assembly);
@@ -81,6 +90,18 @@ public sealed class BathhouseMod : IMod, IModDataPhase
 
         float seconds = tick * world.TickSeconds;
         return new CombatMove(_teaSit, seconds % TeaSitSeconds / TeaSitSeconds);
+    }
+
+    /// <summary>
+    /// The bath clips for a bather in the water: kneeling in from the tick it sat down, then washing on a loop (a mod combat move: read-only, from
+    /// the last serial step's view).
+    /// </summary>
+    CombatMove? BathMove(World world, CharacterId id, long tick)
+    {
+        if (_bathEnter is null || _bathWash is null || _latest?.BathingSince(id) is not { } since) return null;
+
+        var (enter, progress) = AnimationRecords.BathFrame((tick - since) * world.TickSeconds);
+        return new CombatMove(enter ? _bathEnter : _bathWash, progress);
     }
 
     /// <summary>

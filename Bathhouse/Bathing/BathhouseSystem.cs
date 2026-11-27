@@ -399,6 +399,11 @@ public sealed class BathhouseSystem : ITickSystem, IStateHashed, IModSaveData, I
     public bool SitsAtTea(CharacterId id) => _clientele.SitsAtTea(id);
 
     /// <summary>
+    /// The tick a bather sat down in the water (<see cref="Soaks.SeatedSince"/>); null when it is not in the water.
+    /// </summary>
+    public long? BathingSince(CharacterId id) => _soaks.SeatedSince(id);
+
+    /// <summary>
     /// The latest guest list (written in the tick, read on the host's thread).
     /// </summary>
     volatile GuestsNow _guests = new([], []);
