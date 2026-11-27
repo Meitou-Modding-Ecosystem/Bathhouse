@@ -121,4 +121,11 @@ public sealed class StaffTests
         Assert.All(nodes, n => Assert.Equal(WorkSpots.Out(Ids.TeaBench), n.Z));
         Assert.NotEqual(nodes[0], nodes[1]);
     }
+
+    [Fact]
+    public void The_cistern_is_poured_into_from_in_front_of_its_model()
+    {
+        Assert.True(WorkSpots.Measured(Ids.Cistern));
+        Assert.Equal(11, WorkSpots.Out(Ids.Cistern), 3);
+    }
 }

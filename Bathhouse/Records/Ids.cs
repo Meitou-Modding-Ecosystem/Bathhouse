@@ -149,7 +149,8 @@ public static class Ids
         KilnLook = "901800-" + FileName, ReviewBoardLook = "902100-" + FileName, StatueLook = "902200-" + FileName,
         ZenGardenLook = "902300-" + FileName, TeaDisplayLook = "902400-" + FileName, TeaShelfLook = "902500-" + FileName,
         RobeHamperLook = "902600-" + FileName, SoapShelfLook = "902700-" + FileName, TeawareShelfLook = "902800-" + FileName,
-        TeaSetCabinetLook = "902900-" + FileName, UsedTeaRackLook = "903000-" + FileName;
+        TeaSetCabinetLook = "902900-" + FileName, UsedTeaRackLook = "903000-" + FileName,
+        CisternLook = "903100-" + FileName;
 
     #endregion
 
