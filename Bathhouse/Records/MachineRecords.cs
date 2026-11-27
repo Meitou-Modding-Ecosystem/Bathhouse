@@ -230,7 +230,8 @@ static class MachineRecords
     }
 
     /// <summary>
-    /// The water cistern: the game's Old Water Tower look (until a model of its own) without its storage grid, with the cistern functionality.
+    /// The water cistern: its own look (the Old Water Tower's without the model) with the Water Tower's build cost and front use nodes, without a
+    /// storage grid, with the cistern functionality.
     /// </summary>
     static FcsRecord Cistern(GameDatabase game)
     {
@@ -239,6 +240,7 @@ static class MachineRecords
         var record = RecordKit.Copy(model, Ids.Cistern, "Water Cistern", "functionality", "upgrades to", "limit inventory");
 
         if (model != standIn) KeepCost(standIn, record);
+        if (model != standIn) FurnitureRecords.AddFrontNodes(record, Ids.Cistern);
         RecordKit.Links(record, "functionality", (Ids.CisternWork, 0, 0));
         record.Bools["has inventory"] = false;
         record.Ints["max operators"] = 0;

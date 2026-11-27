@@ -61,6 +61,7 @@ public static class WorkSpots
         [Ids.Kiln] = 10.6f,
         [Ids.WashingMachine] = 4.5f,
         [Ids.TeaBench] = 4.4f,
+        [Ids.Cistern] = 5.0f,
     };
 
     /// <summary>

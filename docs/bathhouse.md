@@ -15,7 +15,7 @@ for its look (a stand-in until the mod's models land) and links game items by id
 | Production (function 4) | Towel Loom (Fabrics to 2 Towels), Soap Press (Hemp to Soap), Tea Dryer (Greenfruit to Greenfruit Tea), Pottery Kiln (Raw Stone to Teaware) | Fabric Loom (hemp), Hemp Processor, Biofuel Distillery (Hemp), Cooking Stove |
 | Crafting (function 10) | Tea Bench: Tea Set from Teaware + Greenfruit Tea + Water (the Tea Set's `ingredients`; only while the building is hot, Tea works); Washing Machine: a queue of Towel (Dirty Towel + 1/4 Soap) and Bathhouse Robe (Dirty Robe + 1/4 Soap) washes, 1 h each (the items' `ingredients` and `production time`; output holds 10 towels or 1 robe) | Cooking Stove, Sake Still |
 | Power | Steam Boiler: draws 10, functionality the game's Lights (a consumer with no operator, so the Power switch shows) | Boiler Tank |
-| Water | Bathhouse Water Tank: Resource storage limited to Water, as the game's Water Tower; Water Cistern (Water cistern) | Small Water Tank, Old Water Tower |
+| Water | Bathhouse Water Tank: Resource storage limited to Water, as the game's Water Tower; Water Cistern (Water cistern) | Small Water Tank, own model (build cost of the Old Water Tower) |
 | Tubs (Resource storage that takes nothing: `itemtype limit` BUILDING, so only a Shift + right click uses it) | Small Tub (1 seat), Medium Tub (2), Large Bath (4), Oil Bath, Blood Bath (+10 Raw Meat to build) | own model (below), Large Barrels, Booze Barrels, Booze Barrel, Cannibal Butcher Table |
 | Service | Massage Bed (bed), Massage Station (Towels only, 5), Check-in Counter (Towels and Soap only, so haulers stock it; grid 12 x 10), Lockers (locks; haulers store only Robes: `itemtype limit` ARMOUR and `limit inventory` Robe and Dirty Robe, two items so the grid stays 8 x 8 instead of one robe's footprint), Laundry Hamper (Dirty Towels only), Robe Hamper (Dirty Robes only), Towel Rack (Towels only), Soap Shelf (Soap only), Tea Table (one Tea Set or Used Tea Set: both listed, grid 2 x 2, one set's footprint), Tea Shelf (Greenfruit Tea only), Teaware Shelf (Teaware only), Tea Set Cabinet (Tea Sets only), Used Tea Rack (Used Tea Sets only), Review Board | Bed, Small Table, Shop Counter, Crossbow Locker, Small Barrel, Small Barrel, Shelf, Shelf, Small Table, Shelf, Shelf, Shelf, Shelf, banner_traders |
 | Decorations | Zen Garden, Wall Art, Tapestry, Statue, Towel Hanger, Tea Set Display | Carpet: Rusty Rug, banner_empire, banner_holy, Emperor Statue, Wall Shelf 1, Wall Shelf 2 |
@@ -272,7 +272,9 @@ The game's haulers draw only from machine outputs, never from a storage (`Produc
 feeds a Hauling to job. The Water Cistern is a machine instead: its functionality copies the game's well (`function` 4, max operators 0, so it
 runs unattended) without the well's world resource, with `output rate` 0 so it makes nothing, and its output holds 200 Water. Haulers fill
 water tanks and the tea bench from it as from a well (**Verified** in the headless harness on the Settlement Test save: a Water Tank hauler
-drew 30 Water out of it). Its Water carrier keeps it full; its panel shows the Water stored and the carrier.
+drew 30 Water out of it). Its Water carrier keeps it full; its panel shows the Water stored and the carrier. Its model is
+`Structures/cistern.glb` at 1.8 m (`cistern.json` `height`); a new height moves its front face, so `WorkSpots` `Faces` (5.0 at 1.8 m, half
+the model's depth) scales with it.
 
 ## Animations
 
