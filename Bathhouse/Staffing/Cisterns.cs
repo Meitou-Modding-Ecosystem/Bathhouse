@@ -1,5 +1,6 @@
 using Bathhouse.Bathing;
 using Bathhouse.Records;
+using Meitou.Modding;
 using Meitou.Simulation;
 using Meitou.Simulation.Construction;
 using Meitou.Simulation.Production;
@@ -12,6 +13,22 @@ namespace Bathhouse.Staffing;
 /// </summary>
 public static class Cisterns
 {
+    /// <summary>
+    /// The build mode text for a cistern ghost inside a building (the game's own text for a rain collector there).
+    /// </summary>
+    public const string OutsideOnly = "Must be placed outside or on a roof.";
+
+    /// <summary>
+    /// The placement rule that keeps the cistern out of buildings: refused on a building's floor or snap node, allowed on the ground and on a roof
+    /// or wall top (docs/bathhouse.md "Water cistern").
+    /// </summary>
+    public static readonly PlacementRule Placement = new() { Refuse = Refuse };
+
+    /// <summary>
+    /// <see cref="OutsideOnly"/> for a cistern ghost standing in or on a building; null for any other ghost.
+    /// </summary>
+    public static string? Refuse(PlacementAsk ask) => ask.Building.Id == Ids.Cistern && ask.Parent is not null ? OutsideOnly : null;
+
     /// <summary>
     /// The cistern's output, while it is a finished cistern holding Water; null otherwise.
     /// </summary>

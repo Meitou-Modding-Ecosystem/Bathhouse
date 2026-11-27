@@ -274,9 +274,10 @@ runs unattended) without the well's world resource, with `output rate` 0 so it m
 water tanks and the tea bench from it as from a well (**Verified** in the headless harness on the Settlement Test save: a Water Tank hauler
 drew 30 Water out of it). Its Water carrier keeps it full; its panel shows the Water stored and the carrier. Its model is
 `Structures/cistern.glb` at 1.8 m (`cistern.json` `height`), marked outdoor (`is exterior furniture` only). That does not keep it
-out of buildings: the game refuses exterior-only furniture indoors only for a rain collector (`function` 26, "Must be placed outside or on a
-roof."; MeitouClient docs/game/buildings-production.md); a new height moves its front face, so `WorkSpots` `Faces` (5.0 at 1.8 m, half
-the model's depth) scales with it.
+out of buildings (the game refuses only a rain collector indoors, `function` 26; MeitouClient docs/game/buildings-production.md), so the mod's
+placement rule (`Cisterns.Placement`) refuses it on a building's floor or snap node with the game's text "Must be placed outside or on a
+roof."; the ground and a roof or wall top stay allowed. A new height moves its front face, so `WorkSpots` `Faces` (5.0 at 1.8 m, half the
+model's depth) scales with it.
 
 ## Animations
 
