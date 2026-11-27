@@ -201,5 +201,10 @@ public static class Ids
     /// </summary>
     public const string TeaSitMove = "95-" + FileName, Animations = "96-" + FileName;
 
+    /// <summary>
+    /// The bath's <c>COMBAT_TECHNIQUE</c>s: kneeling into the water, then washing (<see cref="AnimationRecords"/>).
+    /// </summary>
+    public const string BathEnterMove = "97-" + FileName, BathWashMove = "98-" + FileName;
+
     #endregion
 }

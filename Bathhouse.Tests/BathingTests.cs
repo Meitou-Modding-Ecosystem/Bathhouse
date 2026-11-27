@@ -1,7 +1,9 @@
 using Bathhouse.Customers;
 using Bathhouse.Bathing;
 using Bathhouse.Records;
+using System.Text;
 using Meitou.Data;
+using Meitou.Data.Fcs;
 using Meitou.Data.Gameplay.Bodies;
 using Meitou.Simulation;
 using Meitou.Simulation.Bodies;
@@ -164,5 +166,45 @@ public sealed class BathingTests
 
         StatusEffects.Add(effect);
         return effect;
+    }
+
+    [Fact]
+    public void A_bather_kneels_in_once_then_washes_on_a_loop()
+    {
+        Assert.Equal((true, 0f), AnimationRecords.BathFrame(0));
+        Assert.True(AnimationRecords.BathFrame(AnimationRecords.BathEnterSeconds / 2) is (true, 0.5f));
+
+        var start = AnimationRecords.BathFrame(AnimationRecords.BathEnterSeconds);
+        var again = AnimationRecords.BathFrame(AnimationRecords.BathEnterSeconds + 3 * AnimationRecords.BathWashSeconds);
+        Assert.False(start.Enter);
+        Assert.Equal(0, start.Progress, 3);
+        Assert.False(again.Enter);
+        Assert.Equal(0, again.Progress % 1, 2);
+        Assert.InRange(AnimationRecords.BathFrame(1000).Progress, 0, 1);
+    }
+
+    [Fact]
+    public void Each_clip_has_a_disabled_technique_and_is_in_both_skeleton_files()
+    {
+        var techniques = AnimationRecords.Build().Where(r => r.RecordType == FcsRecordType.CombatTechnique).ToList();
+        string[] clips = [AnimationRecords.TeaSitClip, AnimationRecords.BathEnterClip, AnimationRecords.BathWashClip];
+
+        Assert.Equal(clips, techniques.Select(t => t.Strings["anim name"]));
+        Assert.All(techniques, t => Assert.True(t.Bools["disabled"]));
+        foreach (string file in new[] { "bathhouse_male.skeleton", "bathhouse_female.skeleton" })
+        {
+            byte[] bytes = File.ReadAllBytes(Path.Combine(RepoRoot(), "Bathhouse", "items", "animations", file));
+            Assert.All(clips, clip => Assert.True(bytes.AsSpan().IndexOf(Encoding.ASCII.GetBytes(clip + "\n")) >= 0, $"{file} lacks {clip}"));
+        }
+    }
+
+    /// <summary>
+    /// The repository's root: the first folder above the test binaries that holds the mod's folder.
+    /// </summary>
+    static string RepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "Bathhouse", "items"))) dir = dir.Parent;
+        return dir?.FullName ?? throw new DirectoryNotFoundException("Bathhouse/items");
     }
 }

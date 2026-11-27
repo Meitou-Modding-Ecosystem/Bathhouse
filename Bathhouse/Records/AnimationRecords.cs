@@ -17,6 +17,28 @@ public static class AnimationRecords
     public const string TeaSitClip = "bathhouse_tea_sit";
 
     /// <summary>
+    /// The clip a bather kneels into the water with (1.3 s, played once), and the washing clip it loops after it (6.37 s, its last key the first
+    /// pose, so it repeats without a seam).
+    /// </summary>
+    public const string BathEnterClip = "bathhouse_bath_enter", BathWashClip = "bathhouse_bath_wash";
+
+    /// <summary>
+    /// The lengths in seconds of <see cref="BathEnterClip"/> and <see cref="BathWashClip"/>.
+    /// </summary>
+    public const float BathEnterSeconds = 1.3f, BathWashSeconds = 6.3667f;
+
+    /// <summary>
+    /// Which bath clip plays <paramref name="seconds"/> after the bather sat down, and how far through it (0 to 1): the kneel once, then the wash
+    /// looping until the soak ends.
+    /// </summary>
+    public static (bool Enter, float Progress) BathFrame(float seconds)
+    {
+        if (seconds < BathEnterSeconds) return (true, Math.Max(0, seconds) / BathEnterSeconds);
+
+        return (false, (seconds - BathEnterSeconds) % BathWashSeconds / BathWashSeconds);
+    }
+
+    /// <summary>
     /// The clip files for male and female bodies (male_skeleton and female_skeleton bones); the game links them by bare name.
     /// </summary>
     const string MaleFile = @".\mods\Bathhouse\items\animations\bathhouse_male.skeleton",
@@ -34,19 +56,29 @@ public static class AnimationRecords
     const string QueenMesh = "hive_queen.mesh";
 
     /// <summary>
-    /// The tea sit's technique and the animation file.
+    /// The clips' techniques and the animation file.
     /// </summary>
     public static IEnumerable<FcsRecord> Build()
     {
-        var sit = RecordKit.New(Ids.TeaSitMove, FcsRecordType.CombatTechnique, "Bathhouse tea sit");
-        sit.Strings["anim name"] = TeaSitClip;
-        sit.Bools["disabled"] = true;
-        yield return sit;
+        yield return Technique(Ids.TeaSitMove, "Bathhouse tea sit", TeaSitClip);
+        yield return Technique(Ids.BathEnterMove, "Bathhouse bath enter", BathEnterClip);
+        yield return Technique(Ids.BathWashMove, "Bathhouse bath wash", BathWashClip);
 
         var file = RecordKit.New(Ids.Animations, FcsRecordType.AnimationFile, "Bathhouse animations");
         file.Filenames["male animation"] = MaleFile;
         file.Filenames["female animation"] = FemaleFile;
         yield return file;
+    }
+
+    /// <summary>
+    /// A disabled technique that plays one clip.
+    /// </summary>
+    static FcsRecord Technique(string id, string name, string clip)
+    {
+        var technique = RecordKit.New(id, FcsRecordType.CombatTechnique, name);
+        technique.Strings["anim name"] = clip;
+        technique.Bools["disabled"] = true;
+        return technique;
     }
 
     /// <summary>
